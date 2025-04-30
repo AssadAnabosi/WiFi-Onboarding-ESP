@@ -1,0 +1,40 @@
+.toast-container {
+  position: fixed;
+  /* bottom: 6rem; */
+  top: 3rem;
+  right: 0;
+  z-index: 50;
+  width: fit-content;
+  min-width: 18rem;
+  --transform-translate-x: -50%;
+}
+
+.toast {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+
+  margin-top: -2.5rem;
+  border-radius: var(--radius);
+  border-width: 1px;
+  text-align: center;
+  align-content: center;
+  border-color: var(--border);
+  background-color: var(--muted);
+  color: var(--card-foreground);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  min-height: 5rem;
+  border-radius: var(--radius);
+  transform: scale(0.9) translateY(50px);
+  transition: margin-top 0.5s, transform 0.5s, opacity 0.5s;
+}
+
+.toast.show {
+  margin-top: 0.5rem;
+  --transform-scale-x: 1;
+  --transform-scale-y: 1;
+  --transform-translate-y: 0;
+  opacity: 1;
+}

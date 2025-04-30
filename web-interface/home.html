@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/index.css" />
+    <link rel="stylesheet" href="css/home.css" />
+    <link rel="stylesheet" href="css/toast.css" />
+    <script src="js/index.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/toast.js"></script>
+    <title>Wi-Fi On-Boarding</title>
+  </head>
+  <body onload="checkConnection()">
+    <nav>
+      <div>
+        <a class="active" href="home.html">Home</a>
+        <a href="scan.html">Scan</a>
+      </div>
+      <div>
+        <a href="settings.html">Settings</a>
+      </div>
+    </nav>
+    <div id="status-banner"></div>
+    <div class="container">
+      <section>
+        <h1>Status</h1>
+        <div id="cards-container" class="cards-container">
+          <div class="card">
+            <div class="card-badge skeleton"></div>
+            <div class="card-title">Soft Access Point Mode</div>
+            <div class="card-description text-sm text-muted">
+              Access point for direct connection
+            </div>
+            <div class="card-content">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="icon skeleton"
+              >
+                <path d="M12 20h.01"></path>
+                <path d="M2 8.82a15 15 0 0 1 20 0"></path>
+                <path d="M5 12.859a10 10 0 0 1 14 0"></path>
+                <path d="M8.5 16.429a5 5 0 0 1 7 0"></path>
+              </svg>
+              <div class="connection-details">
+                <div>
+                  <p
+                    style="height: 20px; width: 80px"
+                    class="bg-background skeleton"
+                  ></p>
+                  <p
+                    style="height: 21px; width: 125px"
+                    class="bg-background skeleton"
+                  ></p>
+                </div>
+                <div>
+                  <p
+                    style="height: 20px; width: 80px"
+                    class="bg-background skeleton"
+                  ></p>
+                  <p
+                    style="height: 21px; width: 125px"
+                    class="bg-background skeleton"
+                  ></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-badge skeleton"></div>
+            <div class="card-title">Station Mode</div>
+            <div class="card-description">
+              Connection to existing WiFi network
+            </div>
+            <div class="card-content">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="icon skeleton"
+              >
+                <path d="M12 20h.01"></path>
+                <path d="M2 8.82a15 15 0 0 1 20 0"></path>
+                <path d="M5 12.859a10 10 0 0 1 14 0"></path>
+                <path d="M8.5 16.429a5 5 0 0 1 7 0"></path>
+              </svg>
+              <div class="connection-details">
+                <div>
+                  <p
+                    style="height: 20px; width: 180px"
+                    class="bg-background skeleton"
+                  ></p>
+                  <p
+                    style="height: 21px; width: 200px"
+                    class="bg-background skeleton"
+                  ></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer style="text-align: center">
+      <span style="letter-spacing: 0.1rem">Created By </span>
+      <a href="https://github.com/assadanabosi">Assad Anabosi</a>
+    </footer>
+  </body>
+</html>
