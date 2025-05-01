@@ -1,21 +1,4 @@
-var access_points = [
-  {
-    ssid: "SSID",
-    channel: "1",
-    rssi: "-50",
-    enc: "WPA2",
-    mac: "00:00:00:00:00:00",
-    connected: false,
-  },
-  {
-    ssid: "SSID",
-    channel: "1",
-    rssi: "-50",
-    enc: "WPA2",
-    mac: "00:00:00:00:00:00",
-    connected: true,
-  },
-];
+var access_points = [];
 
 updateListeners = function () {
   if (window.innerWidth <= 768) {
