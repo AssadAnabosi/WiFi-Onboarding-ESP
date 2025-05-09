@@ -97,7 +97,7 @@ function load() {
   apiCall({
     endpoint: "/api/scan",
     callback: function (res) {
-      access_points = JSON.parse(res);
+      access_points = res;
       setStatusBanner("connected");
       draw();
     },
@@ -123,13 +123,11 @@ function connect(ssid) {
       title: "Enter password for " + ssid,
       input: true,
       buttonText: "Connect",
+      onclick: function () {
+        var password = getById("modal-input").value;
+        sendConnectRequest(ssid, password);
+      },
     });
-
-    getById("modal-button").onclick = function () {
-      var password = getById("modal-input").value;
-      getById("modal-container").style.display = "none";
-      sendConnectRequest(ssid, password);
-    };
   }
 }
 
@@ -138,7 +136,7 @@ function sendConnectRequest(ssid, password) {
     endpoint: "/api/connect",
     method: "POST",
     data: { ssid: ssid, password: password },
-    callback: function (res) {
+    callback: function () {
       showMessage("Connected to " + ssid);
       load();
     },
@@ -150,12 +148,10 @@ function disconnect(ssid) {
     title: "Are you sure you want to disconnect from " + ssid + "?",
     input: false,
     buttonText: "Disconnect",
+    onclick: function () {
+      sendDisconnectRequest();
+    },
   });
-
-  getById("modal-button").onclick = function () {
-    getById("modal-container").style.display = "none";
-    sendDisconnectRequest();
-  };
 }
 
 function sendDisconnectRequest() {

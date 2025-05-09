@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/index.css" />
+    <link rel="stylesheet" href="css/toast.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    <link rel="stylesheet" href="css/modal.css" />
+    <script src="js/index.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/modal.js"></script>
+    <title>Wi-Fi On-Boarding</title>
+  </head>
+  <body onload="checkConnection()">
+    <nav>
+      <div>
+        <a href="home.html">Home</a>
+        <a href="scan.html">Scan</a>
+      </div>
+      <div>
+        <a class="active" href="settings.html">Settings</a>
+      </div>
+    </nav>
+    <div id="status-banner"></div>
+    <div class="container">
+      <section>
+        <h1>Settings</h1>
+        <div class="main-actions">
+          <button onclick="reset()" class="red">Reset</button>
+          <button onclick="reboot()" class="red right">Reboot</button>
+        </div>
+        <p style="color: oklch(63.7% 0.237 25.331); font-size: larger">
+          Information:
+        </p>
+        <ul>
+          <li>
+            Click save to make sure that your changes are applied. Device will
+            reboot and page will reload in 30 seconds.
+          </li>
+          <li>
+            <strong>Reload</strong>: Loads the current settings from the device
+            / Resets form data.
+          </li>
+          <li>
+            <strong>Reset</strong>: Resets the device to factory settings.
+          </li>
+          <li><strong>Reboot</strong>: Restarts the device.</li>
+        </ul>
+        <p>
+          In case of an unexpected error, please connect to the device own
+          access point. or use console to check the logs.
+        </p>
+      </section>
+      <hr />
+      <section style="position: relative">
+        <h2>Configuration</h2>
+        <button id="reload-settings" onclick="load()">Reload</button>
+      </section>
+      <!-- <section> -->
+      <section>
+        <table>
+          <tbody>
+            <!-- AP SSID -->
+            <tr>
+              <td><label for="ap_ssid">AP SSID</label></td>
+              <td><input type="text" name="ap_ssid" id="ap_ssid" /></td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">
+                  SSID of access point used for the web interface (if enabled).
+                  The length must be between 1 and 31 characters.
+                </p>
+              </td>
+            </tr>
+            <!-- AP Password -->
+            <tr>
+              <td><label for="ap_password">AP Password</label></td>
+              <td>
+                <input type="text" name="ap_password" id="ap_password" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">
+                  Password of access point used for the web interface (if
+                  enabled). The length must be between 8 and 31 characters.
+                </p>
+              </td>
+            </tr>
+            <!-- AP Channel -->
+            <tr>
+              <td><label for="ap_channel">AP Channel</label></td>
+              <td>
+                <input type="number" name="ap_channel" id="ap_channel" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">
+                  Default WiFi channel that is used when starting.
+                </p>
+              </td>
+            </tr>
+            <!-- AP Hidden -->
+            <tr>
+              <td><label for="ap_hidden">AP Hidden</label></td>
+              <td>
+                <input type="checkbox" name="ap_hidden" id="ap_hidden" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">
+                  Hides the access point that is used for the web interface (if
+                  enabled).
+                </p>
+              </td>
+            </tr>
+            <!-- Access Point Enabled -->
+            <tr>
+              <td><label for="ap_status">Access Point</label></td>
+              <td>
+                <input type="checkbox" name="ap_status" id="ap_status" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">Enables the access point.</p>
+              </td>
+            </tr>
+            <!-- Hostname -->
+            <tr>
+              <td><label for="hostname">Hostname</label></td>
+              <td>
+                <input type="text" name="hostname" id="hostname" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p class="text-sm text-muted">
+                  Hostname of the device. This is used to identify the device on
+                  the network. The length must be between 1 and 31 characters.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3">
+                <button onclick="save()">Save</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <!-- </section> -->
+    </div>
+    <footer style="text-align: center">
+      <span style="letter-spacing: 0.1rem">Created By </span>
+      <a href="https://github.com/assadanabosi">Assad Anabosi</a>
+    </footer>
+    <div id="modal-container" class="modal-container" style="display: none">
+      <div class="modal">
+        <span id="close-modal" class="close">&times;</span>
+        <h2 id="modal-title"></h2>
+        <input
+          type="password"
+          id="modal-input"
+          placeholder="Enter Password"
+          style="display: none"
+        />
+        <br />
+        <button id="modal-button"></button>
+      </div>
+    </div>
+  </body>
+</html>

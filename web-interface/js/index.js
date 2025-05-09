@@ -50,7 +50,9 @@ function apiCall({
     let msg = "Request timed out for " + endpoint;
     console.error(msg);
     toast(msg, 6000);
-    if ("undefined" != typeof draw) draw();
+    if (typeof draw !== "undefined") {
+      draw();
+    }
   },
   onError = function (error) {
     setStatusBanner("error");
@@ -59,7 +61,9 @@ function apiCall({
     toast(msg, 6000);
     console.error("Response: " + this.responseText);
     console.error(error);
-    if ("undefined" != typeof draw) draw();
+    if (typeof draw !== "undefined") {
+      draw();
+    }
   },
   data = null,
 }) {
@@ -74,15 +78,24 @@ function apiCall({
   request.overrideMimeType("application/json");
   request.onreadystatechange = function () {
     if (this.readyState === XMLHttpRequest.DONE) {
-      if (200 === this.status) n(JSON.parse(this.responseText));
-      else {
+      if (200 === this.status) {
+        callback(JSON.parse(this.responseText));
+      } else {
         setStatusBanner("error");
-        let t = "Request failed for " + endpoint + ": " + this.statusText;
-        toast(t, 6000),
-          console.error(this),
-          console.error(t),
-          console.error("Response: " + this.responseText),
-          "undefined" != typeof draw && draw();
+        let msg =
+          "Request failed for " +
+          method +
+          " " +
+          endpoint +
+          ": " +
+          this.statusText;
+        toast(msg, 6000);
+        console.error(this);
+        console.error(msg);
+        console.error("Response: " + this.responseText);
+        if (typeof draw !== "undefined") {
+          draw();
+        }
       }
     }
   };
@@ -90,7 +103,9 @@ function apiCall({
 }
 
 function connected() {
-  "undefined" != typeof load && load();
+  if (typeof load !== "undefined") {
+    load();
+  }
 }
 function checkConnection() {
   apiCall({

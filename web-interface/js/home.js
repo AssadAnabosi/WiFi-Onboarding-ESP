@@ -45,7 +45,7 @@ function load() {
   apiCall({
     endpoint: "/api/status",
     callback: function (res) {
-      connections_status = JSON.parse(res);
+      connections_status = res;
       draw();
     },
     draw: draw,

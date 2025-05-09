@@ -1,4 +1,4 @@
-function handleModal({ title, input, buttonText }) {
+function handleModal({ title, input, buttonText, onclick }) {
   getById("modal-title").innerText = title;
   getById("modal-button").innerText = buttonText;
   getById("modal-button").classList.remove("red");
@@ -48,5 +48,12 @@ function handleModal({ title, input, buttonText }) {
     if (event.target == getById("modal-container")) {
       getById("modal-container").style.display = "none";
     }
+  };
+
+  getById("modal-button").onclick = function () {
+    if (onclick) {
+      onclick();
+    }
+    getById("modal-container").style.display = "none";
   };
 }

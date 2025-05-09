@@ -1,0 +1,91 @@
+.main-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.main-actions button {
+  color: var(--red);
+  border-radius: 0.5rem;
+}
+
+#reload-settings {
+  color: var(--foreground);
+  background-color: var(--accent);
+  position: absolute;
+  right: 2rem;
+  top: 6px;
+}
+
+#reload-settings:hover {
+  color: var(--foreground);
+  background-color: var(--primary);
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+}
+
+td label {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+td input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+}
+
+td button {
+  width: 100%;
+  margin-top: 1.8rem;
+  border-radius: 0.5rem;
+}
+
+input[type="checkbox"] {
+  /* Add if not using autoprefixer */
+  -webkit-appearance: none;
+  /* Remove most all native input styles */
+  appearance: none;
+  /* For iOS < 15 */
+  background-color: var(--background);
+  /* Not removed via appearance */
+  margin: 0;
+
+  font: inherit;
+  color: var(--primary);
+  width: 1.15em;
+  height: 1.15em;
+  border: 0.15em solid var(--primary);
+  border-radius: 0.15em;
+  transform: translateY(-0.075em);
+
+  display: grid;
+  place-content: center;
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: 0.65em;
+  height: 0.65em;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transform: scale(0);
+  transform-origin: bottom left;
+  transition: 120ms transform ease-in-out;
+  /* box-shadow: inset 1em 1em var(--form-control-color); */
+  /* Windows High Contrast Mode */
+  background-color: var(--primary);
+}
+
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+input[type="checkbox"]:focus {
+  outline: max(2px, 0.15em) solid var(--primary);
+  outline-offset: max(2px, 0.15em);
+}
