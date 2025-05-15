@@ -1,5 +1,6 @@
 #include <ESP8266WiFi.h>
 #include <LittleFS.h>
+#include <ESP8266mDNS.h>
 #include "WebServerManager.h"
 #include "ConfigStorage.h"
 
@@ -23,9 +24,19 @@ void setup()
     Serial.println(WiFi.localIP());
   }
   webServer.begin();
+  if (MDNS.begin("config")) // "config.local" will resolve to the SoftAP IP
+  {
+    Serial.println("mDNS responder started: config.local");
+    MDNS.addService("http", "tcp", 80);
+  }
+  else
+  {
+    Serial.println("Error starting mDNS responder");
+  }
 }
 
 void loop()
 {
   webServer.handleClient();
+  MDNS.update();
 }
