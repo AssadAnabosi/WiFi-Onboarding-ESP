@@ -160,6 +160,7 @@ function sendDisconnectRequest() {
     endpoint: "/api/disconnect",
     method: "POST",
     callback: function () {
+      toast("Successfully disconnected");
       load();
     },
   });

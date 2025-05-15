@@ -38,7 +38,7 @@ function save() {
           newSettings[key] = getById(key).value.toString();
         }
       }
-      toast("Saving settings...");
+      toast("Saving settings...", 25000);
       apiCall({
         endpoint: "/api/settings",
         method: "POST",
@@ -58,7 +58,7 @@ function reset() {
     title: "Reset settings",
     buttonText: "Reset",
     onclick: function () {
-      toast("Resetting settings...");
+      toast("Resetting settings...", 25000);
       apiCall({
         endpoint: "/api/reset",
         method: "POST",
@@ -76,7 +76,7 @@ function reboot() {
     title: "Reboot device",
     buttonText: "Reboot",
     onclick: function () {
-      toast("Rebooting...");
+      toast("Rebooting...", 25000);
       apiCall({
         route: "/api/reboot",
         method: "POST",
