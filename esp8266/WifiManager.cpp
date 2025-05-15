@@ -2,6 +2,7 @@
 #include "ConfigStorage.h"
 
 #define AP_IP IPAddress(192, 168, 4, 1)
+#define AP_SUBNET_MASK IPAddress(255, 255, 255, 0)
 
 void WiFiManager::setupSoftAP()
 {
@@ -15,7 +16,7 @@ void WiFiManager::setupSoftAP()
   int APChannel = ConfigStorage::readAPChannel();
   bool APHidden = ConfigStorage::readAPHidden();
 
-  WiFi.softAPConfig(AP_IP, AP_IP, IPAddress(255, 255, 255, 0));
+  WiFi.softAPConfig(AP_IP, AP_IP, AP_SUBNET_MASK);
   WiFi.softAP(APSSID.c_str(), APPassword.c_str(), APChannel, APHidden ? 1 : 0);
   Serial.println("AP IP address: ");
   Serial.println(WiFi.softAPIP());
