@@ -79,6 +79,7 @@ function apiCall({
   request.onreadystatechange = function () {
     if (this.readyState === XMLHttpRequest.DONE) {
       if (200 === this.status) {
+        setStatusBanner("connected");
         callback(JSON.parse(this.responseText));
       } else {
         setStatusBanner("error");

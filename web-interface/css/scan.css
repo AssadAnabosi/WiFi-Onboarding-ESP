@@ -88,7 +88,7 @@ td:last-child button {
   color: var(--green);
 }
 
-.action-button button,
-.action-button p {
+.network-action button,
+.network-action p {
   min-width: 130px;
 }

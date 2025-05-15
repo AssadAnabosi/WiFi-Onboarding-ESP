@@ -15,7 +15,7 @@ updateListeners = function () {
         }
       };
     });
-    var actionButtons = document.querySelectorAll(".action-button");
+    var actionButtons = document.querySelectorAll(".network-action");
     // hide action buttons
     actionButtons?.forEach(function (button) {
       button.style.display = "none";
@@ -26,7 +26,7 @@ updateListeners = function () {
     networks?.forEach(function (network) {
       network.onclick = null;
     });
-    var actionButtons = document.querySelectorAll(".action-button");
+    var actionButtons = document.querySelectorAll(".network-action");
     actionButtons?.forEach(function (button) {
       button.style.display = null;
     });
@@ -59,8 +59,8 @@ function getNetworkRow(ap) {
     enc == "OPEN" ? "&#x1F513;" : "&#x1f512;"
   } </td><td class='network-mac'>${mac}</td>${
     connected
-      ? `<td class='action-button' ><button class='red' onclick='disconnect("${ssid}")'>Disconnect</button></td>`
-      : `<td class='action-button' ><button class='green' onclick='connect("${ssid}")'>Connect</button></td>`
+      ? `<td class='network-action' ><button class='red' onclick='disconnect("${ssid}")'>Disconnect</button></td>`
+      : `<td class='network-action' ><button class='green' onclick='connect("${ssid}")'>Connect</button></td>`
   }
 `;
   return row;
@@ -135,9 +135,10 @@ function sendConnectRequest(ssid, password) {
   apiCall({
     endpoint: "/api/connect",
     method: "POST",
+    timeout: 10000,
     data: { ssid: ssid, password: password },
     callback: function () {
-      showMessage("Connected to " + ssid);
+      toast("Connected to " + ssid);
       load();
     },
   });

@@ -93,7 +93,7 @@ function load() {
   apiCall({
     endpoint: "/api/settings",
     callback: function (res) {
-      access_points = JSON.parse(res);
+      settings = res;
       setStatusBanner("connected");
       draw();
     },
