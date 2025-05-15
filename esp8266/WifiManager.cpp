@@ -6,11 +6,8 @@
 
 void WiFiManager::setupSoftAP()
 {
-  if (!ConfigStorage::readAPStatus())
-  {
-    return; // AP is disabled
-  }
-
+  Serial.println("Setting up SoftAP...");
+  WiFi.mode(WIFI_AP_STA);
   String APSSID = ConfigStorage::readAPSSID();
   String APPassword = ConfigStorage::readAPPassword();
   int APChannel = ConfigStorage::readAPChannel();
@@ -28,24 +25,26 @@ bool WiFiManager::autoConnect()
   String password = ConfigStorage::readWiFiPassword();
   String hostname = ConfigStorage::readHostname();
 
-  WiFi.mode(WIFI_AP_STA);
+  WiFi.mode(WIFI_STA);
 
-  setupSoftAP();
-
-  if (ssid.length() == 0)
+  if (ssid.length() != 0)
   {
-    return false;
+    Serial.println("Attempting to Auto Connect to " + ssid + "...");
+    WiFi.hostname(hostname);
+    WiFi.begin(ssid.c_str(), password.c_str());
+
+    unsigned long startAttemptTime = millis();
+
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000)
+    {
+      delay(100);
+    }
   }
 
-  Serial.println("Attempting to Auto Connect to " + ssid + "...");
-  WiFi.hostname(hostname);
-  WiFi.begin(ssid.c_str(), password.c_str());
-
-  unsigned long startAttemptTime = millis();
-
-  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000)
+  if (ConfigStorage::readAPStatus() || !(WiFi.status() == WL_CONNECTED))
   {
-    delay(100);
+    // Override the Disabled AP setting if the auto-connect fails
+    setupSoftAP();
   }
   return WiFi.status() == WL_CONNECTED;
 }
