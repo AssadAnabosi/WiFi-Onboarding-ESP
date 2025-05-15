@@ -50,7 +50,7 @@ void WebServerManager::begin()
 // Utility Functions
 /**
  * @brief Converts the encryption type to a human-readable string.
- * @param encType The encryption type [receieved from WiFi.scan] as an integer.
+ * @param encType The encryption type [received from WiFi.scan] as an integer.
  * @return A string representing the encryption type.
  */
 String getEncryptionType(int encType)
@@ -72,18 +72,26 @@ String getEncryptionType(int encType)
   }
 }
 
-void WebServerManager::sendJson(const DynamicJsonDocument &doc)
+void WebServerManager::sendJson(const DynamicJsonDocument &doc, int code = 200)
 {
   String response;
   serializeJson(doc, response);
-  server.send(200, "application/json", response);
+  server.send(code, "application/json", response);
+}
+
+void WebServerManager::sendMessage(const String &message, int code = 200)
+{
+  DynamicJsonDocument doc(128);
+  doc["success"] = code == 200 ? true : false;
+  doc["message"] = message;
+  sendJson(doc, code);
 }
 
 // API Handlers
 
 void WebServerManager::handleHealth()
 {
-  server.send(200, "text/plain", "OK");
+  sendMessage("What are you doing here ?");
 }
 
 void WebServerManager::handleStatus()
@@ -139,7 +147,7 @@ void WebServerManager::handleConnect()
 {
   if (!server.hasArg("plain"))
   {
-    server.send(400, "text/plain", "Missing body");
+    sendMessage("Missing body", 400);
     return;
   }
 
@@ -148,13 +156,13 @@ void WebServerManager::handleConnect()
 
   if (error)
   {
-    server.send(400, "text/plain", "Invalid JSON");
+    sendMessage("Invalid JSON", 400);
     return;
   }
 
   if (!doc.containsKey("ssid"))
   {
-    server.send(400, "text/plain", "Missing required field: ssid");
+    sendMessage("Missing required field: ssid", 400);
     return;
   }
 
@@ -163,18 +171,18 @@ void WebServerManager::handleConnect()
 
   if (wifiManager.connectToNetwork(ssid.c_str(), password.c_str()))
   {
-    server.send(200, "text/plain", "Connected");
+    sendMessage("Connected to WiFi Network");
   }
   else
   {
-    server.send(500, "text/plain", "Failed to connect to WiFi Network");
+    sendMessage("Failed to connect to WiFi Network", 400);
   }
 }
 
 void WebServerManager::handleDisconnect()
 {
   WiFi.disconnect();
-  server.send(200, "text/plain", "Disconnected from WiFi Network");
+  sendMessage("Disconnected from WiFi Network");
 }
 
 void WebServerManager::handleGetSettings()
@@ -196,7 +204,7 @@ void WebServerManager::handlePostSettings()
   Serial.println(server.arg("plain"));
   if (!server.hasArg("plain"))
   {
-    server.send(400, "text/plain", "Missing body");
+    sendMessage("Missing body", 400);
     return;
   }
 
@@ -205,9 +213,10 @@ void WebServerManager::handlePostSettings()
 
   if (error)
   {
-    server.send(400, "text/plain", "Invalid JSON");
+    sendMessage("Invalid JSON", 400);
     return;
   }
+
   String missingFields;
   if (!doc.containsKey("ap_ssid"))
     missingFields += "ap_ssid, ";
@@ -226,7 +235,11 @@ void WebServerManager::handlePostSettings()
   {
     // Remove the trailing comma and space
     missingFields = missingFields.substring(0, missingFields.length() - 2);
-    server.send(400, "text/plain", "Missing required fields: " + missingFields);
+    DynamicJsonDocument errorDoc(256);
+    errorDoc["success"] = false;
+    errorDoc["message"] = "Missing required fields";
+    errorDoc["fields"] = missingFields;
+    sendJson(errorDoc, 400);
     return;
   }
 
@@ -254,13 +267,15 @@ void WebServerManager::handlePostSettings()
 
   ConfigStorage::saveSettings(APSSID, APPassword, APChannel, APHidden, APStatus, hostname);
 
-  server.send(200, "text/plain", "Settings updated");
+  sendMessage("Settings updated");
   delay(100);
   ESP.restart();
 }
 
 void WebServerManager::handleReset()
 {
+  sendMessage("Resetting to factory settings...");
+  delay(100);
   ConfigStorage::factoryReset();
   delay(100);
   ESP.restart();
@@ -268,7 +283,7 @@ void WebServerManager::handleReset()
 
 void WebServerManager::handleReboot()
 {
-  server.send(200, "text/plain", "Device is rebooting...");
+  sendMessage("Device is rebooting...");
   delay(100);
   ESP.restart();
 }

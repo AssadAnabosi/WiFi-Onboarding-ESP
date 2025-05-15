@@ -75,8 +75,16 @@ public:
     /**
      * @brief Sends a JSON document as an HTTP response.
      * @param doc The JSON document to send.
+     * @param code The HTTP status code to send (default is 200).
      */
-    void sendJson(const DynamicJsonDocument &doc);
+    void sendJson(const DynamicJsonDocument &doc, int code);
+
+    /**
+     * @brief Sends a message as a JSON document as an HTTP response.
+     * @param message The message to send.
+     * @param code The HTTP status code to send (default is 200).
+     */
+    void sendMessage(const String &message, int code);
 
 private:
     ESP8266WebServer server;
