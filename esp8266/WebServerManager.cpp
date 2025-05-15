@@ -43,6 +43,7 @@ void WebServerManager::begin()
   server.on("/api/settings", HTTP_GET, std::bind(&WebServerManager::handleGetSettings, this));
   server.on("/api/settings", HTTP_POST, std::bind(&WebServerManager::handlePostSettings, this));
   server.on("/api/reboot", HTTP_POST, std::bind(&WebServerManager::handleReboot, this));
+  server.on("/api/reset", HTTP_POST, std::bind(&WebServerManager::handleReset, this));
 
   server.begin();
 }
