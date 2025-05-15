@@ -20,19 +20,19 @@ void WebServerManager::begin()
   server.serveStatic("/scan", LittleFS, "/web/scan.html");
   server.serveStatic("/settings", LittleFS, "/web/settings.html");
   // Stylesheets
-  server.serveStatic("/css/index.css", LittleFS, "/web/index.css");
-  server.serveStatic("/css/home.css", LittleFS, "/web/home.css");
-  server.serveStatic("/css/scan.css", LittleFS, "/web/scan.css");
-  server.serveStatic("/css/settings.css", LittleFS, "/web/settings.css");
-  server.serveStatic("/css/toast.css", LittleFS, "/web/toast.css");
-  server.serveStatic("/css/modal.css", LittleFS, "/web/settings.css");
+  server.serveStatic("/css/index.css", LittleFS, "/web/css/index.css");
+  server.serveStatic("/css/home.css", LittleFS, "/web/css/home.css");
+  server.serveStatic("/css/scan.css", LittleFS, "/web/css/scan.css");
+  server.serveStatic("/css/settings.css", LittleFS, "/web/css/settings.css");
+  server.serveStatic("/css/toast.css", LittleFS, "/web/css/toast.css");
+  server.serveStatic("/css/modal.css", LittleFS, "/web/css/modal.css");
   // JavaScript files
-  server.serveStatic("/js/index.js", LittleFS, "/web/index.js");
-  server.serveStatic("/js/home.js", LittleFS, "/web/home.js");
-  server.serveStatic("/js/scan.js", LittleFS, "/web/scan.js");
-  server.serveStatic("/js/settings.js", LittleFS, "/web/settings.js");
-  server.serveStatic("/js/toast.js", LittleFS, "/web/toast.js");
-  server.serveStatic("/js/modal.js", LittleFS, "/web/settings.js");
+  server.serveStatic("/js/index.js", LittleFS, "/web/js/index.js");
+  server.serveStatic("/js/home.js", LittleFS, "/web/js/home.js");
+  server.serveStatic("/js/scan.js", LittleFS, "/web/js/scan.js");
+  server.serveStatic("/js/settings.js", LittleFS, "/web/js/settings.js");
+  server.serveStatic("/js/toast.js", LittleFS, "/web/js/toast.js");
+  server.serveStatic("/js/modal.js", LittleFS, "/web/js/modal.js");
 
   // API Endpoints
   server.on("/api/health", HTTP_GET, std::bind(&WebServerManager::handleHealth, this));
