@@ -19,10 +19,19 @@ void ConfigStorage::begin()
       doc["ap_channel"] = 6;
       doc["ap_hidden"] = false;
       doc["ap_status"] = true;
-      doc["hostname"] = "ESP8266-IoT";
+      doc["hostname"] = "ESP-IoT";
       serializeJson(doc, f);
       f.close();
+      Serial.println("Config file created with default values.");
     }
+    else
+    {
+      Serial.println("Failed to create config file.");
+    }
+  }
+  else
+  {
+    Serial.println("Config file already exists.");
   }
   Serial.println("----- Current Settings -----");
   Serial.print("WiFi SSID: ");
@@ -123,39 +132,40 @@ String ConfigStorage::readHostname()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return "ESP8266-IoT";
+    return "ESP-IoT";
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return "ESP8266-IoT";
-  return doc["hostname"] | "ESP8266-IoT";
+    return "ESP-IoT";
+  return doc["hostname"] | "ESP-IoT";
 }
 
 String ConfigStorage::readAPSSID()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return "";
+    return "ap_ssid_error_open_file";
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return "";
-  return doc["ap_ssid"] | "";
+    return "ap_ssid_error_deserialize";
+
+  return doc["ap_ssid"] | "ap_ssid_error_doc_get";
 }
 
 String ConfigStorage::readAPPassword()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return "";
+    return "ap_password_error";
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return "";
-  return doc["ap_password"] | "";
+    return "ap_password_error";
+  return doc["ap_password"] | "ap_password_error";
 }
 
 int ConfigStorage::readAPChannel()

@@ -80,7 +80,14 @@ function apiCall({
     if (this.readyState === XMLHttpRequest.DONE) {
       if (200 === this.status) {
         setStatusBanner("connected");
-        callback(JSON.parse(this.responseText));
+        const response = JSON.parse(this.responseText);
+        if (
+          typeof response.success !== "undefined" &&
+          response.success === false
+        ) {
+          toast(response.message, 6000);
+        }
+        callback(response);
       } else {
         setStatusBanner("error");
         let msg =

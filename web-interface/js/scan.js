@@ -96,6 +96,7 @@ function load() {
   getById("scan-access-points").disabled = true;
   apiCall({
     endpoint: "/api/scan",
+    timeout: 10000,
     callback: function (res) {
       access_points = res;
       setStatusBanner("connected");

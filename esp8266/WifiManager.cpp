@@ -15,7 +15,9 @@ void WiFiManager::setupSoftAP()
 
   WiFi.softAPConfig(AP_IP, AP_IP, AP_SUBNET_MASK);
   WiFi.softAP(APSSID.c_str(), APPassword.c_str(), APChannel, APHidden ? 1 : 0);
-  Serial.println("AP IP address: ");
+  Serial.print("AP SSID: ");
+  Serial.println(WiFi.softAPSSID());
+  Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
 }
 
