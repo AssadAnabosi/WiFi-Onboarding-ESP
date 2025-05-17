@@ -31,10 +31,12 @@ bool WiFiManager::autoConnect() {
   String password = ConfigStorage::readWiFiPassword();
 
   WiFi.mode(WIFI_STA);
-  int retryCount = 0;
   if (ssid.length() != 0) {
-    Serial.println("Attempting to connect to saved WiFi credentials");
-    connectToNetwork(ssid.c_str(), password.c_str());
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      Serial.println("[" + String(attempt) + "] Attempting to connect to saved WiFi credentials");
+      if (connectToNetwork(ssid.c_str(), password.c_str()))
+        break;
+    }
   }
 
   if (ConfigStorage::readAPStatus() || !(WiFi.status() == WL_CONNECTED)) {
