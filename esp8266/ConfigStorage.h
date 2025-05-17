@@ -6,8 +6,7 @@
 /**
  * @brief A utility class to manage persistent configuration storage, such as WiFi and Access Point settings.
  */
-class ConfigStorage
-{
+class ConfigStorage {
 public:
   /**
    * @brief Initializes the configuration storage system. if not already initialized.

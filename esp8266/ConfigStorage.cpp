@@ -4,13 +4,15 @@
 
 #define CONFIG_FILE "/config.json"
 
-void ConfigStorage::begin()
-{
-  if (!LittleFS.exists(CONFIG_FILE))
-  {
+void ConfigStorage::begin() {
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS Mount Failed");
+    return;
+  }
+
+  if (!LittleFS.exists(CONFIG_FILE)) {
     File f = LittleFS.open(CONFIG_FILE, "w");
-    if (f)
-    {
+    if (f) {
       StaticJsonDocument<512> doc;
       doc["wifi_ssid"] = "";
       doc["wifi_password"] = "";
@@ -23,14 +25,10 @@ void ConfigStorage::begin()
       serializeJson(doc, f);
       f.close();
       Serial.println("Config file created with default values.");
-    }
-    else
-    {
+    } else {
       Serial.println("Failed to create config file.");
     }
-  }
-  else
-  {
+  } else {
     Serial.println("Config file already exists.");
   }
   Serial.println("----- Current Settings -----");
@@ -54,8 +52,7 @@ void ConfigStorage::begin()
   Serial.println("-----------------------------");
 }
 
-void ConfigStorage::saveWiFiCredentials(const String &ssid, const String &password)
-{
+void ConfigStorage::saveWiFiCredentials(const String &ssid, const String &password) {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return;
@@ -69,15 +66,13 @@ void ConfigStorage::saveWiFiCredentials(const String &ssid, const String &passwo
   doc["wifi_password"] = password;
 
   f = LittleFS.open(CONFIG_FILE, "w");
-  if (f)
-  {
+  if (f) {
     serializeJson(doc, f);
     f.close();
   }
 }
 
-String ConfigStorage::readWiFiSSID()
-{
+String ConfigStorage::readWiFiSSID() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return "";
@@ -89,8 +84,7 @@ String ConfigStorage::readWiFiSSID()
   return doc["wifi_ssid"] | "";
 }
 
-String ConfigStorage::readWiFiPassword()
-{
+String ConfigStorage::readWiFiPassword() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return "";
@@ -102,8 +96,7 @@ String ConfigStorage::readWiFiPassword()
   return doc["wifi_password"] | "";
 }
 
-void ConfigStorage::saveSettings(const String &ssid, const String &password, int channel, bool hidden, bool status, const String &hostname)
-{
+void ConfigStorage::saveSettings(const String &ssid, const String &password, int channel, bool hidden, bool status, const String &hostname) {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return;
@@ -121,15 +114,13 @@ void ConfigStorage::saveSettings(const String &ssid, const String &password, int
   doc["hostname"] = hostname;
 
   f = LittleFS.open(CONFIG_FILE, "w");
-  if (f)
-  {
+  if (f) {
     serializeJson(doc, f);
     f.close();
   }
 }
 
-String ConfigStorage::readHostname()
-{
+String ConfigStorage::readHostname() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return "ESP-IoT";
@@ -141,8 +132,7 @@ String ConfigStorage::readHostname()
   return doc["hostname"] | "ESP-IoT";
 }
 
-String ConfigStorage::readAPSSID()
-{
+String ConfigStorage::readAPSSID() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return "ap_ssid_error_open_file";
@@ -155,8 +145,7 @@ String ConfigStorage::readAPSSID()
   return doc["ap_ssid"] | "ap_ssid_error_doc_get";
 }
 
-String ConfigStorage::readAPPassword()
-{
+String ConfigStorage::readAPPassword() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return "ap_password_error";
@@ -168,8 +157,7 @@ String ConfigStorage::readAPPassword()
   return doc["ap_password"] | "ap_password_error";
 }
 
-int ConfigStorage::readAPChannel()
-{
+int ConfigStorage::readAPChannel() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return 6;
@@ -181,8 +169,7 @@ int ConfigStorage::readAPChannel()
   return doc["ap_channel"] | 6;
 }
 
-bool ConfigStorage::readAPHidden()
-{
+bool ConfigStorage::readAPHidden() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return false;
@@ -194,8 +181,7 @@ bool ConfigStorage::readAPHidden()
   return doc["ap_hidden"] | false;
 }
 
-bool ConfigStorage::readAPStatus()
-{
+bool ConfigStorage::readAPStatus() {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
     return true;
@@ -207,11 +193,9 @@ bool ConfigStorage::readAPStatus()
   return doc["ap_status"] | true;
 }
 
-void ConfigStorage::factoryReset()
-{
-  if (LittleFS.exists(CONFIG_FILE))
-  {
+void ConfigStorage::factoryReset() {
+  if (LittleFS.exists(CONFIG_FILE)) {
     LittleFS.remove(CONFIG_FILE);
   }
-  begin(); // recreate file with defaults
+  begin();  // recreate file with defaults
 }

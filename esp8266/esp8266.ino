@@ -1,42 +1,36 @@
-#include <ESP8266WiFi.h>
-#include <LittleFS.h>
+#define PLATFORM "ESP8266"
 #include <ESP8266mDNS.h>
+
 #include "WebServerManager.h"
 #include "ConfigStorage.h"
 
 #include "WiFiManager.h"
+
 WiFiManager wifiManager;
 
 WebServerManager webServer;
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   // Flush serial buffer
   Serial.println("");
-  LittleFS.begin();
+  Serial.print("Running on platform: ");
+  Serial.println(PLATFORM);
   ConfigStorage::begin();
   // Initialize WiFiManager and attempt to connect to WiFi
-  if (wifiManager.autoConnect())
-  {
-    Serial.println("Auto connected to WiFi Network");
-    Serial.println("STA IP address: ");
-    Serial.println(WiFi.localIP());
-  }
+  wifiManager.autoConnect();
   webServer.begin();
-  if (MDNS.begin("config")) // "config.local" will resolve to the SoftAP IP
+  if (MDNS.begin("config"))  // "config.local" will resolve to the SoftAP IP
   {
     Serial.println("mDNS responder started: config.local");
     MDNS.addService("http", "tcp", 80);
-  }
-  else
-  {
+  } else {
     Serial.println("Error starting mDNS responder");
   }
 }
 
-void loop()
-{
-  webServer.handleClient();
+void loop() {
+#ifdef ESP8266
   MDNS.update();
+#endif
 }
