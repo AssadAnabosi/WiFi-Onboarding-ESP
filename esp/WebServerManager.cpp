@@ -82,7 +82,8 @@ void WebServerManager::begin() {
   });
   // 404 fallback
   server.onNotFound([this](AsyncWebServerRequest *request) {
-    sendMessage(request, "Not Found", 404);
+    String message = request->url() + " Not Found";
+    sendMessage(request, message, 404);
   });
 
   server.begin();
@@ -213,7 +214,7 @@ void WebServerManager::handleHealth(AsyncWebServerRequest *request) {
 
   // Add nested "data" object with board info
   JsonObject data = doc.createNestedObject("data");
-  getBoardData(data); // Populate dynamically
+  getBoardData(data);  // Populate dynamically
 
   sendJson(request, doc);
 }
