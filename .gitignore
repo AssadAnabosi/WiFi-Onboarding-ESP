@@ -1,4 +1,3 @@
 /esp8266/data/*
-/esp32/data/*
-
+/esp/data/*
 /test
