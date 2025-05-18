@@ -6,7 +6,8 @@
 /**
  * @brief A utility class to manage persistent configuration storage, such as WiFi and Access Point settings.
  */
-class ConfigStorage {
+class ConfigStorage
+{
 public:
   /**
    * @brief Initializes the configuration storage system. if not already initialized.
@@ -24,13 +25,13 @@ public:
    * @brief Reads the stored WiFi SSID from persistent storage.
    * @return The stored WiFi SSID.
    */
-  static String readWiFiSSID();
+  static String getWiFiSSID();
 
   /**
    * @brief Reads the stored WiFi password from persistent storage.
    * @return The stored WiFi password.
    */
-  static String readWiFiPassword();
+  static String getWiFiPassword();
 
   /**
    * @brief Saves Access Point (AP) settings and hostname to persistent storage.
@@ -47,37 +48,37 @@ public:
    * @brief Reads the stored hostname from persistent storage.
    * @return The stored hostname.
    */
-  static String readHostname();
+  static String getHostname();
 
   /**
    * @brief Reads the stored AP SSID from persistent storage.
    * @return The stored AP SSID.
    */
-  static String readAPSSID();
+  static String getAPSSID();
 
   /**
    * @brief Reads the stored AP password from persistent storage.
    * @return The stored AP password.
    */
-  static String readAPPassword();
+  static String getAPPassword();
 
   /**
    * @brief Reads the stored AP WiFi channel from persistent storage.
    * @return The stored AP channel.
    */
-  static int readAPChannel();
+  static int getAPChannel();
 
   /**
    * @brief Reads the stored AP hidden status from persistent storage.
    * @return True if the AP is hidden, false otherwise.
    */
-  static bool readAPHidden();
+  static bool getAPHidden();
 
   /**
    * @brief Reads the stored AP status (enabled/disabled) from persistent storage.
    * @return True if the AP is enabled, false otherwise.
    */
-  static bool readAPStatus();
+  static bool getAPStatus();
 
   /**
    * @brief Performs a factory reset by clearing all stored configuration.

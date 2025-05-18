@@ -5,13 +5,15 @@
 #include <ArduinoJson.h>
 
 WebServerManager::WebServerManager()
-  : server(80) {}
+    : server(80) {}
 
-void WebServerManager::handleClient() {
+void WebServerManager::handleClient()
+{
   server.handleClient();
 }
 
-void WebServerManager::begin() {
+void WebServerManager::begin()
+{
   // Static Files
   server.serveStatic("/", LittleFS, "/web/index.html");
   server.serveStatic("/home", LittleFS, "/web/home.html");
@@ -52,30 +54,34 @@ void WebServerManager::begin() {
  * @param encType The encryption type [received from WiFi.scan] as an integer.
  * @return A string representing the encryption type.
  */
-String getEncryptionType(int encType) {
-  switch (encType) {
-    case ENC_TYPE_NONE:
-      return "OPEN";
-    case ENC_TYPE_WEP:
-      return "WEP";
-    case ENC_TYPE_TKIP:
-      return "WPA-PSK";
-    case ENC_TYPE_CCMP:
-      return "WPA2-PSK";
-    case ENC_TYPE_AUTO:
-      return "AUTO";
-    default:
-      return "UNKNOWN";
+String getEncryptionType(int encType)
+{
+  switch (encType)
+  {
+  case ENC_TYPE_NONE:
+    return "OPEN";
+  case ENC_TYPE_WEP:
+    return "WEP";
+  case ENC_TYPE_TKIP:
+    return "WPA-PSK";
+  case ENC_TYPE_CCMP:
+    return "WPA2-PSK";
+  case ENC_TYPE_AUTO:
+    return "AUTO";
+  default:
+    return "UNKNOWN";
   }
 }
 
-void WebServerManager::sendJson(const DynamicJsonDocument &doc, int code = 200) {
+void WebServerManager::sendJson(const DynamicJsonDocument &doc, int code = 200)
+{
   String response;
   serializeJson(doc, response);
   server.send(code, "application/json", response);
 }
 
-void WebServerManager::sendMessage(const String &message, int code = 200) {
+void WebServerManager::sendMessage(const String &message, int code = 200)
+{
   DynamicJsonDocument doc(128);
   doc["success"] = code == 200 ? true : false;
   doc["message"] = message;
@@ -84,11 +90,13 @@ void WebServerManager::sendMessage(const String &message, int code = 200) {
 
 // API Handlers
 
-void WebServerManager::handleHealth() {
+void WebServerManager::handleHealth()
+{
   sendMessage("What are you doing here ?");
 }
 
-void WebServerManager::handleStatus() {
+void WebServerManager::handleStatus()
+{
   DynamicJsonDocument doc(512);
 
   bool softAPEnabled = WiFi.getMode() & WIFI_AP;
@@ -105,7 +113,8 @@ void WebServerManager::handleStatus() {
   sendJson(doc);
 }
 
-void WebServerManager::handleScan() {
+void WebServerManager::handleScan()
+{
   int n = WiFi.scanNetworks(false, true);
   bool isConnected = (WiFi.status() == WL_CONNECTED);
   String currentSSID = WiFi.SSID();
@@ -114,14 +123,14 @@ void WebServerManager::handleScan() {
   for (int i = 0; i < n; ++i)
     indices[i] = i;
 
-  std::sort(indices.begin(), indices.end(), [](int a, int b) {
-    return WiFi.RSSI(a) > WiFi.RSSI(b);
-  });
+  std::sort(indices.begin(), indices.end(), [](int a, int b)
+            { return WiFi.RSSI(a) > WiFi.RSSI(b); });
 
   DynamicJsonDocument doc(2048);
   JsonArray networks = doc.to<JsonArray>();
 
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i)
+  {
     int idx = indices[i];
     JsonObject network = networks.createNestedObject();
     network["ssid"] = WiFi.SSID(idx);
@@ -135,8 +144,10 @@ void WebServerManager::handleScan() {
   sendJson(doc);
 }
 
-void WebServerManager::handleConnect() {
-  if (!server.hasArg("plain")) {
+void WebServerManager::handleConnect()
+{
+  if (!server.hasArg("plain"))
+  {
     sendMessage("Missing body", 400);
     return;
   }
@@ -144,12 +155,14 @@ void WebServerManager::handleConnect() {
   DynamicJsonDocument doc(512);
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
 
-  if (error) {
+  if (error)
+  {
     sendMessage("Invalid JSON", 400);
     return;
   }
 
-  if (!doc.containsKey("ssid")) {
+  if (!doc.containsKey("ssid"))
+  {
     sendMessage("Missing required field: ssid", 400);
     return;
   }
@@ -157,34 +170,41 @@ void WebServerManager::handleConnect() {
   String ssid = doc["ssid"].as<String>();
   String password = doc.containsKey("password") ? doc["password"].as<String>() : "";
 
-  if (wifiManager.connectToNetwork(ssid.c_str(), password.c_str())) {
+  if (wifiManager.connectToNetwork(ssid.c_str(), password.c_str()))
+  {
     sendMessage("Connected to WiFi Network");
-  } else {
+  }
+  else
+  {
     sendMessage("Failed to connect to WiFi Network", 400);
   }
 }
 
-void WebServerManager::handleDisconnect() {
+void WebServerManager::handleDisconnect()
+{
   WiFi.disconnect();
   sendMessage("Disconnected from WiFi Network");
 }
 
-void WebServerManager::handleGetSettings() {
+void WebServerManager::handleGetSettings()
+{
   DynamicJsonDocument doc(512);
 
-  doc["ap_ssid"] = ConfigStorage::readAPSSID();
-  doc["ap_password"] = ConfigStorage::readAPPassword();
-  doc["ap_channel"] = ConfigStorage::readAPChannel();
-  doc["ap_hidden"] = ConfigStorage::readAPHidden();
-  doc["ap_status"] = ConfigStorage::readAPStatus();
-  doc["hostname"] = ConfigStorage::readHostname();
+  doc["ap_ssid"] = ConfigStorage::getAPSSID();
+  doc["ap_password"] = ConfigStorage::getAPPassword();
+  doc["ap_channel"] = ConfigStorage::getAPChannel();
+  doc["ap_hidden"] = ConfigStorage::getAPHidden();
+  doc["ap_status"] = ConfigStorage::getAPStatus();
+  doc["hostname"] = ConfigStorage::getHostname();
 
   sendJson(doc);
 }
 
-void WebServerManager::handlePostSettings() {
+void WebServerManager::handlePostSettings()
+{
   Serial.println(server.arg("plain"));
-  if (!server.hasArg("plain")) {
+  if (!server.hasArg("plain"))
+  {
     sendMessage("Missing body", 400);
     return;
   }
@@ -192,7 +212,8 @@ void WebServerManager::handlePostSettings() {
   DynamicJsonDocument doc(512);
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
 
-  if (error) {
+  if (error)
+  {
     sendMessage("Invalid JSON", 400);
     return;
   }
@@ -211,7 +232,8 @@ void WebServerManager::handlePostSettings() {
   if (!doc.containsKey("hostname"))
     missingFields += "hostname, ";
 
-  if (!missingFields.isEmpty()) {
+  if (!missingFields.isEmpty())
+  {
     // Remove the trailing comma and space
     missingFields = missingFields.substring(0, missingFields.length() - 2);
     DynamicJsonDocument errorDoc(256);
@@ -251,7 +273,8 @@ void WebServerManager::handlePostSettings() {
   ESP.restart();
 }
 
-void WebServerManager::handleReset() {
+void WebServerManager::handleReset()
+{
   sendMessage("Resetting to factory settings...");
   delay(100);
   ConfigStorage::factoryReset();
@@ -259,7 +282,8 @@ void WebServerManager::handleReset() {
   ESP.restart();
 }
 
-void WebServerManager::handleReboot() {
+void WebServerManager::handleReboot()
+{
   sendMessage("Device is rebooting...");
   delay(100);
   ESP.restart();

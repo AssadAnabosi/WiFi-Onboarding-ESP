@@ -24,79 +24,69 @@
 #endif
 
 WebServerManager::WebServerManager()
-  : server(80) {}
+    : server(80) {}
 
-void WebServerManager::begin() {
+void WebServerManager::begin()
+{
   // Serve Pages
-  server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    cachedResponse(request, "/www/index.html");
-  });
-  server.on("/home", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    cachedResponse(request, "/www/home.html");
-  });
-  server.on("/scan", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    cachedResponse(request, "/www/scan.html");
-  });
-  server.on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    cachedResponse(request, "/www/settings.html");
-  });
+  server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { cachedResponse(request, "/www/index.html"); });
+  server.on("/home", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { cachedResponse(request, "/www/home.html"); });
+  server.on("/scan", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { cachedResponse(request, "/www/scan.html"); });
+  server.on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { cachedResponse(request, "/www/settings.html"); });
 
   // Serve static files
   server.serveStatic("/css/", LittleFS, "/www/css/", "max-age=3600");
   server.serveStatic("/js/", LittleFS, "/www/js/", "max-age=3600");
 
   // GET API routes
-  server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    handleStatus(request);
-  });
-  server.on("/api/scan", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    handleScan(request);
-  });
-  server.on("/api/settings", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    handleGetSettings(request);
-  });
+  server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { handleStatus(request); });
+  server.on("/api/scan", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { handleScan(request); });
+  server.on("/api/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { handleGetSettings(request); });
 
   // POST API routes with AsyncJson
-  server.addHandler(new AsyncCallbackJsonWebHandler("/api/connect", [this](AsyncWebServerRequest *request, JsonVariant &json) {
-    handleConnect(request, json.as<JsonObject>());
-  }));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/connect", [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                    { handleConnect(request, json.as<JsonObject>()); }));
 
-  server.on("/api/disconnect", HTTP_POST, [this](AsyncWebServerRequest *request) {
-    handleDisconnect(request);
-  });
+  server.on("/api/disconnect", HTTP_POST, [this](AsyncWebServerRequest *request)
+            { handleDisconnect(request); });
 
-  server.addHandler(new AsyncCallbackJsonWebHandler("/api/settings", [this](AsyncWebServerRequest *request, JsonVariant &json) {
-    handlePostSettings(request, json.as<JsonObject>());
-  }));
+  server.addHandler(new AsyncCallbackJsonWebHandler("/api/settings", [this](AsyncWebServerRequest *request, JsonVariant &json)
+                                                    { handlePostSettings(request, json.as<JsonObject>()); }));
 
-  server.on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest *request) {
-    handleReboot(request);
-  });
+  server.on("/api/reboot", HTTP_POST, [this](AsyncWebServerRequest *request)
+            { handleReboot(request); });
 
-  server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request) {
-    handleReset(request);
-  });
+  server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
+            { handleReset(request); });
 
-  server.on("/api", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    handleHealth(request);
-  });
+  server.on("/api", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { handleHealth(request); });
   // 404 fallback
-  server.onNotFound([this](AsyncWebServerRequest *request) {
+  server.onNotFound([this](AsyncWebServerRequest *request)
+                    {
     String message = request->url() + " Not Found";
-    sendMessage(request, message, 404);
-  });
+    sendMessage(request, message, 404); });
 
   server.begin();
   Serial.println("Web Server Started");
 }
 
-void WebServerManager::sendJson(AsyncWebServerRequest *request, const DynamicJsonDocument &doc, int code = 200) {
+void WebServerManager::sendJson(AsyncWebServerRequest *request, const DynamicJsonDocument &doc, int code = 200)
+{
   String response;
   serializeJson(doc, response);
   request->send(code, "application/json", response);
 }
 
-void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String &message, int code = 200) {
+void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String &message, int code = 200)
+{
   DynamicJsonDocument doc(128);
   doc["success"] = (code == 200);
   doc["message"] = message;
@@ -104,9 +94,11 @@ void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String 
   sendJson(request, doc, code);
 }
 
-void WebServerManager::cachedResponse(AsyncWebServerRequest *request, const String &path) {
+void WebServerManager::cachedResponse(AsyncWebServerRequest *request, const String &path)
+{
   // Validate if path exists
-  if (!LittleFS.exists(path)) {
+  if (!LittleFS.exists(path))
+  {
     sendMessage(request, "File not found", 404);
     return;
   }
@@ -121,42 +113,45 @@ void WebServerManager::cachedResponse(AsyncWebServerRequest *request, const Stri
  * @return A string representing the encryption type.
  */
 
-String getEncryptionType(int encType) {
+String getEncryptionType(int encType)
+{
 #ifdef ESP32
-  switch (encType) {
-    case WIFI_AUTH_OPEN:
-      return "OPEN";
-    case WIFI_AUTH_WEP:
-      return "WEP";
-    case WIFI_AUTH_WPA_PSK:
-      return "WPA-PSK";
-    case WIFI_AUTH_WPA2_PSK:
-      return "WPA2-PSK";
-    case WIFI_AUTH_WPA_WPA2_PSK:
-      return "WPA/WPA2-PSK";
-    case WIFI_AUTH_WPA2_ENTERPRISE:
-      return "WPA2-ENTERPRISE";
-    case WIFI_AUTH_WPA3_PSK:
-      return "WPA3-PSK";
-    case WIFI_AUTH_WPA2_WPA3_PSK:
-      return "WPA2/WPA3-PSK";
-    default:
-      return "UNKNOWN";
+  switch (encType)
+  {
+  case WIFI_AUTH_OPEN:
+    return "OPEN";
+  case WIFI_AUTH_WEP:
+    return "WEP";
+  case WIFI_AUTH_WPA_PSK:
+    return "WPA-PSK";
+  case WIFI_AUTH_WPA2_PSK:
+    return "WPA2-PSK";
+  case WIFI_AUTH_WPA_WPA2_PSK:
+    return "WPA/WPA2-PSK";
+  case WIFI_AUTH_WPA2_ENTERPRISE:
+    return "WPA2-ENTERPRISE";
+  case WIFI_AUTH_WPA3_PSK:
+    return "WPA3-PSK";
+  case WIFI_AUTH_WPA2_WPA3_PSK:
+    return "WPA2/WPA3-PSK";
+  default:
+    return "UNKNOWN";
   }
 #else
-  switch (encType) {
-    case ENC_TYPE_NONE:
-      return "OPEN";
-    case ENC_TYPE_WEP:
-      return "WEP";
-    case ENC_TYPE_TKIP:
-      return "WPA-PSK";
-    case ENC_TYPE_CCMP:
-      return "WPA2-PSK";
-    case ENC_TYPE_AUTO:
-      return "AUTO";
-    default:
-      return "UNKNOWN";
+  switch (encType)
+  {
+  case ENC_TYPE_NONE:
+    return "OPEN";
+  case ENC_TYPE_WEP:
+    return "WEP";
+  case ENC_TYPE_TKIP:
+    return "WPA-PSK";
+  case ENC_TYPE_CCMP:
+    return "WPA2-PSK";
+  case ENC_TYPE_AUTO:
+    return "AUTO";
+  default:
+    return "UNKNOWN";
   }
 
 #endif
@@ -166,7 +161,8 @@ String getEncryptionType(int encType) {
  * @brief Populates the JSON object with board data.
  * @param output The JSON object to populate.
  */
-void getBoardData(JsonObject &output) {
+void getBoardData(JsonObject &output)
+{
 #ifdef ESP32
   // Platform
   output["platform"] = "ESP32";
@@ -206,7 +202,8 @@ void getBoardData(JsonObject &output) {
 #endif
 }
 
-void WebServerManager::handleHealth(AsyncWebServerRequest *request) {
+void WebServerManager::handleHealth(AsyncWebServerRequest *request)
+{
   DynamicJsonDocument doc(512);
 
   doc["success"] = true;
@@ -214,12 +211,13 @@ void WebServerManager::handleHealth(AsyncWebServerRequest *request) {
 
   // Add nested "data" object with board info
   JsonObject data = doc.createNestedObject("data");
-  getBoardData(data);  // Populate dynamically
+  getBoardData(data); // Populate dynamically
 
   sendJson(request, doc);
 }
 
-void WebServerManager::handleStatus(AsyncWebServerRequest *request) {
+void WebServerManager::handleStatus(AsyncWebServerRequest *request)
+{
   DynamicJsonDocument doc(512);
 
   bool apEnabled = WiFi.getMode() & WIFI_AP;
@@ -236,7 +234,8 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request) {
   sendJson(request, doc);
 }
 
-void WebServerManager::handleScan(AsyncWebServerRequest *request) {
+void WebServerManager::handleScan(AsyncWebServerRequest *request)
+{
   int n = WiFi.scanNetworks(false, true);
   bool connected = (WiFi.status() == WL_CONNECTED);
   String currentSSID = WiFi.SSID();
@@ -245,9 +244,12 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request) {
   for (int i = 0; i < n; ++i)
     indices[i] = i;
 
-  for (int i = 0; i < n - 1; ++i) {
-    for (int j = i + 1; j < n; ++j) {
-      if (WiFi.RSSI(indices[j]) > WiFi.RSSI(indices[i])) {
+  for (int i = 0; i < n - 1; ++i)
+  {
+    for (int j = i + 1; j < n; ++j)
+    {
+      if (WiFi.RSSI(indices[j]) > WiFi.RSSI(indices[i]))
+      {
         int temp = indices[i];
         indices[i] = indices[j];
         indices[j] = temp;
@@ -258,7 +260,8 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request) {
   DynamicJsonDocument doc(2048);
   JsonArray networks = doc.to<JsonArray>();
 
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i)
+  {
     JsonObject network = networks.createNestedObject();
     network["ssid"] = WiFi.SSID(i).c_str();
     network["rssi"] = WiFi.RSSI(i);
@@ -272,8 +275,10 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request) {
   sendJson(request, doc);
 }
 
-void WebServerManager::handleConnect(AsyncWebServerRequest *request, const JsonObject &json) {
-  if (!json.containsKey("ssid")) {
+void WebServerManager::handleConnect(AsyncWebServerRequest *request, const JsonObject &json)
+{
+  if (!json.containsKey("ssid"))
+  {
     sendMessage(request, "Missing required field: ssid", 400);
     return;
   }
@@ -287,33 +292,37 @@ void WebServerManager::handleConnect(AsyncWebServerRequest *request, const JsonO
     sendMessage(request, "Failed to connect to WiFi Network", 400);
 }
 
-void WebServerManager::handleDisconnect(AsyncWebServerRequest *request) {
+void WebServerManager::handleDisconnect(AsyncWebServerRequest *request)
+{
   WiFi.disconnect(true);
   ConfigStorage::saveWiFiCredentials("", "");
   sendMessage(request, "Disconnected from WiFi Network");
 }
 
-void WebServerManager::handleGetSettings(AsyncWebServerRequest *request) {
+void WebServerManager::handleGetSettings(AsyncWebServerRequest *request)
+{
   DynamicJsonDocument doc(512);
 
-  doc["ap_ssid"] = ConfigStorage::readAPSSID();
-  doc["ap_password"] = ConfigStorage::readAPPassword();
-  doc["ap_channel"] = ConfigStorage::readAPChannel();
-  doc["ap_hidden"] = ConfigStorage::readAPHidden();
-  doc["ap_status"] = ConfigStorage::readAPStatus();
-  doc["hostname"] = ConfigStorage::readHostname();
+  doc["ap_ssid"] = ConfigStorage::getAPSSID();
+  doc["ap_password"] = ConfigStorage::getAPPassword();
+  doc["ap_channel"] = ConfigStorage::getAPChannel();
+  doc["ap_hidden"] = ConfigStorage::getAPHidden();
+  doc["ap_status"] = ConfigStorage::getAPStatus();
+  doc["hostname"] = ConfigStorage::getHostname();
 
   sendJson(request, doc);
 }
 
-void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const JsonObject &json) {
-  const char *required[] = { "ap_ssid", "ap_password", "ap_channel", "ap_hidden", "ap_status", "hostname" };
+void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const JsonObject &json)
+{
+  const char *required[] = {"ap_ssid", "ap_password", "ap_channel", "ap_hidden", "ap_status", "hostname"};
   String missing;
   for (const char *key : required)
     if (!json.containsKey(key))
       missing += String(key) + ", ";
 
-  if (!missing.isEmpty()) {
+  if (!missing.isEmpty())
+  {
     missing = missing.substring(0, missing.length() - 2);
     DynamicJsonDocument errDoc(256);
     errDoc["success"] = false;
@@ -324,9 +333,9 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
   }
 
   ConfigStorage::saveSettings(
-    json["ap_ssid"], json["ap_password"],
-    json["ap_channel"], json["ap_hidden"],
-    json["ap_status"], json["hostname"]);
+      json["ap_ssid"], json["ap_password"],
+      json["ap_channel"], json["ap_hidden"],
+      json["ap_status"], json["hostname"]);
 
   Serial.println("------- New Settings -------");
   Serial.printf("Hostname: %s\n", json["hostname"].as<const char *>());
@@ -342,7 +351,8 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
   ESP.restart();
 }
 
-void WebServerManager::handleReset(AsyncWebServerRequest *request) {
+void WebServerManager::handleReset(AsyncWebServerRequest *request)
+{
   sendMessage(request, "Resetting to factory settings...");
   delay(100);
   ConfigStorage::factoryReset();
@@ -350,7 +360,8 @@ void WebServerManager::handleReset(AsyncWebServerRequest *request) {
   ESP.restart();
 }
 
-void WebServerManager::handleReboot(AsyncWebServerRequest *request) {
+void WebServerManager::handleReboot(AsyncWebServerRequest *request)
+{
   sendMessage(request, "Device is rebooting...");
   delay(100);
   ESP.restart();
