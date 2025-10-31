@@ -78,7 +78,7 @@ function reboot() {
     onclick: function () {
       toast("Rebooting...", 25000);
       apiCall({
-        route: "/api/reboot",
+        endpoint: "/api/reboot",
         method: "POST",
       });
       alert("Rebooting... page will reload in 30 seconds");
