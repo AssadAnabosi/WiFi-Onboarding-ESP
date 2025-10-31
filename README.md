@@ -44,7 +44,7 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
   - **ESP32**
     - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
     - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
-    
+
 - Select your board at `Tools` > `Board`
 - Plug in your board and select its COM port at `Tools` > `Port`
 - Optional: To reset/override previous settings, select `Tools` > `Erase Flash` > `All Flash Contents` or `Tools` > `Erase All Flash Before Sketch Upload` > `Enabled`
@@ -59,7 +59,7 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 
 - **IP Address:** `192.168.4.1`
 - **SSID:** `ESP-Access-Point`
-- **Password:** `123456789`
+- **Password:** `12345678`
 - **Channel:** `6`
 - **Hidden:** `false`
 
