@@ -1,6 +1,6 @@
 # ESP8266/ESP32 WiFi Onboarding
 
-This project provides a simple web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
+This project provides a simple onboarding web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
 Allowing the user to connect it to the ESP and configure what network to connect to.
 
 **_from this point on we will be referring to the ESP8266/ESP32 as ESP_**
