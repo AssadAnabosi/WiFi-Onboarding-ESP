@@ -149,12 +149,22 @@
       <div class="modal">
         <span id="close-modal" class="close">&times;</span>
         <h2 id="modal-title"></h2>
-        <input
-          type="password"
-          id="modal-input"
-          placeholder="Enter Password"
-          style="display: none"
-        />
+        <div class="modal-inputs-container">
+          <input
+            id="modal-input-username"
+            class="modal-input"
+            type="text"
+            placeholder="Enter Username"
+            style="display: none"
+          />
+          <input
+            id="modal-input"
+            class="modal-input"
+            type="password"
+            placeholder="Enter Password"
+            style="display: none"
+          />
+        </div>
         <br />
         <button id="modal-button"></button>
       </div>

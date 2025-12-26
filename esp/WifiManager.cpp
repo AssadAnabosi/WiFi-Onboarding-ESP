@@ -1,6 +1,10 @@
 #include "WiFiManager.h"
 #include "ConfigStorage.h"
 
+#ifdef ESP32
+#include "esp_wpa2.h" // WPA2 Enterprise support (ESP32)
+#endif
+
 #define AP_IP IPAddress(192, 168, 4, 1)
 #define AP_GATEWAY IPAddress(192, 168, 4, 1)
 #define AP_SUBNET_MASK IPAddress(255, 255, 255, 0)
@@ -54,7 +58,39 @@ bool WiFiManager::autoConnect()
 bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
 {
   WiFi.disconnect();
-  WiFi.begin(ssid, password, true);
+
+  // Support for enterprise credentials stored in the password field using
+  // the format: "username|password". If the stored password contains a
+  // pipe ('|') we treat it as WPA2-Enterprise (PEAP/MSCHAPv2) credentials
+  // where the left side is the identity/username and the right side is the
+  // actual password. This keeps the stored structure unchanged while
+  // supporting both enterprise and non-enterprise networks.
+  String pwd = String(password);
+  bool isEnterprise = pwd.indexOf('|') >= 0;
+  if (isEnterprise)
+  {
+#ifdef ESP32
+    int sep = pwd.indexOf('|');
+    String username = pwd.substring(0, sep);
+    String userpass = pwd.substring(sep + 1);
+
+    // Configure WPA2 Enterprise
+    esp_wpa2_config_t conf = WPA2_CONFIG_INIT_DEFAULT();
+    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)username.c_str(), username.length());
+    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)username.c_str(), username.length());
+    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)userpass.c_str(), userpass.length());
+    esp_wifi_sta_wpa2_ent_enable();
+
+    WiFi.begin(ssid);
+#else
+    Serial.println("WPA2-Enterprise requested but not supported on this platform. Falling back to PSK.");
+    WiFi.begin(ssid, password);
+#endif
+  }
+  else
+  {
+    WiFi.begin(ssid, password);
+  }
   Serial.print("Connecting to " + String(ssid) + ".");
 
   int retryCount = 0;
