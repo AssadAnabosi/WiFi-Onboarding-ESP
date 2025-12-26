@@ -70,12 +70,12 @@ bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
   if (isEnterprise)
   {
 #ifdef ESP32
+    Serial.println("Connecting using WPA2 Enterprise credentials");
     int sep = pwd.indexOf('|');
     String username = pwd.substring(0, sep);
     String userpass = pwd.substring(sep + 1);
 
     // Configure WPA2 Enterprise
-    esp_wpa2_config_t conf = WPA2_CONFIG_INIT_DEFAULT();
     esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)username.c_str(), username.length());
     esp_wifi_sta_wpa2_ent_set_username((uint8_t *)username.c_str(), username.length());
     esp_wifi_sta_wpa2_ent_set_password((uint8_t *)userpass.c_str(), userpass.length());
