@@ -8,7 +8,7 @@ updateListeners = function () {
       network.onclick = function () {
         var connected = this.getAttribute("data-connected") === "true";
         if (connected) {
-          disconnect();
+          disconnect(ssid);
         } else {
           var ssid = this.getAttribute("data-ssid");
           connect(ssid);
@@ -114,6 +114,7 @@ function connect(ssid) {
 
   const openNetworks = ["NONE", "OPEN"];
   enc = ap.enc;
+  const isEnterprise = enc === "WPA2-ENTERPRISE";
 
   if (openNetworks.includes(enc)) {
     // No password needed
@@ -123,10 +124,18 @@ function connect(ssid) {
     handleModal({
       title: "Enter password for " + ssid,
       input: true,
+      isEnterprise: isEnterprise,
       buttonText: "Connect",
       onclick: function () {
-        var password = getById("modal-input").value;
-        sendConnectRequest(ssid, password);
+        let passwordPayload = "";
+        if (this.isEnterprise) {
+          let username = getById("modal-input-username").value;
+          passwordPayload = username + "|";
+        } else {
+          let password = getById("modal-input").value;
+          passwordPayload += password;
+        }
+        sendConnectRequest(ssid, passwordPayload);
       },
     });
   }
