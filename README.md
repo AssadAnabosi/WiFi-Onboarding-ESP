@@ -1,6 +1,6 @@
 # ESP8266/ESP32 WiFi Onboarding
 
-This project provides a simple web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
+This project provides a simple onboarding web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
 Allowing the user to connect it to the ESP and configure what network to connect to.
 
 **_from this point on we will be referring to the ESP8266/ESP32 as ESP_**
@@ -74,3 +74,12 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
     📄 webMinifier.py   # Script to minify HTML, CSS, files
 
 ```
+## Dashboard Screenshots
+
+<img width="645" height="2795" alt="config local_home(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/45e8e4b1-ebd4-4c75-9d7c-4aaee84054d2" />
+
+<img width="645" height="2795" alt="config local_scan(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/125d1c18-506c-40c7-898d-b8cf1026e4db" />
+
+<img width="645" height="3714" alt="config local_settings(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/e2b67543-4c3f-431f-94f0-7bda48c5720d" />
+
+
