@@ -46,6 +46,7 @@ function getNetworkRow(ap) {
   enc = esc(ap.enc);
   mac = ap.mac;
   connected = ap.connected;
+  hidden = ap.hidden;
   width = parseInt(rssi) + 130;
   if (width < 50) color = "meter-red";
   else if (width < 70) color = "meter-orange";
@@ -57,10 +58,14 @@ function getNetworkRow(ap) {
   row.setAttribute("data-ssid", ssid);
   row.innerHTML = `<td class='network-ssid'><span style='font-weight: 500'>${ssid}</span><div class='meter-background'> <div class='meter-foreground ${color}' style='width: ${width}%;'><div class='meter-value'>${rssi}</div></div></div></td><td class='network-channel' style='text-align: center;'>${channel}</td><td class='network-enc'>${enc} ${" "}${
     enc == "OPEN" ? "&#x1F513;" : "&#x1f512;"
-  } </td><td class='network-mac'>${mac}</td>${
+  } ${" "} ${
+    hidden ? "&#x1F441;" : ""
+  }</td><td class='network-mac'>${mac}</td>${
     connected
       ? `<td class='network-action' ><button class='red' onclick='disconnect("${ssid}")'>Disconnect</button></td>`
-      : `<td class='network-action' ><button class='green' onclick='connect("${ssid}")'>Connect</button></td>`
+      : !hidden
+      ? `<td class='network-action' ><button class='green' onclick='connect("${ssid}")'>Connect</button></td>`
+      : `<td></td>`
   }
 `;
   return row;
@@ -85,6 +90,21 @@ function draw() {
 
   table.appendChild(thead);
   table.appendChild(tbody);
+  button = getById("hidden-network-button");
+  button.disabled = false;
+  button.onclick = function () {
+    handleModal({
+      title: "Connect to Hidden Network",
+      isHidden: true,
+      input: true,
+      buttonText: "Connect",
+      onclick: function () {
+        let ssid = getById("modal-input-text").value;
+        let password = getById("modal-input").value;
+        sendConnectRequest(ssid, password);
+      },
+    });
+  };
   updateListeners();
 
   window.addEventListener("resize", function () {
@@ -122,7 +142,7 @@ function connect(ssid) {
   } else {
     // Show password modal
     handleModal({
-      title: "Enter password for " + ssid,
+      title: "Connect to " + ssid,
       input: true,
       isEnterprise: isEnterprise,
       buttonText: "Connect",
