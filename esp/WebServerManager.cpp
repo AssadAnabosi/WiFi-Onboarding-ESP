@@ -237,8 +237,9 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
 void WebServerManager::handleScan(AsyncWebServerRequest *request)
 {
   int n = WiFi.scanNetworks(false, true);
-  bool connected = (WiFi.status() == WL_CONNECTED);
+  bool WL_Connected = (WiFi.status() == WL_CONNECTED);
   String currentSSID = WiFi.SSID();
+  String currentBSSID = WiFi.BSSIDstr();
 
   int indices[n];
   for (int i = 0; i < n; ++i)
@@ -263,12 +264,23 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request)
   for (int i = 0; i < n; ++i)
   {
     JsonObject network = networks.createNestedObject();
-    network["ssid"] = WiFi.SSID(i).c_str();
+    bool isHidden = WiFi.SSID(i).isEmpty();
+    bool connected = WL_Connected && (currentBSSID.equals(WiFi.BSSIDstr(i)));
+    if (isHidden)
+    {
+      network["ssid"] = connected ? currentSSID : "Hidden Network";
+      network["hidden"] = true;
+    }
+    else
+    {
+      network["ssid"] = WiFi.SSID(i).c_str();
+      network["hidden"] = false;
+    }
     network["rssi"] = WiFi.RSSI(i);
     network["enc"] = getEncryptionType(WiFi.encryptionType(i));
     network["mac"] = WiFi.BSSIDstr(i).c_str();
     network["channel"] = WiFi.channel(i);
-    network["connected"] = connected && (currentSSID.equals(WiFi.SSID(i)));
+    network["connected"] = connected;
   }
 
   WiFi.scanDelete();
