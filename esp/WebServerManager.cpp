@@ -41,6 +41,8 @@ void WebServerManager::begin()
   // Serve static files
   server.serveStatic("/css/", LittleFS, "/www/css/", "max-age=3600");
   server.serveStatic("/js/", LittleFS, "/www/js/", "max-age=3600");
+  server.on("/favicon.ico", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { cachedResponse(request, "/www/favicon.ico"); });
 
   // GET API routes
   server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request)

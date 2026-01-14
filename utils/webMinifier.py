@@ -59,7 +59,7 @@ js_src = html_css_src / "js"
 
 # Copy only .html, .css, and .js files from the source to the destination directory
 for file in html_css_src.rglob("*"):
-    if file.suffix in [".html", ".css", ".js"]:
+    if file.suffix in [".html", ".css", ".js", ".ico"]:
         relative_path = file.relative_to(html_css_src)
         destination = output_dir / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
