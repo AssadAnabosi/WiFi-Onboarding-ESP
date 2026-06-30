@@ -1,0 +1,6 @@
+## IDF Component Manager manifest.
+## Managed dependencies are downloaded into managed_components/ on first build.
+dependencies:
+  espressif/mdns: "^1.2.0"
+  idf:
+    version: ">=5.1"

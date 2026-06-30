@@ -1,0 +1,21 @@
+# Target chip
+CONFIG_IDF_TARGET="esp32"
+
+# Custom, OTA-ready partition table (see partitions.csv)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# HTTP server: we register one wildcard static handler plus the REST API
+# handlers, and rely on wildcard URI matching for static asset routing.
+CONFIG_HTTPD_MAX_URI_HANDLERS=24
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_HTTPD_MAX_URI_LEN=512
+
+# WPA2/WPA3-Enterprise (EAP) client support for "username|password" networks.
+CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=y
+
+# Default device hostname (also overridden at runtime from NVS).
+CONFIG_LWIP_LOCAL_HOSTNAME="ESP-IoT"
+
+# Logging
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
