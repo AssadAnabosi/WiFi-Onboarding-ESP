@@ -1,52 +1,64 @@
-# ESP32 WiFi Onboarding
+# ESP32 WiFi Onboarding (ESP-IDF)
 
-This project provides a simple onboarding web interface for the ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
-Allowing the user to connect it to the ESP and configure what network to connect to.
+A native **ESP-IDF** onboarding web interface for the ESP32, designed as a
+boilerplate to help you quickly get started with your IoT projects. It lets a
+user connect to the device and configure which WiFi network it should join.
 
-**_from this point on we will be referring to the ESP32 as ESP_**
+The entire firmware — including the web interface — is built and flashed with
+the standard `idf.py` toolchain. The web assets are minified, gzipped and
+**embedded directly into the application binary**, so there is no separate
+filesystem image and no third-party upload tool to deal with.
 
 ## Features
 
-- **Scan and Connect**: Scan for available Wi-Fi networks and connect the ESP to your chosen network.
-- **Access Point Mode**: Configure the ESP to create its own Wi-Fi Access Point for direct connection.
-- **Auto-Reconnect**: Save Wi-Fi credentials using LittleFS, allowing the device to automatically reconnect to the last used network after reboot.
-- **Responsive Web Interface**: Built with HTML, CSS, and JavaScript, the interface is lightweight, user-friendly, and works across devices.
+- **Scan and Connect** — scan for available WiFi networks and connect the ESP
+  to your chosen network (including **hidden** networks).
+- **WPA2-Enterprise** — connect to enterprise (PEAP/MSCHAPv2) networks by
+  entering credentials as `identity|password`.
+- **Access Point Mode** — the ESP can create its own WiFi Access Point for
+  direct configuration.
+- **Auto-Reconnect** — credentials are persisted in **NVS**, so the device
+  reconnects to the last network automatically after a reboot.
+- **Responsive Web Interface** — lightweight HTML/CSS/JS, embedded in the
+  firmware and served gzip-compressed.
+- **mDNS** — reachable at `config.local` in addition to its IP.
 
 ## Usage
 
-Once configured, you can access the ESP either through your own Wi-Fi network or directly via its Access Point (`192.168.4.1` or `config.local`), providing flexibility for a variety of IoT applications.
+Once configured, access the device through your own WiFi network or directly via
+its Access Point at `http://192.168.4.1` or `http://config.local`.
 
-## Note
+> This project is intended as a **boilerplate**: set up WiFi management quickly
+> and build your own IoT application on top of it.
 
-This project is intended as a **boilerplate** to help you quickly set up Wi-Fi management for your ESP and build upon it for your own IoT projects.
+## Prerequisites
 
-## How to start
+- **ESP-IDF v5.1 or newer**, installed and exported on your `PATH`
+  (so `idf.py` is available). See the official
+  [ESP-IDF Get Started guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html).
+- **Python 3** (bundled with ESP-IDF) for the web asset build step.
 
-1. **Download Arduino IDE 2 via either**
+## Build & Flash
 
-- [Microsoft Store](https://apps.microsoft.com/detail/xpddtbj80f8pc9)
-- [Official Website](https://docs.arduino.cc/software/ide-v2/tutorials/getting-started/ide-v2-downloading-and-installing/)
+```bash
+# 1. Select the target chip (once per checkout)
+idf.py set-target esp32
 
-1. **Configure the IDE**
+# 2. Minify + gzip the web interface into main/www/*.gz (embedded by CMake)
+python utils/build_web.py
 
-- **Install the ESP Board**
-  - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
+# 3. Build, flash and open the serial monitor
+idf.py -p <PORT> flash monitor
+```
 
-- **Installing Libraries**
-- Arduino IDE, go to `Sketch` > `Include Library` > `Manage Libraries...` > Search for the libraries and install the following.
-  - Install the [ArduinoJson](https://github.com/bblanchon/ArduinoJson) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ArduinoJson` (by Benoît Blanchon). Install the version 7.
-  - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
-  - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
+Re-run `python utils/build_web.py` whenever you edit anything under
+`web-interface/`, then rebuild.
 
-- Select your board at `Tools` > `Board`
-- Plug in your board and select its COM port at `Tools` > `Port`
-- Optional: To reset/override previous settings, select `Tools` > `Erase Flash` > `All Flash Contents` or `Tools` > `Erase All Flash Before Sketch Upload` > `Enabled`
-- You will need [arduino-littlefs-upload filesystem uploader tool](https://github.com/earlephilhower/arduino-littlefs-upload/) to load sketch data into the ESP. [Tutorial](https://randomnerdtutorials.com/arduino-ide-2-install-esp32-littlefs/) (follow the instructions for Arduino IDE 2)
-- Run the `webMinifier` script to minify the HTML, CSS files. This will create a `data` folder with the minified files inside the esp directory.
-- Upload the `data` folder to the ESP using the filesystem uploader tool. as follows:
-  - Open the `*.ino` file in your Arduino IDE.
-  - Open the command palette by selecting `Ctrl` + `Shift` + `P`, then type `LittleFS Upload` and select `LittleFS to Pico/ESP8266/ESP32`.
-  - Note: Make sure to close the serial monitor before uploading the files. If you don't, you will get an error message.
+- To wipe stored settings (NVS) and start fresh: `idf.py -p <PORT> erase-flash`.
+- Exit the serial monitor with `Ctrl-]`.
+
+The `espressif/mdns` dependency is fetched automatically by the IDF Component
+Manager on the first build.
 
 ## Default settings
 
@@ -55,18 +67,49 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 - **Password:** `12345678`
 - **Channel:** `6`
 - **Hidden:** `false`
+- **Hostname:** `ESP-IoT`
+
+## REST API
+
+All endpoints return JSON. Page navigation is served from the embedded assets.
+
+| Method | Endpoint          | Description                                  |
+| ------ | ----------------- | -------------------------------------------- |
+| GET    | `/api`            | Board / health info                          |
+| GET    | `/api/status`     | Current SoftAP + station status              |
+| GET    | `/api/scan`       | Available WiFi networks (RSSI-sorted)        |
+| GET    | `/api/settings`   | Current AP + device settings                 |
+| POST   | `/api/connect`    | Connect to a network `{ssid, password}`      |
+| POST   | `/api/disconnect` | Disconnect and clear saved credentials       |
+| POST   | `/api/settings`   | Update settings (reboots to apply)           |
+| POST   | `/api/reboot`     | Reboot the device                            |
+| POST   | `/api/reset`      | Factory reset (clears NVS) and reboot        |
 
 ## File Structure
 
 ```
-📁 web-interface        # Contains the source HTML, CSS, and JS files for the web interface
-📁 esp                  # Contains the ESP sketch and the web interface files
-│   📁 data
-│       📁 www          # Contains the minified HTML, CSS, and the JS files for the web interface
-📁 utils                # Contains utility scripts
-    📄 webMinifier.py   # Script to minify HTML, CSS, files
-
+📁 main                  # ESP-IDF application component
+│   📄 main.c            # app_main: NVS, WiFi, HTTP server, mDNS
+│   📄 wifi_manager.*    # station + SoftAP, scan, WPA2-PSK/Enterprise
+│   📄 config_store.*    # NVS-backed settings
+│   📄 http_server.*     # esp_http_server: REST API + static serving
+│   📄 idf_component.yml # managed dependencies (espressif/mdns)
+│   📁 www               # generated *.gz assets, embedded into the firmware
+📁 web-interface         # editable source: HTML, CSS, JS, favicon
+📁 utils
+│   📄 build_web.py      # minify + gzip web-interface/ -> main/www/*.gz
+📄 partitions.csv        # OTA-ready partition table (ota_0 / ota_1)
+📄 sdkconfig.defaults    # default project configuration
 ```
+
+## Notes
+
+- **No writable filesystem is required.** The web UI is embedded in the app
+  image and configuration lives in NVS.
+- The partition table is **OTA-ready** (two app slots). A future
+  [`esp_https_ota`](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/esp_https_ota.html)
+  update would refresh the firmware *and* the embedded web UI together,
+  atomically, with rollback.
 
 ## Dashboard Screenshots
 

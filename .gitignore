@@ -7,8 +7,3 @@ dependencies.lock
 
 # Generated, gzipped web assets embedded into the firmware (produced by utils/build_web.py)
 /main/www/
-
-# Legacy Arduino build artifacts
-/esp8266/data/*
-/esp/data/*
-/test
