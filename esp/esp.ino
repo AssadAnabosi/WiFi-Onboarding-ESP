@@ -1,10 +1,5 @@
-#ifdef ESP32
 #define PLATFORM "ESP32"
 #include <ESPmDNS.h>
-#else
-#define PLATFORM "ESP8266"
-#include <ESP8266mDNS.h>
-#endif
 
 #include "WebServerManager.h"
 #include "ConfigStorage.h"
@@ -15,7 +10,8 @@ WiFiManager wifiManager;
 
 WebServerManager webServer;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   // Flush serial buffer
   Serial.println("");
@@ -25,17 +21,17 @@ void setup() {
   // Initialize WiFiManager and attempt to connect to WiFi
   wifiManager.autoConnect();
   webServer.begin();
-  if (MDNS.begin("config"))  // "config.local" will resolve to the SoftAP IP
+  if (MDNS.begin("config")) // "config.local" will resolve to the SoftAP IP
   {
     Serial.println("mDNS responder started: config.local");
     MDNS.addService("http", "tcp", 80);
-  } else {
+  }
+  else
+  {
     Serial.println("Error starting mDNS responder");
   }
 }
 
-void loop() {
-#ifdef ESP8266
-  MDNS.update();
-#endif
+void loop()
+{
 }

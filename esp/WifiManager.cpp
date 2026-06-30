@@ -1,9 +1,7 @@
 #include "WiFiManager.h"
 #include "ConfigStorage.h"
 
-#ifdef ESP32
 #include "esp_wpa2.h" // WPA2 Enterprise support (ESP32)
-#endif
 
 #define AP_IP IPAddress(192, 168, 4, 1)
 #define AP_GATEWAY IPAddress(192, 168, 4, 1)
@@ -69,7 +67,6 @@ bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
   bool isEnterprise = pwd.indexOf('|') >= 0;
   if (isEnterprise)
   {
-#ifdef ESP32
     Serial.println("Connecting using WPA2 Enterprise credentials");
     int sep = pwd.indexOf('|');
     String username = pwd.substring(0, sep);
@@ -82,10 +79,6 @@ bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
     esp_wifi_sta_wpa2_ent_enable();
 
     WiFi.begin(ssid);
-#else
-    Serial.println("WPA2-Enterprise requested but not supported on this platform. Falling back to PSK.");
-    WiFi.begin(ssid, password);
-#endif
   }
   else
   {

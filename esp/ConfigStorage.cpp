@@ -7,11 +7,7 @@
 
 void ConfigStorage::begin()
 {
-#ifdef ESP32
   if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
-#else
-  if (!LittleFS.begin())
-#endif
   {
     Serial.println("LittleFS Mount Failed");
     return;

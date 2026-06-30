@@ -1,9 +1,9 @@
-# ESP8266/ESP32 WiFi Onboarding
+# ESP32 WiFi Onboarding
 
-This project provides a simple onboarding web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
+This project provides a simple onboarding web interface for the ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
 Allowing the user to connect it to the ESP and configure what network to connect to.
 
-**_from this point on we will be referring to the ESP8266/ESP32 as ESP_**
+**_from this point on we will be referring to the ESP32 as ESP_**
 
 ## Features
 
@@ -27,23 +27,16 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 - [Microsoft Store](https://apps.microsoft.com/detail/xpddtbj80f8pc9)
 - [Official Website](https://docs.arduino.cc/software/ide-v2/tutorials/getting-started/ide-v2-downloading-and-installing/)
 
-2. **Configure the IDE**
+1. **Configure the IDE**
 
 - **Install the ESP Board**
-  - ESP8266
-    - Arduino IDE, go to `File` > `Preferences` and add this URL to the `Additional Boards Manager URLs`: `https://arduino.esp8266.com/stable/package_esp8266com_index.json`
-    - Now go to `Tools` > `Board` > `Boards Manager`, search esp8266, and install ESP8266 Boards
-  - ESP32
-    - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
+  - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
 
 - **Installing Libraries**
 - Arduino IDE, go to `Sketch` > `Include Library` > `Manage Libraries...` > Search for the libraries and install the following.
   - Install the [ArduinoJson](https://github.com/bblanchon/ArduinoJson) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ArduinoJson` (by Benoît Blanchon). Install the version 7.
-  <!-- - **ESP8266**
-    - Install the [ESPAsyncTCP](https://github.com/ESP32Async/ESPAsyncTCP) library (by ESP32Async). -->
-  - **ESP32**
-    - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
-    - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
+  - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
+  - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
 
 - Select your board at `Tools` > `Board`
 - Plug in your board and select its COM port at `Tools` > `Port`
@@ -74,6 +67,7 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
     📄 webMinifier.py   # Script to minify HTML, CSS, files
 
 ```
+
 ## Dashboard Screenshots
 
 <img width="645" height="2795" alt="config local_home(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/45e8e4b1-ebd4-4c75-9d7c-4aaee84054d2" />
@@ -81,5 +75,3 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 <img width="645" height="2795" alt="config local_scan(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/125d1c18-506c-40c7-898d-b8cf1026e4db" />
 
 <img width="645" height="3714" alt="config local_settings(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/e2b67543-4c3f-431f-94f0-7bda48c5720d" />
-
-
