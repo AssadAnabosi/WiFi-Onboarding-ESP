@@ -112,6 +112,13 @@ static esp_err_t send_json(httpd_req_t *req, cJSON *root, int code)
     return err;
 }
 
+// Returns the string value of object[key], or def if absent/not a string.
+static const char *json_str(const cJSON *obj, const char *key, const char *def)
+{
+    const cJSON *item = cJSON_GetObjectItem(obj, key);
+    return (cJSON_IsString(item) && item->valuestring) ? item->valuestring : def;
+}
+
 static esp_err_t send_message(httpd_req_t *req, const char *message, int code)
 {
     cJSON *root = cJSON_CreateObject();
@@ -386,12 +393,13 @@ static esp_err_t handle_post_settings(httpd_req_t *req)
         return send_json(req, err, 400);
     }
 
-    const char *ap_ssid = cJSON_GetObjectItem(json, "ap_ssid")->valuestring;
-    const char *ap_password = cJSON_GetObjectItem(json, "ap_password")->valuestring;
-    int ap_channel = cJSON_GetObjectItem(json, "ap_channel")->valueint;
+    const char *ap_ssid = json_str(json, "ap_ssid", "");
+    const char *ap_password = json_str(json, "ap_password", "");
+    cJSON *ch_item = cJSON_GetObjectItem(json, "ap_channel");
+    int ap_channel = cJSON_IsNumber(ch_item) ? ch_item->valueint : 6;
     bool ap_hidden = cJSON_IsTrue(cJSON_GetObjectItem(json, "ap_hidden"));
     bool ap_status = cJSON_IsTrue(cJSON_GetObjectItem(json, "ap_status"));
-    const char *hostname = cJSON_GetObjectItem(json, "hostname")->valuestring;
+    const char *hostname = json_str(json, "hostname", "ESP-IoT");
 
     config_store_save_settings(ap_ssid, ap_password, ap_channel, ap_hidden,
                                ap_status, hostname);
