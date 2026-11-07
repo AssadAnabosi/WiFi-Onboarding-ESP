@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Arduino-framework boilerplate for Wi-Fi onboarding on ESP32 (ESP8266 support was dropped; it lives on the `legacy/esp8266` branch): the device boots, tries saved STA credentials, falls back to a SoftAP (`192.168.4.1`, mDNS `config.local`), and serves a small web UI for scanning/connecting to networks and editing AP settings. Intended as a starting point for other IoT projects.
+Arduino-framework boilerplate for Wi-Fi onboarding on ESP32: the device boots, tries saved STA credentials, falls back to a SoftAP (`192.168.4.1`, mDNS `config.local`), and serves a small web UI for scanning/connecting to networks and editing AP settings. Intended as a starting point for other IoT projects.
 
 The `OTA` branch is implementing signed OTA updates per the spec doc https://claude.ai/artifact/SSL3ZAkp8mneuKfF5pAVp6 ("Implementation plan" lists the 20 steps; read it with the Claude Docs tools). The spec decides structure, naming and tooling going forward — e.g. LittleFS → NVS, web UI embedded in firmware — so check it before changing anything it covers.
 
@@ -25,7 +25,7 @@ CI (`.github/workflows/checks.yml`, every push/PR) runs those tests, reruns `bui
 
 ## Architecture
 
-The sketch lives in `esp32/` (`esp32.ino`) and is ESP32-only (no `#ifdef ESP32`/`ESP8266` switching). Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
+The sketch lives in `esp32/` (`esp32.ino`). Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
 
 Classes:
 
