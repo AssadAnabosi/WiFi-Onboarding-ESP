@@ -4,24 +4,12 @@
 #include "ConfigStorage.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
-#ifdef ESP32
 #include <AsyncTCP.h>
-#else
-#include <ESPAsyncTCP.h>
-#endif
 
 /**
  * @warning //Must always come after ESPAsyncWebServer.h to resolve potential type declaration issues.
  **/
 #include "AsyncJson.h"
-
-#if defined(ESP32)
-#define PLATFORM "ESP32"
-#elif defined(ESP8266)
-#define PLATFORM "ESP8266"
-#else
-#define PLATFORM "Unknown"
-#endif
 
 WebServerManager::WebServerManager()
     : server(80) {}
@@ -117,7 +105,6 @@ void WebServerManager::cachedResponse(AsyncWebServerRequest *request, const Stri
 
 String getEncryptionType(int encType)
 {
-#ifdef ESP32
   switch (encType)
   {
   case WIFI_AUTH_OPEN:
@@ -139,24 +126,6 @@ String getEncryptionType(int encType)
   default:
     return "UNKNOWN";
   }
-#else
-  switch (encType)
-  {
-  case ENC_TYPE_NONE:
-    return "OPEN";
-  case ENC_TYPE_WEP:
-    return "WEP";
-  case ENC_TYPE_TKIP:
-    return "WPA-PSK";
-  case ENC_TYPE_CCMP:
-    return "WPA2-PSK";
-  case ENC_TYPE_AUTO:
-    return "AUTO";
-  default:
-    return "UNKNOWN";
-  }
-
-#endif
 }
 
 /**
@@ -165,7 +134,6 @@ String getEncryptionType(int encType)
  */
 void getBoardData(JsonObject &output)
 {
-#ifdef ESP32
   // Platform
   output["platform"] = "ESP32";
 
@@ -188,20 +156,6 @@ void getBoardData(JsonObject &output)
   JsonObject software = output.createNestedObject("software");
   software["sdk_version"] = ESP.getSdkVersion();
   software["arduino_core"] = ESP.getCoreVersion();
-#else
-  output["platform"] = "ESP8266";
-  JsonObject chipInfo = output.createNestedObject("chip_info");
-  chipInfo["chip_model"] = "ESP8266";
-  chipInfo["chip_id"] = ESP.getChipId();
-
-  JsonObject memory = output.createNestedObject("memory");
-  output["flash_size_mb"] = ESP.getFlashChipRealSize() / (1024 * 1024);
-  output["free_heap_kb"] = ESP.getFreeHeap() / 1024;
-
-  JsonObject software = output.createNestedObject("software");
-  software["sdk_version"] = ESP.getCoreVersion();
-  software["mac"] = WiFi.macAddress();
-#endif
 }
 
 void WebServerManager::handleHealth(AsyncWebServerRequest *request)

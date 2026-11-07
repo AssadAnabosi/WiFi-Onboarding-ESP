@@ -1,10 +1,4 @@
-#ifdef ESP32
-#define PLATFORM "ESP32"
 #include <ESPmDNS.h>
-#else
-#define PLATFORM "ESP8266"
-#include <ESP8266mDNS.h>
-#endif
 
 #include "WebServerManager.h"
 #include "ConfigStorage.h"
@@ -19,8 +13,6 @@ void setup() {
   Serial.begin(115200);
   // Flush serial buffer
   Serial.println("");
-  Serial.print("Running on platform: ");
-  Serial.println(PLATFORM);
   ConfigStorage::begin();
   // Initialize WiFiManager and attempt to connect to WiFi
   wifiManager.autoConnect();
@@ -35,7 +27,4 @@ void setup() {
 }
 
 void loop() {
-#ifdef ESP8266
-  MDNS.update();
-#endif
 }

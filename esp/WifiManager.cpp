@@ -1,9 +1,7 @@
 #include "WiFiManager.h"
 #include "ConfigStorage.h"
 
-#ifdef ESP32
-#include "esp_wpa2.h" // WPA2 Enterprise support (ESP32)
-#endif
+#include "esp_eap_client.h" // WPA2 Enterprise support
 
 #define AP_IP IPAddress(192, 168, 4, 1)
 #define AP_GATEWAY IPAddress(192, 168, 4, 1)
@@ -69,26 +67,23 @@ bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
   bool isEnterprise = pwd.indexOf('|') >= 0;
   if (isEnterprise)
   {
-#ifdef ESP32
     Serial.println("Connecting using WPA2 Enterprise credentials");
     int sep = pwd.indexOf('|');
     String username = pwd.substring(0, sep);
     String userpass = pwd.substring(sep + 1);
 
     // Configure WPA2 Enterprise
-    esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)username.c_str(), username.length());
-    esp_wifi_sta_wpa2_ent_set_username((uint8_t *)username.c_str(), username.length());
-    esp_wifi_sta_wpa2_ent_set_password((uint8_t *)userpass.c_str(), userpass.length());
-    esp_wifi_sta_wpa2_ent_enable();
+    esp_eap_client_set_identity((const unsigned char *)username.c_str(), username.length());
+    esp_eap_client_set_username((const unsigned char *)username.c_str(), username.length());
+    esp_eap_client_set_password((const unsigned char *)userpass.c_str(), userpass.length());
+    esp_wifi_sta_enterprise_enable();
 
     WiFi.begin(ssid);
-#else
-    Serial.println("WPA2-Enterprise requested but not supported on this platform. Falling back to PSK.");
-    WiFi.begin(ssid, password);
-#endif
   }
   else
   {
+    // Enterprise mode stays enabled in the driver until turned off
+    esp_wifi_sta_enterprise_disable();
     WiFi.begin(ssid, password);
   }
   Serial.print("Connecting to " + String(ssid) + ".");

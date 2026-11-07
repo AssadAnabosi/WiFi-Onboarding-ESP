@@ -21,12 +21,12 @@ There is no CLI build, lint, or test suite — everything goes through Arduino I
 
 ## Architecture
 
-The sketch lives in `esp/` (`esp.ino`). It still carries `#ifdef ESP32` / `ESP8266` switching (being removed per the spec). Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
+The sketch lives in `esp/` (`esp.ino`) and is ESP32-only (no `#ifdef ESP32`/`ESP8266` switching). Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
 
 Classes:
 
 - `ConfigStorage` — static methods over a single `/config.json` on LittleFS (keys: `wifi_ssid`, `wifi_password`, `ap_ssid`, `ap_password`, `ap_channel`, `ap_hidden`, `ap_status`, `hostname`). Every getter re-opens and re-parses the file; `begin()` creates it with defaults if missing; `factoryReset()` deletes and recreates it. Adding a setting means updating defaults in `begin()`, a getter, `saveSettings`, the GET/POST `/api/settings` handlers, and `settings.js`.
-- `WiFiManager` — `autoConnect()` (3 attempts with saved creds, then SoftAP if `ap_status` is true **or** STA failed) and `connectToNetwork()` (blocking ~10s wait; saves credentials on success). WPA2-Enterprise is encoded in the password field as `username|password` — the stored config format is unchanged.
+- `WiFiManager` — `autoConnect()` (3 attempts with saved creds, then SoftAP if `ap_status` is true **or** STA failed) and `connectToNetwork()` (blocking ~10s wait; saves credentials on success). WPA2-Enterprise is encoded in the password field as `username|password` (configured via the core 3.x `esp_eap_client` API) — the stored config format is unchanged.
 - `WebServerManager` — routes pages (`/`, `/home`, `/scan`, `/settings` → `/www/*.html` on LittleFS), static `/css/`, `/js/`, and the JSON API: `GET /api` (board info; also matches `/api/health` used by the frontend's `checkConnection()`), `GET /api/status`, `GET /api/scan`, `POST /api/connect`, `POST /api/disconnect`, `GET|POST /api/settings` (POST restarts the device), `POST /api/reboot`, `POST /api/reset`. Responses use `{success, message}` via `sendMessage`/`sendJson`.
 - `esp/CoreSerial` — optional debug helper that prefixes Serial lines with the core ID (`#define Serial SerialCore`).
 

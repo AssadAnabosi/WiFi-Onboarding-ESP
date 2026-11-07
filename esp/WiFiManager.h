@@ -1,11 +1,7 @@
 #ifndef WiFiManager_h
 #define WiFiManager_h
 
-#ifdef ESP32
 #include <WiFi.h>
-#else
-#include <ESP8266WiFi.h>
-#endif
 
 #include <Arduino.h>
 
