@@ -1,13 +1,11 @@
-# Warning
+# ESP32 WiFi Onboarding
 
-The code is generalized for ESP8266/ESP32, but the code is not tested on ESP8266 boards. The code is tested on ESP32 boards and it works fine.
-
-# ESP8266/ESP32 WiFi Onboarding
-
-This project provides a simple web interface for the ESP8266/ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
+This project provides a simple web interface for the ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
 Allowing the user to connect it to the ESP and configure what network to connect to.
 
-**_from this point on we will be referring to the ESP8266/ESP32 as ESP_**
+**_from this point on we will be referring to the ESP32 as ESP_**
+
+> ESP8266 support has been removed. The last ESP8266-compatible version lives on the [`legacy/esp8266`](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/tree/legacy/esp8266) branch.
 
 ## Features
 
@@ -33,21 +31,14 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 
 2. **Configure the IDE**
 
-- **Install the ESP Board**
-  - ESP8266
-    - Arduino IDE, go to `File` > `Preferences` and add this URL to the `Additional Boards Manager URLs`: `https://arduino.esp8266.com/stable/package_esp8266com_index.json`
-    - Now go to `Tools` > `Board` > `Boards Manager`, search esp8266, and install ESP8266 Boards
-  - ESP32
-    - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
+- **Install the ESP32 Board**
+  - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
 
 - **Installing Libraries**
 - Arduino IDE, go to `Sketch` > `Include Library` > `Manage Libraries...` > Search for the libraries and install the following.
   - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
   - Install the [ArduinoJson](https://github.com/bblanchon/ArduinoJson) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ArduinoJson` (by Benoît Blanchon). Install the version 7.
-  - **ESP8266**
-    - Install the [ESPAsyncTCP](https://github.com/ESP32Async/ESPAsyncTCP) library (by ESP32Async).
-  - **ESP32**
-    - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
+  - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
 - Select your board at `Tools` > `Board`
 - Plug in your board and select its COM port at `Tools` > `Port`
 - Optional: To reset/override previous settings, select `Tools` > `Erase Flash` > `All Flash Contents` or `Tools` > `Erase All Flash Before Sketch Upload` > `Enabled`

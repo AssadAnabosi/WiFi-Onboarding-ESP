@@ -16,19 +16,7 @@ except ImportError:
         print("Library installation declined. Exiting.")
         exit(1)
 
-# Prompt the user to select the target destination
-print("Select the target destination:")
-print("1. ESP8266")
-print("2. ESP")
-choice = input("Enter 1 or 2: ").strip()
-
-if choice == "1":
-    output_dir = Path(__file__).parent / "../esp8266/data/www"
-elif choice == "2":
-    output_dir = Path(__file__).parent / "../esp/data/www"
-else:
-    print("Invalid choice. Exiting.")
-    exit(1)
+output_dir = Path(__file__).parent / "../esp/data/www"
 
 # Check if the output directory exists and is not empty
 if output_dir.exists() and any(output_dir.iterdir()):
