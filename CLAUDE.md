@@ -12,6 +12,8 @@ The `OTA` branch is implementing signed OTA updates per the spec doc https://cla
 
 There is no lint step. Python tests: `python -m unittest discover -s utils/tests` (needs `pip install -r utils/requirements.txt`).
 
+CI (`.github/workflows/checks.yml`, every push/PR) runs those tests, reruns `build_assets.py` and fails on drift, validates target names (`python utils/targets.py check`), then compiles every `sketch.yaml` profile in its own job (`utils/targets.py prepare <target>` puts that target's partitions file and `build_opt.h` in place first) and checks the `.bin` against the target's app slot (`utils/targets.py size`, warns above 90%). Run the same commands locally before pushing.
+
 - **Compile (CLI)**: `arduino-cli compile --profile esp32-4mb esp32` — the profile in `esp32/sketch.yaml` pins the ESP32 core (3.3.12; signing needs ≥ 3.3.8) and exact library versions, and arduino-cli installs them into its own internal cache. On this machine arduino-cli ships with the IDE at `%LOCALAPPDATA%/Programs/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe`. Add `--build-path <dir>` to keep build output out of the repo.
 - **Arduino IDE** ignores `sketch.yaml`: install the same core/library versions by hand and pick the "No FS 4MB (2MB APP x2)" partition scheme (matches `esp32/partitions.csv`).
 - Both the IDE and arduino-cli automatically pick up `esp32/partitions.csv` and `esp32/build_opt.h` from the sketch folder. `build_opt.h` is a gcc response file, so string macros need escaped quotes (`-DFOO=\"bar\"`); its flags apply to the core and libraries too (e.g. `-DUPDATE_SIGN` enables `Update.installSignature`).

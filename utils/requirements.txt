@@ -1,4 +1,6 @@
-# Pinned for deterministic output from build_assets.py; CI checks the generated files.
+# Exact versions for the Python tools; Dependabot proposes updates.
+# The minifiers and zopfli are pinned for deterministic build_assets.py output.
 css-html-js-minify==2.5.5
 rjsmin==1.3.0
 zopfli==0.4.3
+pyyaml==6.0.3

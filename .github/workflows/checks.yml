@@ -1,0 +1,87 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+  ARDUINO_CLI_VERSION: "1.5.1"
+
+jobs:
+  tools:
+    name: Tools and generated files
+    runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      - name: Python tests
+        run: python -m unittest discover -s utils/tests -v
+
+      - name: Generated files are up to date
+        run: |
+          python utils/build_assets.py
+          if ! git diff --exit-code -- esp32/WebAssets.h esp32/Version.h; then
+            echo "::error::Generated files are out of date: run build_assets.py and commit the result"
+            exit 1
+          fi
+
+      - name: Target names
+        run: python utils/targets.py check
+
+      - name: List targets
+        id: targets
+        run: echo "targets=$(python utils/targets.py list)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: tools
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.tools.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      - uses: arduino/setup-arduino-cli@v2.0.0
+        with:
+          version: ${{ env.ARDUINO_CLI_VERSION }}
+
+      - name: Cache ESP32 core and libraries
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.arduino15
+          key: arduino-${{ env.ARDUINO_CLI_VERSION }}-${{ hashFiles('esp32/sketch.yaml') }}
+
+      - name: Prepare target
+        run: python utils/targets.py prepare ${{ matrix.target }}
+
+      - name: Compile
+        run: arduino-cli compile --profile ${{ matrix.target }} --warnings default --build-path build esp32
+
+      - name: Firmware size
+        run: python utils/targets.py size ${{ matrix.target }} build/esp32.ino.bin
