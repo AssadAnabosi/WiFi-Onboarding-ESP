@@ -113,3 +113,29 @@ bool WiFiManager::connectToNetwork(const char *ssid, const char *password)
     return false;
   }
 }
+bool WiFiManager::startConnect(const String &ssid, const String &password)
+{
+  AttemptState expected = _attemptState.load();
+  if (expected == AttemptState::Connecting ||
+      !_attemptState.compare_exchange_strong(expected, AttemptState::Connecting))
+    return false;
+
+  _attemptSSID = ssid;
+  _attemptPassword = password;
+  if (xTaskCreate(connectTask, "wifi_connect", 8192, this, 1, nullptr) != pdPASS)
+  {
+    _attemptPassword = "";
+    _attemptState = AttemptState::Failed;
+    return false;
+  }
+  return true;
+}
+
+void WiFiManager::connectTask(void *arg)
+{
+  WiFiManager *self = static_cast<WiFiManager *>(arg);
+  bool connected = self->connectToNetwork(self->_attemptSSID.c_str(), self->_attemptPassword.c_str());
+  self->_attemptPassword = "";
+  self->_attemptState = connected ? AttemptState::Succeeded : AttemptState::Failed;
+  vTaskDelete(nullptr);
+}

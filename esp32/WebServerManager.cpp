@@ -2,6 +2,7 @@
 #include "WebServerManager.h"
 #include "WiFiManager.h"
 #include "ConfigStorage.h"
+#include "ProjectConfig.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
@@ -11,11 +12,28 @@
  **/
 #include "AsyncJson.h"
 
+// Scan results older than this are discarded and a fresh scan is started
+#define SCAN_RESULTS_MAX_AGE_MS 15000
+
 WebServerManager::WebServerManager()
     : server(80) {}
 
 void WebServerManager::begin()
 {
+  // Cross-site request protection on every POST route
+  server.addMiddleware([this](AsyncWebServerRequest *request, ArMiddlewareNext next)
+                       {
+    if (request->method() == HTTP_POST)
+    {
+      String reason;
+      if (!isTrustedPost(request, reason))
+      {
+        sendMessage(request, reason, 403);
+        return;
+      }
+    }
+    next(); });
+
   // Serve Pages
   server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
             { cachedResponse(request, "/www/index.html"); });
@@ -33,6 +51,8 @@ void WebServerManager::begin()
             { cachedResponse(request, "/www/favicon.ico"); });
 
   // GET API routes
+  server.on("/api/health", HTTP_GET, [this](AsyncWebServerRequest *request)
+            { handleHealth(request); });
   server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request)
             { handleStatus(request); });
   server.on("/api/scan", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -56,8 +76,6 @@ void WebServerManager::begin()
   server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
             { handleReset(request); });
 
-  server.on("/api", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { handleHealth(request); });
   // 404 fallback
   server.onNotFound([this](AsyncWebServerRequest *request)
                     {
@@ -68,17 +86,102 @@ void WebServerManager::begin()
   Serial.println("Web Server Started");
 }
 
-void WebServerManager::sendJson(AsyncWebServerRequest *request, const DynamicJsonDocument &doc, int code = 200)
+void WebServerManager::loop()
+{
+  if (_restartPending && (int32_t)(millis() - _restartAt) >= 0)
+  {
+    Serial.println("Restarting...");
+    ESP.restart();
+  }
+}
+
+void WebServerManager::scheduleRestart(uint32_t delayMs)
+{
+  _restartAt = millis() + delayMs;
+  _restartPending = true;
+}
+
+bool WebServerManager::isOwnHost(String host)
+{
+  host.toLowerCase();
+  if (host.isEmpty())
+    return false;
+
+  if ((WiFi.getMode() & WIFI_AP) && host == WiFi.softAPIP().toString())
+    return true;
+  if (WiFi.status() == WL_CONNECTED && host == WiFi.localIP().toString())
+    return true;
+  if (host == MDNS_SETUP_NAME ".local")
+    return true;
+
+  String hostname = WiFi.getHostname();
+  hostname.toLowerCase();
+  return !hostname.isEmpty() && (host == hostname || host == hostname + ".local");
+}
+
+bool WebServerManager::isTrustedPost(AsyncWebServerRequest *request, String &reason)
+{
+  // Browsers must ask permission before sending these types to another site, and the
+  // device never grants it (no CORS headers). Bodiless POSTs must still declare JSON.
+  const String &type = request->contentType();
+  if (!type.equalsIgnoreCase("application/json") && !type.equalsIgnoreCase("application/octet-stream"))
+  {
+    reason = "Unsupported content type";
+    return false;
+  }
+
+  String host = request->host();
+  int colon = host.indexOf(':');
+  if (colon >= 0)
+    host = host.substring(0, colon);
+  if (!isOwnHost(host))
+  {
+    reason = "Request host not allowed";
+    return false;
+  }
+
+  // Tools such as curl send no Origin; browsers always do on POST
+  const AsyncWebHeader *origin = request->getHeader("Origin");
+  if (origin)
+  {
+    String value = origin->value();
+    value.toLowerCase();
+    if (!value.startsWith("http://"))
+    {
+      reason = "Request origin not allowed";
+      return false;
+    }
+    String originHost = value.substring(7);
+    colon = originHost.indexOf(':');
+    if (colon >= 0)
+    {
+      if (originHost.substring(colon + 1) != "80")
+      {
+        reason = "Request origin not allowed";
+        return false;
+      }
+      originHost = originHost.substring(0, colon);
+    }
+    if (!isOwnHost(originHost))
+    {
+      reason = "Request origin not allowed";
+      return false;
+    }
+  }
+  return true;
+}
+
+void WebServerManager::sendJson(AsyncWebServerRequest *request, const JsonDocument &doc, int code)
 {
   String response;
   serializeJson(doc, response);
   request->send(code, "application/json", response);
 }
 
-void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String &message, int code = 200)
+void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String &message, int code)
 {
-  DynamicJsonDocument doc(128);
-  doc["success"] = (code == 200);
+  JsonDocument doc;
+  doc["success"] = (code >= 200 && code < 300);
   doc["message"] = message;
   Serial.println(message);
   sendJson(request, doc, code);
@@ -141,40 +244,58 @@ void getBoardData(JsonObject &output)
   output["mac"] = WiFi.macAddress();
 
   // Chip Info
-  JsonObject chipInfo = output.createNestedObject("chip_info");
+  JsonObject chipInfo = output["chip_info"].to<JsonObject>();
   chipInfo["chip_model"] = ESP.getChipModel();
   chipInfo["chip_revision"] = ESP.getChipRevision();
   chipInfo["cores"] = ESP.getChipCores();
   chipInfo["cpu_freq_mhz"] = ESP.getCpuFreqMHz();
 
   // Memory
-  JsonObject memory = output.createNestedObject("memory");
+  JsonObject memory = output["memory"].to<JsonObject>();
   memory["flash_size_mb"] = ESP.getFlashChipSize() / (1024 * 1024);
   memory["free_heap_kb"] = ESP.getFreeHeap() / 1024;
 
   // SDK/Arduino versions
-  JsonObject software = output.createNestedObject("software");
+  JsonObject software = output["software"].to<JsonObject>();
   software["sdk_version"] = ESP.getSdkVersion();
   software["arduino_core"] = ESP.getCoreVersion();
 }
 
 void WebServerManager::handleHealth(AsyncWebServerRequest *request)
 {
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
 
   doc["success"] = true;
   doc["message"] = "What are you doing here ?";
 
   // Add nested "data" object with board info
-  JsonObject data = doc.createNestedObject("data");
+  JsonObject data = doc["data"].to<JsonObject>();
   getBoardData(data); // Populate dynamically
 
   sendJson(request, doc);
 }
 
+/**
+ * @brief Converts a background connection attempt state to its API name.
+ */
+const char *attemptStateName(WiFiManager::AttemptState state)
+{
+  switch (state)
+  {
+  case WiFiManager::AttemptState::Connecting:
+    return "connecting";
+  case WiFiManager::AttemptState::Succeeded:
+    return "succeeded";
+  case WiFiManager::AttemptState::Failed:
+    return "failed";
+  default:
+    return "none";
+  }
+}
+
 void WebServerManager::handleStatus(AsyncWebServerRequest *request)
 {
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
 
   bool apEnabled = WiFi.getMode() & WIFI_AP;
   bool staConnected = (WiFi.status() == WL_CONNECTED);
@@ -187,12 +308,48 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
   doc["station"]["ssid"] = WiFi.SSID();
   doc["station"]["ip"] = staConnected ? WiFi.localIP().toString() : "";
 
+  WiFiManager::AttemptState attempt = wifiManager.attemptState();
+  doc["station"]["attempt"]["state"] = attemptStateName(attempt);
+  if (attempt != WiFiManager::AttemptState::None)
+    doc["station"]["attempt"]["ssid"] = wifiManager.attemptSSID();
+
   sendJson(request, doc);
 }
 
 void WebServerManager::handleScan(AsyncWebServerRequest *request)
 {
-  int n = WiFi.scanNetworks(false, true);
+  int16_t n = WiFi.scanComplete();
+
+  if (n == WIFI_SCAN_RUNNING)
+  {
+    sendMessage(request, "Scanning", 202);
+    return;
+  }
+
+  // Results nobody collected in time are stale: drop them and scan again
+  if (n >= 0 && millis() - _scanStartedAt > SCAN_RESULTS_MAX_AGE_MS)
+  {
+    WiFi.scanDelete();
+    n = WIFI_SCAN_FAILED;
+  }
+
+  if (n < 0)
+  {
+    if (wifiManager.isConnecting())
+    {
+      sendMessage(request, "Connecting to a network, try again shortly", 409);
+      return;
+    }
+    if (WiFi.scanNetworks(true, true) == WIFI_SCAN_FAILED)
+    {
+      sendMessage(request, "Failed to start WiFi scan", 500);
+      return;
+    }
+    _scanStartedAt = millis();
+    sendMessage(request, "Scanning", 202);
+    return;
+  }
+
   bool WL_Connected = (WiFi.status() == WL_CONNECTED);
   String currentSSID = WiFi.SSID();
   String currentBSSID = WiFi.BSSIDstr();
@@ -214,12 +371,13 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request)
     }
   }
 
-  DynamicJsonDocument doc(2048);
+  JsonDocument doc;
   JsonArray networks = doc.to<JsonArray>();
 
-  for (int i = 0; i < n; ++i)
+  for (int k = 0; k < n; ++k)
   {
-    JsonObject network = networks.createNestedObject();
+    int i = indices[k];
+    JsonObject network = networks.add<JsonObject>();
     bool isHidden = WiFi.SSID(i).isEmpty();
     bool connected = WL_Connected && (currentBSSID.equals(WiFi.BSSIDstr(i)));
     if (isHidden)
@@ -229,12 +387,12 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request)
     }
     else
     {
-      network["ssid"] = WiFi.SSID(i).c_str();
+      network["ssid"] = WiFi.SSID(i);
       network["hidden"] = false;
     }
     network["rssi"] = WiFi.RSSI(i);
     network["enc"] = getEncryptionType(WiFi.encryptionType(i));
-    network["mac"] = WiFi.BSSIDstr(i).c_str();
+    network["mac"] = WiFi.BSSIDstr(i);
     network["channel"] = WiFi.channel(i);
     network["connected"] = connected;
   }
@@ -245,19 +403,30 @@ void WebServerManager::handleScan(AsyncWebServerRequest *request)
 
 void WebServerManager::handleConnect(AsyncWebServerRequest *request, const JsonObject &json)
 {
-  if (!json.containsKey("ssid"))
+  if (json["ssid"].isNull())
   {
     sendMessage(request, "Missing required field: ssid", 400);
+    return;
+  }
+
+  if (WiFi.scanComplete() == WIFI_SCAN_RUNNING)
+  {
+    sendMessage(request, "WiFi scan in progress, try again shortly", 409);
     return;
   }
 
   String ssid = json["ssid"].as<String>();
   String password = json["password"] | "";
 
-  if (wifiManager.connectToNetwork(ssid.c_str(), password.c_str()))
-    sendMessage(request, "Connected to " + String(ssid) + " WiFi Network");
-  else
-    sendMessage(request, "Failed to connect to WiFi Network", 400);
+  if (!wifiManager.startConnect(ssid, password))
+  {
+    if (wifiManager.isConnecting())
+      sendMessage(request, "Already connecting to a network", 409);
+    else
+      sendMessage(request, "Failed to start connecting", 500);
+    return;
+  }
+  sendMessage(request, "Connecting to " + ssid, 202);
 }
 
 void WebServerManager::handleDisconnect(AsyncWebServerRequest *request)
@@ -269,7 +438,7 @@ void WebServerManager::handleDisconnect(AsyncWebServerRequest *request)
 
 void WebServerManager::handleGetSettings(AsyncWebServerRequest *request)
 {
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
 
   doc["ap_ssid"] = ConfigStorage::getAPSSID();
   doc["ap_password"] = ConfigStorage::getAPPassword();
@@ -286,13 +455,13 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
   const char *required[] = {"ap_ssid", "ap_password", "ap_channel", "ap_hidden", "ap_status", "hostname"};
   String missing;
   for (const char *key : required)
-    if (!json.containsKey(key))
+    if (json[key].isNull())
       missing += String(key) + ", ";
 
   if (!missing.isEmpty())
   {
     missing = missing.substring(0, missing.length() - 2);
-    DynamicJsonDocument errDoc(256);
+    JsonDocument errDoc;
     errDoc["success"] = false;
     errDoc["message"] = "Missing required fields";
     errDoc["fields"] = missing;
@@ -315,22 +484,18 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
   Serial.println("-----------------------------");
 
   sendMessage(request, "Settings updated");
-  delay(100);
-  ESP.restart();
+  scheduleRestart();
 }
 
 void WebServerManager::handleReset(AsyncWebServerRequest *request)
 {
-  sendMessage(request, "Resetting to factory settings...");
-  delay(100);
   ConfigStorage::factoryReset();
-  delay(100);
-  ESP.restart();
+  sendMessage(request, "Resetting to factory settings...");
+  scheduleRestart();
 }
 
 void WebServerManager::handleReboot(AsyncWebServerRequest *request)
 {
   sendMessage(request, "Device is rebooting...");
-  delay(100);
-  ESP.restart();
+  scheduleRestart();
 }

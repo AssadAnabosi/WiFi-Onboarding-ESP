@@ -78,7 +78,7 @@ function apiCall({
   request.overrideMimeType("application/json");
   request.onreadystatechange = function () {
     if (this.readyState === XMLHttpRequest.DONE) {
-      if (200 === this.status) {
+      if (this.status >= 200 && this.status < 300) {
         setStatusBanner("connected");
         const response = JSON.parse(this.responseText);
         if (
@@ -87,7 +87,7 @@ function apiCall({
         ) {
           toast(response.message, 6000);
         }
-        callback(response);
+        callback(response, this.status);
       } else {
         setStatusBanner("error");
         let msg =
@@ -97,6 +97,10 @@ function apiCall({
           endpoint +
           ": " +
           this.statusText;
+        try {
+          const response = JSON.parse(this.responseText);
+          if (response.message) msg = response.message;
+        } catch (e) {}
         toast(msg, 6000);
         console.error(this);
         console.error(msg);
