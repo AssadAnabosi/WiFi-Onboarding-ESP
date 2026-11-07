@@ -1,58 +1,72 @@
 #include "ConfigStorage.h"
 #include "ProjectConfig.h"
-#include <LittleFS.h>
-#include <ArduinoJson.h>
+#include <Preferences.h>
+#include <esp_wifi.h>
 
-#define FORMAT_LITTLEFS_IF_FAILED true
-#define CONFIG_FILE "/config.json"
+/**
+ * Settings live in NVS, which OTA updates never write to.
+ *
+ * Setting names (see CONTRIBUTING.md): never rename, reuse or change the type of a
+ * name; every read takes a default; retired names stay listed as reserved.
+ * Names are at most 15 characters.
+ */
+
+// Namespaces
+#define NS_CONFIG "cfg" // User settings, cleared by factory reset
+#define NS_SYSTEM "sys" // System records, kept by factory reset
+
+// "cfg" namespace
+#define KEY_WIFI_SSID "wifi_ssid"         // String
+#define KEY_WIFI_PASSWORD "wifi_password" // String
+#define KEY_AP_SSID "ap_ssid"             // String
+#define KEY_AP_PASSWORD "ap_password"     // String
+#define KEY_AP_CHANNEL "ap_channel"       // Int
+#define KEY_AP_HIDDEN "ap_hidden"         // Bool
+#define KEY_AP_STATUS "ap_status"         // Bool
+#define KEY_HOSTNAME "hostname"           // String
+
+// Reserved (retired) names: none yet
+
+static String readString(const char *key, const char *defaultValue)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_CONFIG, true))
+    return defaultValue;
+  String value = prefs.isKey(key) ? prefs.getString(key, defaultValue) : String(defaultValue);
+  prefs.end();
+  return value;
+}
+
+static int readInt(const char *key, int defaultValue)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_CONFIG, true))
+    return defaultValue;
+  int value = prefs.isKey(key) ? prefs.getInt(key, defaultValue) : defaultValue;
+  prefs.end();
+  return value;
+}
+
+static bool readBool(const char *key, bool defaultValue)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_CONFIG, true))
+    return defaultValue;
+  bool value = prefs.isKey(key) ? prefs.getBool(key, defaultValue) : defaultValue;
+  prefs.end();
+  return value;
+}
 
 void ConfigStorage::begin()
 {
-  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
-  {
-    Serial.println("LittleFS Mount Failed");
-    return;
-  }
-
-  if (!LittleFS.exists(CONFIG_FILE))
-  {
-    File f = LittleFS.open(CONFIG_FILE, "w");
-    if (f)
-    {
-      StaticJsonDocument<512> doc;
-      doc["wifi_ssid"] = "";
-      doc["wifi_password"] = "";
-      doc["ap_ssid"] = DEFAULT_AP_SSID;
-      doc["ap_password"] = DEFAULT_AP_PASSWORD;
-      doc["ap_channel"] = DEFAULT_AP_CHANNEL;
-      doc["ap_hidden"] = DEFAULT_AP_HIDDEN;
-      doc["ap_status"] = DEFAULT_AP_ENABLED;
-      doc["hostname"] = DEFAULT_HOSTNAME;
-      serializeJson(doc, f);
-      f.close();
-      Serial.println("Config file created with default values.");
-    }
-    else
-    {
-      Serial.println("Failed to create config file.");
-    }
-  }
-  else
-  {
-    Serial.println("Config file already exists.");
-  }
   Serial.println("----- Current Settings -----");
   Serial.print("WiFi SSID: ");
   Serial.println(ConfigStorage::getWiFiSSID());
-  Serial.print("WiFi Password: ");
-  Serial.println(ConfigStorage::getWiFiPassword());
   Serial.print("Hostname: ");
   Serial.println(ConfigStorage::getHostname());
 
   Serial.print("AP SSID: ");
   Serial.println(ConfigStorage::getAPSSID());
-  Serial.print("AP Password: ");
-  Serial.println(ConfigStorage::getAPPassword());
   Serial.print("AP Channel: ");
   Serial.println(ConfigStorage::getAPChannel());
   Serial.print("AP Hidden: ");
@@ -64,162 +78,83 @@ void ConfigStorage::begin()
 
 void ConfigStorage::saveWiFiCredentials(const String &ssid, const String &password)
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return;
-
-  doc["wifi_ssid"] = ssid;
-  doc["wifi_password"] = password;
-
-  f = LittleFS.open(CONFIG_FILE, "w");
-  if (f)
+  Preferences prefs;
+  if (!prefs.begin(NS_CONFIG, false))
   {
-    serializeJson(doc, f);
-    f.close();
+    Serial.println("Failed to open settings storage");
+    return;
   }
+  prefs.putString(KEY_WIFI_SSID, ssid);
+  prefs.putString(KEY_WIFI_PASSWORD, password);
+  prefs.end();
 }
 
 String ConfigStorage::getWiFiSSID()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return "";
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return "";
-  return doc["wifi_ssid"] | "";
+  return readString(KEY_WIFI_SSID, "");
 }
 
 String ConfigStorage::getWiFiPassword()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return "";
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return "";
-  return doc["wifi_password"] | "";
+  return readString(KEY_WIFI_PASSWORD, "");
 }
 
 void ConfigStorage::saveSettings(const String &ssid, const String &password, int channel, bool hidden, bool status, const String &hostname)
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return;
-
-  doc["ap_ssid"] = ssid;
-  doc["ap_password"] = password;
-  doc["ap_channel"] = channel;
-  doc["ap_hidden"] = hidden;
-  doc["ap_status"] = status;
-  doc["hostname"] = hostname;
-
-  f = LittleFS.open(CONFIG_FILE, "w");
-  if (f)
+  Preferences prefs;
+  if (!prefs.begin(NS_CONFIG, false))
   {
-    serializeJson(doc, f);
-    f.close();
+    Serial.println("Failed to open settings storage");
+    return;
   }
+  prefs.putString(KEY_AP_SSID, ssid);
+  prefs.putString(KEY_AP_PASSWORD, password);
+  prefs.putInt(KEY_AP_CHANNEL, channel);
+  prefs.putBool(KEY_AP_HIDDEN, hidden);
+  prefs.putBool(KEY_AP_STATUS, status);
+  prefs.putString(KEY_HOSTNAME, hostname);
+  prefs.end();
 }
 
 String ConfigStorage::getHostname()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return DEFAULT_HOSTNAME;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return DEFAULT_HOSTNAME;
-  return doc["hostname"] | DEFAULT_HOSTNAME;
+  return readString(KEY_HOSTNAME, DEFAULT_HOSTNAME);
 }
 
 String ConfigStorage::getAPSSID()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return "ap_ssid_error_open_file";
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return "ap_ssid_error_deserialize";
-
-  return doc["ap_ssid"] | "ap_ssid_error_doc_get";
+  return readString(KEY_AP_SSID, DEFAULT_AP_SSID);
 }
 
 String ConfigStorage::getAPPassword()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return "ap_password_error";
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return "ap_password_error";
-  return doc["ap_password"] | "ap_password_error";
+  return readString(KEY_AP_PASSWORD, DEFAULT_AP_PASSWORD);
 }
 
 int ConfigStorage::getAPChannel()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return DEFAULT_AP_CHANNEL;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return DEFAULT_AP_CHANNEL;
-  return doc["ap_channel"] | DEFAULT_AP_CHANNEL;
+  return readInt(KEY_AP_CHANNEL, DEFAULT_AP_CHANNEL);
 }
 
 bool ConfigStorage::getAPHidden()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return DEFAULT_AP_HIDDEN;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return DEFAULT_AP_HIDDEN;
-  return doc["ap_hidden"] | DEFAULT_AP_HIDDEN;
+  return readBool(KEY_AP_HIDDEN, DEFAULT_AP_HIDDEN);
 }
 
 bool ConfigStorage::getAPStatus()
 {
-  File f = LittleFS.open(CONFIG_FILE, "r");
-  if (!f)
-    return DEFAULT_AP_ENABLED;
-  StaticJsonDocument<512> doc;
-  DeserializationError error = deserializeJson(doc, f);
-  f.close();
-  if (error)
-    return DEFAULT_AP_ENABLED;
-  return doc["ap_status"] | DEFAULT_AP_ENABLED;
+  return readBool(KEY_AP_STATUS, DEFAULT_AP_ENABLED);
 }
 
 void ConfigStorage::factoryReset()
 {
-  if (LittleFS.exists(CONFIG_FILE))
+  // Clears user settings only: the firmware and the "sys" namespace are kept
+  Preferences prefs;
+  if (prefs.begin(NS_CONFIG, false))
   {
-    LittleFS.remove(CONFIG_FILE);
+    prefs.clear();
+    prefs.end();
   }
-  begin(); // recreate file with defaults
+  // Also drop any credentials the Wi-Fi driver kept on its own
+  esp_wifi_restore();
 }

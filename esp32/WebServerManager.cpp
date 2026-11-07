@@ -20,6 +20,10 @@ WebServerManager::WebServerManager()
 
 void WebServerManager::begin()
 {
+  // Web UI files live on LittleFS
+  if (!LittleFS.begin(true))
+    Serial.println("LittleFS Mount Failed");
+
   // Cross-site request protection on every POST route
   server.addMiddleware([this](AsyncWebServerRequest *request, ArMiddlewareNext next)
                        {
@@ -477,7 +481,6 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
   Serial.println("------- New Settings -------");
   Serial.printf("Hostname: %s\n", json["hostname"].as<const char *>());
   Serial.printf("AP SSID: %s\n", json["ap_ssid"].as<const char *>());
-  Serial.printf("AP Password: %s\n", json["ap_password"].as<const char *>());
   Serial.printf("AP Channel: %d\n", json["ap_channel"].as<int>());
   Serial.printf("AP Hidden: %s\n", json["ap_hidden"].as<bool>() ? "Yes" : "No");
   Serial.printf("AP Status: %s\n", json["ap_status"].as<bool>() ? "Enabled" : "Disabled");

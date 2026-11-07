@@ -26,6 +26,8 @@ void WiFiManager::setupSoftAP()
 
 bool WiFiManager::autoConnect()
 {
+  // Credentials live in ConfigStorage; stop the driver keeping its own copy
+  WiFi.persistent(false);
   WiFi.disconnect(true);
 
   String hostname = ConfigStorage::getHostname();

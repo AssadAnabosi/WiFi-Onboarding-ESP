@@ -10,7 +10,7 @@ class ConfigStorage
 {
 public:
   /**
-   * @brief Initializes the configuration storage system. if not already initialized.
+   * @brief Prints the current settings (without passwords) to the serial log.
    */
   static void begin();
 
@@ -81,7 +81,8 @@ public:
   static bool getAPStatus();
 
   /**
-   * @brief Performs a factory reset by clearing all stored configuration.
+   * @brief Performs a factory reset: clears user settings and the Wi-Fi driver's credentials.
+   * The firmware and system records are kept.
    */
   static void factoryReset();
 };
