@@ -5,6 +5,7 @@
 #include "ProjectConfig.h"
 #include "BuildInfo.h"
 #include "WebAssets.h"
+#include "UpdateManager.h"
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
 
@@ -68,6 +69,8 @@ void WebServerManager::begin()
 
   server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
             { handleReset(request); });
+
+  registerUpdateRoutes();
 
   // 404 fallback
   server.onNotFound([this](AsyncWebServerRequest *request)
@@ -326,6 +329,12 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
 
 void WebServerManager::handleScan(AsyncWebServerRequest *request)
 {
+  if (updateManager.isBusy())
+  {
+    sendMessage(request, "An update is running, try again later", 409);
+    return;
+  }
+
   int16_t n = WiFi.scanComplete();
 
   if (n == WIFI_SCAN_RUNNING)
@@ -417,6 +426,12 @@ void WebServerManager::handleConnect(AsyncWebServerRequest *request, const JsonO
     return;
   }
 
+  if (updateManager.isBusy())
+  {
+    sendMessage(request, "An update is running, try again later", 409);
+    return;
+  }
+
   if (WiFi.scanComplete() == WIFI_SCAN_RUNNING)
   {
     sendMessage(request, "WiFi scan in progress, try again shortly", 409);
@@ -505,4 +520,118 @@ void WebServerManager::handleReboot(AsyncWebServerRequest *request)
 {
   sendMessage(request, "Device is rebooting...");
   scheduleRestart();
+}
+
+/**
+ * @brief Per-request state of a manual upload, freed by the server with the request.
+ */
+struct UploadContext
+{
+  bool owner;
+  int code;
+  char reason[24];
+  char message[160];
+};
+
+static void rejectUpload(UploadContext *ctx, int code, const String &reason, const String &message)
+{
+  ctx->owner = false;
+  ctx->code = code;
+  strlcpy(ctx->reason, reason.c_str(), sizeof(ctx->reason));
+  strlcpy(ctx->message, message.c_str(), sizeof(ctx->message));
+}
+
+void WebServerManager::registerUpdateRoutes()
+{
+  // Longer paths first: server.on("/api/update") also matches "/api/update/..."
+  server.on("/api/update/status", HTTP_GET, [this](AsyncWebServerRequest *request)
+            {
+    JsonDocument doc;
+    updateManager.fillStatus(doc.to<JsonObject>());
+    sendJson(request, doc); });
+
+  server.on(
+      "/api/update", HTTP_POST,
+      [this](AsyncWebServerRequest *request)
+      { handleUploadDone(request); },
+      nullptr,
+      [this](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+      { handleUploadBody(request, data, len, index, total); });
+}
+
+void WebServerManager::handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+{
+  if (index == 0)
+  {
+    UploadContext *ctx = (UploadContext *)calloc(1, sizeof(UploadContext));
+    if (!ctx)
+      return;
+    request->_tempObject = ctx;
+
+    // The middleware only runs once the body has arrived: check before writing to flash
+    String reason, message;
+    if (!request->contentType().equalsIgnoreCase("application/octet-stream"))
+    {
+      rejectUpload(ctx, 415, "invalid_file", "Send the update as application/octet-stream");
+      return;
+    }
+    if (!isTrustedPost(request, reason))
+    {
+      rejectUpload(ctx, 403, "forbidden", reason);
+      return;
+    }
+
+    UpdateManager::UploadOptions options;
+    options.allowDowngrade = request->hasParam("allow_downgrade");
+    options.allowTargetChange = request->hasParam("allow_target_change");
+    if (!updateManager.uploadBegin(total, data, len, options, reason, message))
+    {
+      rejectUpload(ctx, reason == "update_running" ? 409 : 400, reason, message);
+      return;
+    }
+    ctx->owner = true;
+    request->onDisconnect([]()
+                          { updateManager.uploadCancel(); });
+  }
+
+  UploadContext *ctx = (UploadContext *)request->_tempObject;
+  if (!ctx || !ctx->owner)
+    return;
+
+  if (!updateManager.uploadWrite(data, len, index))
+  {
+    rejectUpload(ctx, 400, updateManager.lastReason(), updateManager.lastMessage());
+    return;
+  }
+
+  if (index + len == total)
+  {
+    if (updateManager.uploadFinish())
+      ctx->code = 200;
+    else
+      rejectUpload(ctx, 400, updateManager.lastReason(), updateManager.lastMessage());
+  }
+}
+
+void WebServerManager::handleUploadDone(AsyncWebServerRequest *request)
+{
+  UploadContext *ctx = (UploadContext *)request->_tempObject;
+  if (!ctx)
+  {
+    sendMessage(request, "Send the update file as the request body", 411);
+    return;
+  }
+  if (ctx->code == 200)
+  {
+    sendMessage(request, "Update installed, rebooting");
+    scheduleRestart(1000);
+    return;
+  }
+
+  JsonDocument doc;
+  doc["success"] = false;
+  doc["error"] = ctx->reason;
+  doc["message"] = ctx->message;
+  Serial.println(ctx->message);
+  sendJson(request, doc, ctx->code ? ctx->code : 400);
 }

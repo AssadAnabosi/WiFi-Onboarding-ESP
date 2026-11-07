@@ -5,6 +5,7 @@
 #include "ConfigStorage.h"
 
 #include "WiFiManager.h"
+#include "UpdateManager.h"
 
 WiFiManager wifiManager;
 
@@ -17,6 +18,7 @@ void setup() {
   ConfigStorage::begin();
   // Initialize WiFiManager and attempt to connect to WiFi
   wifiManager.autoConnect();
+  updateManager.begin();
   webServer.begin();
   if (MDNS.begin(MDNS_SETUP_NAME))  // "<name>.local" resolves to the SoftAP IP
   {
@@ -28,5 +30,6 @@ void setup() {
 }
 
 void loop() {
+  updateManager.loop();
   webServer.loop();
 }

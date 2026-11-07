@@ -134,4 +134,19 @@ private:
      * @brief Checks whether a host name (without port) is one of the device's own names.
      */
   bool isOwnHost(String host);
+
+  /**
+     * @brief Registers every update route. All update routes go through this one function.
+     */
+  void registerUpdateRoutes();
+
+  /**
+     * @brief Receives a manual upload (raw application/octet-stream body) chunk by chunk.
+     */
+  void handleUploadBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
+
+  /**
+     * @brief Answers a manual upload once its body has been received.
+     */
+  void handleUploadDone(AsyncWebServerRequest *request);
 };
