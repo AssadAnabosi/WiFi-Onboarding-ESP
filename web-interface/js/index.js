@@ -217,3 +217,24 @@ function checkConnection() {
     },
   });
 }
+
+// Running a configuration other than the one the device was set up with (/api/status)
+function mismatchText(status) {
+  if (!status || !status.target_mismatch) return "";
+  return (
+    "This device was set up as " +
+    status.home_target +
+    " but is running " +
+    status.target +
+    ". To fix this, upload a file ending in -" +
+    status.home_target +
+    ".ota.bin from Settings."
+  );
+}
+
+function showMismatch(id, status) {
+  let warning = getById(id);
+  let text = mismatchText(status);
+  warning.textContent = text;
+  warning.style.display = text ? "block" : "none";
+}

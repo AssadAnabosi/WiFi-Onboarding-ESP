@@ -56,6 +56,10 @@ function save() {
 function reset() {
   handleModal({
     title: "Reset settings",
+    text:
+      "Resets Wi-Fi and access point settings to defaults. Installed firmware (v" +
+      (device ? device.version : getById("fw-version").textContent.replace(/^v| \(dev\)$/g, "")) +
+      ") is not changed.",
     buttonText: "Reset",
     onclick: function () {
       toast("Resetting settings...", 25000);

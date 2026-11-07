@@ -46,6 +46,7 @@ function load() {
     endpoint: "/api/status",
     callback: function (res) {
       connections_status = res;
+      showMismatch("mismatch-warning", res);
       draw();
     },
     draw: draw,

@@ -22,6 +22,7 @@ function loadFirmware() {
       getById("fw-build").textContent =
         res.build + (res.commit && res.commit !== "dev" ? " (" + res.commit + ")" : "");
       getById("fw-target").textContent = res.target;
+      showMismatch("fw-mismatch", res);
       getById("fw-rollback").style.display = res.rollback_available ? "flex" : "none";
       getById("fw-previous").textContent = "Previous version: v" + res.previous_version;
       if (selectedFile) checkSelectedFile();
