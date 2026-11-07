@@ -1,3 +1,4 @@
+#include "ProjectConfig.h"
 #include <ESPmDNS.h>
 
 #include "WebServerManager.h"
@@ -17,9 +18,9 @@ void setup() {
   // Initialize WiFiManager and attempt to connect to WiFi
   wifiManager.autoConnect();
   webServer.begin();
-  if (MDNS.begin("config"))  // "config.local" will resolve to the SoftAP IP
+  if (MDNS.begin(MDNS_SETUP_NAME))  // "<name>.local" resolves to the SoftAP IP
   {
-    Serial.println("mDNS responder started: config.local");
+    Serial.println("mDNS responder started: " MDNS_SETUP_NAME ".local");
     MDNS.addService("http", "tcp", 80);
   } else {
     Serial.println("Error starting mDNS responder");

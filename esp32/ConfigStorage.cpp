@@ -1,4 +1,5 @@
 #include "ConfigStorage.h"
+#include "ProjectConfig.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
@@ -21,12 +22,12 @@ void ConfigStorage::begin()
       StaticJsonDocument<512> doc;
       doc["wifi_ssid"] = "";
       doc["wifi_password"] = "";
-      doc["ap_ssid"] = "ESP-Access-Point";
-      doc["ap_password"] = "12345678";
-      doc["ap_channel"] = 6;
-      doc["ap_hidden"] = false;
-      doc["ap_status"] = true;
-      doc["hostname"] = "ESP-IoT";
+      doc["ap_ssid"] = DEFAULT_AP_SSID;
+      doc["ap_password"] = DEFAULT_AP_PASSWORD;
+      doc["ap_channel"] = DEFAULT_AP_CHANNEL;
+      doc["ap_hidden"] = DEFAULT_AP_HIDDEN;
+      doc["ap_status"] = DEFAULT_AP_ENABLED;
+      doc["hostname"] = DEFAULT_HOSTNAME;
       serializeJson(doc, f);
       f.close();
       Serial.println("Config file created with default values.");
@@ -139,13 +140,13 @@ String ConfigStorage::getHostname()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return "ESP-IoT";
+    return DEFAULT_HOSTNAME;
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return "ESP-IoT";
-  return doc["hostname"] | "ESP-IoT";
+    return DEFAULT_HOSTNAME;
+  return doc["hostname"] | DEFAULT_HOSTNAME;
 }
 
 String ConfigStorage::getAPSSID()
@@ -179,39 +180,39 @@ int ConfigStorage::getAPChannel()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return 6;
+    return DEFAULT_AP_CHANNEL;
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return 6;
-  return doc["ap_channel"] | 6;
+    return DEFAULT_AP_CHANNEL;
+  return doc["ap_channel"] | DEFAULT_AP_CHANNEL;
 }
 
 bool ConfigStorage::getAPHidden()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return false;
+    return DEFAULT_AP_HIDDEN;
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return false;
-  return doc["ap_hidden"] | false;
+    return DEFAULT_AP_HIDDEN;
+  return doc["ap_hidden"] | DEFAULT_AP_HIDDEN;
 }
 
 bool ConfigStorage::getAPStatus()
 {
   File f = LittleFS.open(CONFIG_FILE, "r");
   if (!f)
-    return true;
+    return DEFAULT_AP_ENABLED;
   StaticJsonDocument<512> doc;
   DeserializationError error = deserializeJson(doc, f);
   f.close();
   if (error)
-    return true;
-  return doc["ap_status"] | true;
+    return DEFAULT_AP_ENABLED;
+  return doc["ap_status"] | DEFAULT_AP_ENABLED;
 }
 
 void ConfigStorage::factoryReset()

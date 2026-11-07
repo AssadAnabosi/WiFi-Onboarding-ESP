@@ -10,14 +10,12 @@ The `OTA` branch is implementing signed OTA updates per the spec doc https://cla
 
 ## Build / flash workflow
 
-There is no CLI build, lint, or test suite — everything goes through Arduino IDE 2.
+There is no lint or test suite yet (Python tests and CI arrive in later spec steps).
 
-1. Board packages: esp32 by Espressif **3.x**.
-2. Libraries: ArduinoJson **v7**, ESPAsyncWebServer + AsyncTCP (both by ESP32Async).
-3. Generate the filesystem image: `python utils/webMinifier.py` (interactive — prompts to confirm clearing the output dir; auto-offers to `pip install css-html-js-minify`). It copies `web-interface/` into `esp32/data/www/` and minifies HTML/CSS in place (JS and `.ico` are copied unminified).
-4. Upload `data/` with the arduino-littlefs-upload plugin (command palette → "LittleFS to Pico/ESP8266/ESP32"; serial monitor must be closed), then compile/upload the `.ino`.
-
-`*/data/` is gitignored — always edit `web-interface/`, never the generated copies. Any web UI change requires re-running the minifier and re-uploading LittleFS.
+- **Compile (CLI)**: `arduino-cli compile --profile esp32-4mb esp32` — the profile in `esp32/sketch.yaml` pins the ESP32 core (3.3.12; signing needs ≥ 3.3.8) and exact library versions, and arduino-cli installs them into its own internal cache. On this machine arduino-cli ships with the IDE at `%LOCALAPPDATA%/Programs/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe`. Add `--build-path <dir>` to keep build output out of the repo.
+- **Arduino IDE** ignores `sketch.yaml`: install the same core/library versions by hand and pick the "No FS 4MB (2MB APP x2)" partition scheme (matches `esp32/partitions.csv`).
+- Both the IDE and arduino-cli automatically pick up `esp32/partitions.csv` and `esp32/build_opt.h` from the sketch folder. `build_opt.h` is a gcc response file, so string macros need escaped quotes (`-DFOO=\"bar\"`); its flags apply to the core and libraries too (e.g. `-DUPDATE_SIGN` enables `Update.installSignature`).
+- **Web UI (until the spec's embedded-UI step lands)**: `python utils/webMinifier.py` copies `web-interface/` into `esp32/data/www/` (gitignored) and minifies HTML/CSS; upload `data/` with the arduino-littlefs-upload plugin (serial monitor closed). Always edit `web-interface/`, never the generated copies.
 
 ## Architecture
 
@@ -34,7 +32,7 @@ Frontend (`web-interface/`): plain HTML/CSS/vanilla JS, no build step or framewo
 
 ## Other notes
 
-- Default AP: SSID `ESP-Access-Point`, password `12345678`, channel 6, hostname `ESP-IoT`.
+- Defaults (AP SSID/password/channel, hostname, mDNS setup name), the GitHub owner/repo and `PROJECT_SLUG` live in `esp32/ProjectConfig.h`; the build target (`OTA_TARGET_ID`, `OTA_TARGET_HEADER` → `esp32/targets/<target>.h`) comes from `build_opt.h`. Single source for the version: root `VERSION`.
 - Untracked `main/`, `managed_components/`, `build/`, `sdkconfig*`, `dependencies.lock` in the working tree are ESP-IDF build leftovers, not part of the Arduino sketches on this branch.
 
 ## Working conventions
