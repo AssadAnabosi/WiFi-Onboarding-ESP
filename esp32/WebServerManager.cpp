@@ -3,7 +3,8 @@
 #include "WiFiManager.h"
 #include "ConfigStorage.h"
 #include "ProjectConfig.h"
-#include <LittleFS.h>
+#include "BuildInfo.h"
+#include "WebAssets.h"
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
 
@@ -20,10 +21,6 @@ WebServerManager::WebServerManager()
 
 void WebServerManager::begin()
 {
-  // Web UI files live on LittleFS
-  if (!LittleFS.begin(true))
-    Serial.println("LittleFS Mount Failed");
-
   // Cross-site request protection on every POST route
   server.addMiddleware([this](AsyncWebServerRequest *request, ArMiddlewareNext next)
                        {
@@ -38,21 +35,13 @@ void WebServerManager::begin()
     }
     next(); });
 
-  // Serve Pages
-  server.on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { cachedResponse(request, "/www/index.html"); });
-  server.on("/home", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { cachedResponse(request, "/www/home.html"); });
-  server.on("/scan", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { cachedResponse(request, "/www/scan.html"); });
-  server.on("/settings", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { cachedResponse(request, "/www/settings.html"); });
-
-  // Serve static files
-  server.serveStatic("/css/", LittleFS, "/www/css/", "max-age=3600");
-  server.serveStatic("/js/", LittleFS, "/www/js/", "max-age=3600");
-  server.on("/favicon.ico", HTTP_GET, [this](AsyncWebServerRequest *request)
-            { cachedResponse(request, "/www/favicon.ico"); });
+  // Pages and static files, embedded in the firmware
+  for (size_t i = 0; i < WEB_ASSETS_COUNT; i++)
+  {
+    const WebAsset *asset = &WEB_ASSETS[i];
+    server.on(asset->url, HTTP_GET, [this, asset](AsyncWebServerRequest *request)
+              { serveAsset(request, asset); });
+  }
 
   // GET API routes
   server.on("/api/health", HTTP_GET, [this](AsyncWebServerRequest *request)
@@ -191,16 +180,23 @@ void WebServerManager::sendMessage(AsyncWebServerRequest *request, const String 
   sendJson(request, doc, code);
 }
 
-void WebServerManager::cachedResponse(AsyncWebServerRequest *request, const String &path)
+void WebServerManager::serveAsset(AsyncWebServerRequest *request, const WebAsset *asset)
 {
-  // Validate if path exists
-  if (!LittleFS.exists(path))
+  // The browser revalidates on every visit, so a new firmware never runs with stale files.
+  // The server's built-in 304 handling only covers filesystem files, so compare here.
+  const AsyncWebHeader *ifNoneMatch = request->getHeader("If-None-Match");
+  if (ifNoneMatch && ifNoneMatch->value().indexOf(asset->etag) >= 0)
   {
-    sendMessage(request, "File not found", 404);
+    AsyncWebServerResponse *response = request->beginResponse(304);
+    response->addHeader("ETag", asset->etag);
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
     return;
   }
-  AsyncWebServerResponse *response = request->beginResponse(LittleFS, path, "text/html");
-  response->addHeader("Cache-Control", "max-age=3600");
+  AsyncWebServerResponse *response = request->beginResponse(200, asset->mime, asset->data, asset->length);
+  response->addHeader("Content-Encoding", "gzip");
+  response->addHeader("ETag", asset->etag);
+  response->addHeader("Cache-Control", "no-cache");
   request->send(response);
 }
 
@@ -275,6 +271,8 @@ void WebServerManager::handleHealth(AsyncWebServerRequest *request)
   // Add nested "data" object with board info
   JsonObject data = doc["data"].to<JsonObject>();
   getBoardData(data); // Populate dynamically
+  data["firmware"]["version"] = FIRMWARE_VERSION;
+  data["firmware"]["dev"] = (bool)FIRMWARE_DEV_BUILD;
 
   sendJson(request, doc);
 }
@@ -311,6 +309,12 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
   doc["station"]["connected"] = staConnected;
   doc["station"]["ssid"] = WiFi.SSID();
   doc["station"]["ip"] = staConnected ? WiFi.localIP().toString() : "";
+
+  doc["version"] = FIRMWARE_VERSION;
+  doc["build"] = FIRMWARE_BUILD_DATE;
+  doc["commit"] = FIRMWARE_COMMIT;
+  doc["dev"] = (bool)FIRMWARE_DEV_BUILD;
+  doc["target"] = OTA_TARGET_ID;
 
   WiFiManager::AttemptState attempt = wifiManager.attemptState();
   doc["station"]["attempt"]["state"] = attemptStateName(attempt);

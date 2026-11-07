@@ -114,7 +114,12 @@ function apiCall({
   request.send(data ? JSON.stringify(data) : null);
 }
 
-function connected() {
+function connected(res) {
+  // The footer version is written in at build time; dev builds are marked here
+  let version = getById("fw-version");
+  if (version && res && res.data && res.data.firmware && res.data.firmware.dev) {
+    if (!version.textContent.endsWith("(dev)")) version.textContent += " (dev)";
+  }
   if (typeof load !== "undefined") {
     load();
   }

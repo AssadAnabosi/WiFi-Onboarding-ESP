@@ -5,6 +5,8 @@
 #include "WiFiManager.h"
 #include <ArduinoJson.h>
 
+struct WebAsset;
+
 extern WiFiManager wifiManager;
 
 /**
@@ -44,11 +46,11 @@ public:
   void sendMessage(AsyncWebServerRequest *request, const String &message, int code = 200);
 
   /**
-     * @brief Utility function to serve static files with cache control.
-     * @param uri The URI of the static file.
-     * @param path The filesystem path of the static file.
+     * @brief Serves an embedded, gzipped web file, answering 304 when the browser's copy is current.
+     * @param request The HTTP request object.
+     * @param asset The embedded file.
      */
-  void cachedResponse(AsyncWebServerRequest *request, const String &path);
+  void serveAsset(AsyncWebServerRequest *request, const WebAsset *asset);
 
   /**
      * @brief Liveness check: confirms the server is running and returns board info.
