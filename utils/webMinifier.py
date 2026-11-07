@@ -16,7 +16,7 @@ except ImportError:
         print("Library installation declined. Exiting.")
         exit(1)
 
-output_dir = Path(__file__).parent / "../esp/data/www"
+output_dir = Path(__file__).parent / "../esp32/data/www"
 
 # Check if the output directory exists and is not empty
 if output_dir.exists() and any(output_dir.iterdir()):

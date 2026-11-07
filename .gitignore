@@ -1,2 +1,3 @@
-/esp/data/*
+/esp32/data/*
+__pycache__/
 /test
