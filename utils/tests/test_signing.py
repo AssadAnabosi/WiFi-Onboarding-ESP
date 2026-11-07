@@ -109,6 +109,19 @@ class KeygenTest(unittest.TestCase):
             self.assertEqual(keygen.read_release_keys(header), [])
             self.assertIn("#define OTA_RELEASE_KEY_COUNT 0", header.read_text(encoding="utf-8"))
 
+    def test_dev_header_manifest_url(self):
+        key = ec.generate_private_key(ec.SECP256R1()).public_key()
+        with tempfile.TemporaryDirectory() as tmp:
+            header = Path(tmp) / "OtaPublicKey.local.h"
+            keygen.write_dev_header(key, header, "http://192.168.1.10:8000/manifest.json")
+            self.assertEqual(keygen.read_dev_manifest_url(header), "http://192.168.1.10:8000/manifest.json")
+            self.assertEqual(keygen.key_id(sign.public_keys_from_header(header)[0]), keygen.key_id(key))
+            keygen.write_dev_header(key, header)
+            self.assertEqual(keygen.read_dev_manifest_url(header), "")
+            for bad in ["ftp://x/m.json", 'http://x/"m.json', "http://x/m json"]:
+                with self.assertRaises(ValueError):
+                    keygen.write_dev_header(key, header, bad)
+
     def test_add_key_ignores_duplicates(self):
         key = ec.generate_private_key(ec.SECP256R1()).public_key()
         self.assertEqual(len(keygen.add_key(keygen.add_key([], key), key)), 1)

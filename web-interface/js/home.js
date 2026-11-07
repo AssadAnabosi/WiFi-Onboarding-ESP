@@ -51,3 +51,11 @@ function load() {
     draw: draw,
   });
 }
+
+// "Update vX.Y.Z available" once a check has found one
+function onUpdateStatus(res) {
+  let badge = getById("update-badge");
+  let available = res.check && res.check.state === "available";
+  badge.style.display = available ? "inline-block" : "none";
+  if (available) badge.textContent = "Update v" + res.check.version + " available";
+}

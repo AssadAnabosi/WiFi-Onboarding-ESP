@@ -1,4 +1,5 @@
-// Firmware card: installed version and manual upload of a signed .ota.bin.
+// Firmware card: installed version, update checks and installs from the release
+// manifest, and manual upload of a signed .ota.bin.
 // Update file layout: [firmware][info block, 128 bytes][signature, 512 bytes]
 const INFO_SIZE = 128;
 const SIGNATURE_SIZE = 512;
@@ -8,6 +9,8 @@ const PARTITION_TABLE_OFFSET = 0x8000;
 
 var device = null;
 var selectedFile = null;
+var updateStatus = null;
+var installing = false;
 
 function loadFirmware() {
   apiCall({
@@ -172,10 +175,19 @@ function setFirmwareMessage(text, kind) {
 
 var uploading = false;
 
+function updateRunning() {
+  let state = updateStatus ? updateStatus.state : "idle";
+  return uploading || installing || ["downloading", "receiving", "installing", "rebooting"].includes(state);
+}
+
 // Called by index.js when the "Finishing update" state changes
 function refreshFirmwareButtons() {
-  getById("fw-file").disabled = uploading;
-  getById("fw-upload").disabled = uploading || updateFinishing || !selectedFile || !selectedFile.ok;
+  let busy = updateRunning();
+  let checking = updateStatus && updateStatus.check.state === "checking";
+  getById("fw-file").disabled = busy;
+  getById("fw-upload").disabled = busy || updateFinishing || !selectedFile || !selectedFile.ok;
+  getById("fw-check").disabled = busy || checking;
+  getById("fw-install").disabled = busy || updateFinishing;
 }
 
 function setUploading(value) {
@@ -279,4 +291,144 @@ function sendFirmware(file, params) {
     setUploading(false);
   };
   request.send(file);
+}
+
+function getStatus(callback) {
+  let request = new XMLHttpRequest();
+  request.open("GET", "/api/update/status", true);
+  request.timeout = 4000;
+  request.onload = function () {
+    let res = null;
+    try {
+      res = this.status === 200 ? JSON.parse(this.responseText) : null;
+    } catch (e) {}
+    callback(res);
+  };
+  request.onerror = request.ontimeout = function () {
+    callback(null);
+  };
+  request.send();
+}
+
+// Polls /api/update/status every second until done(status) returns true
+function pollStatus(done) {
+  getStatus(function (res) {
+    if (res) {
+      onUpdateStatus(res);
+      if (done(res)) return;
+    }
+    setTimeout(function () {
+      pollStatus(done);
+    }, 1000);
+  });
+}
+
+function renderCheck(check) {
+  let message = getById("fw-check-message");
+  let text = "";
+  let kind = "text-muted";
+  switch (check.state) {
+    case "never":
+      text = "Not checked yet.";
+      break;
+    case "checking":
+      text = "Checking for updates...";
+      break;
+    case "up_to_date":
+      text = "Up to date.";
+      break;
+    case "available":
+      text = "";
+      break;
+    case "no_update":
+      text = check.message;
+      break;
+    case "needs_manual":
+      text = check.message;
+      kind = "warning";
+      break;
+    default:
+      text = check.message || "The update check failed.";
+      kind = "error";
+  }
+  message.textContent = text;
+  message.className = "text-sm " + kind;
+
+  let available = check.state === "available";
+  getById("fw-available").style.display = available ? "block" : "none";
+  if (available) {
+    getById("fw-available-title").textContent = "Update v" + check.version + " available";
+    // Release notes are plain text: never parsed as HTML
+    getById("fw-notes").textContent = check.notes || "No release notes.";
+  }
+}
+
+// Called by index.js on page load and by the polls below
+function onUpdateStatus(res) {
+  updateStatus = res;
+  renderCheck(res.check);
+  if (!installing && res.source === "pull" && (res.state === "downloading" || res.state === "installing")) {
+    installing = true;
+    pollStatus(trackInstall);
+  }
+  refreshFirmwareButtons();
+}
+
+function checkForUpdates() {
+  apiCall({
+    endpoint: "/api/update/check",
+    method: "POST",
+    callback: function () {
+      pollStatus(function (res) {
+        return res.check.state !== "checking";
+      });
+    },
+  });
+}
+
+function trackInstall(res) {
+  let progress = getById("fw-progress");
+  switch (res.state) {
+    case "downloading":
+      progress.style.display = "block";
+      progress.value = res.progress;
+      setFirmwareMessage("Downloading... " + res.progress + "%");
+      return false;
+    case "installing":
+      setFirmwareMessage("Verifying and installing...");
+      return false;
+    case "rebooting":
+      setFirmwareMessage("Update installed. Rebooting, the page reloads when the device is back.");
+      toast("Update installed, rebooting...", 10000);
+      reloadAfterReboot();
+      return true;
+    default:
+      installing = false;
+      progress.style.display = "none";
+      setFirmwareMessage(res.message || "The update failed.", "error");
+      refreshFirmwareButtons();
+      return true;
+  }
+}
+
+function installUpdate() {
+  let check = updateStatus && updateStatus.check;
+  if (!check || check.state !== "available") return;
+  handleModal({
+    title: "Install v" + check.version + "?",
+    text: "The device downloads the update, installs it and reboots. Settings are kept.",
+    buttonText: "Install",
+    onclick: function () {
+      apiCall({
+        endpoint: "/api/update/install",
+        method: "POST",
+        callback: function () {
+          installing = true;
+          refreshFirmwareButtons();
+          setFirmwareMessage("Downloading...");
+          pollStatus(trackInstall);
+        },
+      });
+    },
+  });
 }

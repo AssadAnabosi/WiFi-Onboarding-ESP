@@ -573,6 +573,18 @@ void WebServerManager::registerUpdateRoutes()
     updateManager.fillStatus(doc.to<JsonObject>());
     sendJson(request, doc); });
 
+  server.on("/api/update/check", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+    String message;
+    int code = updateManager.requestCheck(message);
+    sendMessage(request, message, code); });
+
+  server.on("/api/update/install", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+    String message;
+    int code = updateManager.requestInstall(message);
+    sendMessage(request, message, code); });
+
   server.on(
       "/api/update", HTTP_POST,
       [this](AsyncWebServerRequest *request)

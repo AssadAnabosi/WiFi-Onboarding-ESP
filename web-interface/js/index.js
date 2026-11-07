@@ -159,6 +159,10 @@ function checkUpdateStatus() {
     endpoint: "/api/update/status",
     callback: function (res) {
       clearInterval(finishingTimer);
+      // Pages that show update state (Home badge, Firmware card) define this
+      if (typeof onUpdateStatus !== "undefined") {
+        onUpdateStatus(res);
+      }
       if (!res.confirming) {
         setFinishing(0);
         return;

@@ -12,10 +12,15 @@ Dev key:
   python utils/keygen.py --dev               new dev key pair: private key in keys/ and
                                              esp32/OtaPublicKey.local.h (both gitignored).
                                              Builds that find that file are dev builds.
+  python utils/keygen.py --dev-manifest-url URL
+                                             dev builds check this manifest URL instead of the
+                                             GitHub release (plain http:// allowed, e.g. a local
+                                             python -m http.server); "" goes back to GitHub
 """
 
 import argparse
 import hashlib
+import re
 import sys
 from pathlib import Path
 
@@ -77,9 +82,25 @@ def write_release_header(keys, header=RELEASE_HEADER):
     header.write_bytes(text.encode("utf-8"))
 
 
-def write_dev_header(key, header=DEV_HEADER):
+def check_manifest_url(url):
+    if not re.fullmatch(r'https?://[^\s"\\]+', url):
+        raise ValueError(f"not an http:// or https:// URL: {url!r}")
+    return url
+
+
+def write_dev_header(key, header=DEV_HEADER, manifest_url=""):
     text = render_header("DEV", [key], "Dev key (gitignored). Its presence makes this a dev build.")
+    if manifest_url:
+        text += "// Dev builds check this manifest instead of the GitHub release\n"
+        text += f'#define OTA_DEV_MANIFEST_URL "{check_manifest_url(manifest_url)}"\n'
     header.write_bytes(text.encode("utf-8"))
+
+
+def read_dev_manifest_url(header=DEV_HEADER):
+    if not header.exists():
+        return ""
+    match = re.search(r'#define OTA_DEV_MANIFEST_URL "([^"]*)"', header.read_text(encoding="utf-8"))
+    return match.group(1) if match else ""
 
 
 def read_release_keys(header=RELEASE_HEADER):
@@ -107,6 +128,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--dev", action="store_true", help="create the dev key pair")
+    group.add_argument("--dev-manifest-url", metavar="URL", help='manifest URL for dev builds ("" for GitHub)')
     group.add_argument("--add-public", metavar="PEM", help="trust an existing public key")
     group.add_argument("--remove", metavar="ID", help="stop trusting the key with this ID")
     group.add_argument("--list", action="store_true", help="list trusted release keys")
@@ -133,6 +155,15 @@ def main(argv=None):
                 raise ValueError(f"no trusted key with ID {args.remove}")
             write_release_header(remaining)
             print(f"Removed key {args.remove}; {len(remaining)} release key(s) trusted")
+        elif args.dev_manifest_url is not None:
+            if not DEV_HEADER.exists():
+                raise ValueError(f"{DEV_HEADER.relative_to(ROOT)} not found: run --dev first")
+            (key,) = public_keys_from_header(DEV_HEADER)
+            write_dev_header(key, manifest_url=args.dev_manifest_url)
+            if args.dev_manifest_url:
+                print(f"Dev builds check {args.dev_manifest_url}")
+            else:
+                print("Dev builds check the GitHub release manifest")
         elif args.add_public:
             key = load_public_key(args.add_public)
             write_release_header(add_key(keys, key))
@@ -140,7 +171,7 @@ def main(argv=None):
         elif args.dev:
             path = args.out or KEYS_DIR / "ota-dev.pem"
             key = new_private_key(path, args.force).public_key()
-            write_dev_header(key)
+            write_dev_header(key, manifest_url=read_dev_manifest_url())
             print(f"Dev key {key_id(key)}: private key {path}, public key {DEV_HEADER.relative_to(ROOT)}")
         else:
             path = args.out or KEYS_DIR / "ota-release.pem"

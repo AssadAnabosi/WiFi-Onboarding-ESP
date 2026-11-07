@@ -177,6 +177,18 @@
             </tr>
           </tbody>
         </table>
+        <label>Updates</label>
+        <div class="fw-upload-row">
+          <p id="fw-check-message" class="text-sm text-muted"></p>
+          <button id="fw-check" onclick="checkForUpdates()">
+            Check for updates
+          </button>
+        </div>
+        <div id="fw-available" style="display: none">
+          <p id="fw-available-title" class="fw-available-title"></p>
+          <pre id="fw-notes" class="fw-notes"></pre>
+          <button id="fw-install" onclick="installUpdate()">Install</button>
+        </div>
         <label for="fw-file">Upload update</label>
         <p class="text-sm text-muted">
           Pick a signed file ending in .ota.bin. The device reboots into it and

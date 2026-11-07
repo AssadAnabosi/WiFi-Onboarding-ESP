@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <mutex>
+#include <mbedtls/sha256.h>
 #include "OtaVerifier.h"
 
 /**
@@ -10,7 +11,8 @@
  *
  * Update file layout: [firmware][info block, 128 bytes][signature, 512 bytes].
  * The info block is checked before Update.end(), which verifies the signature
- * and switches the boot slot. Only one update runs at a time.
+ * and switches the boot slot. Manual uploads and pulled updates share these
+ * checks and one lock: only one update runs at a time.
  */
 class UpdateManager
 {
@@ -18,9 +20,24 @@ public:
   enum class State : uint8_t
   {
     Idle,
+    Downloading,
     Receiving,
     Installing,
     Rebooting,
+    Failed
+  };
+
+  /**
+   * @brief Result of the last update check against the release manifest.
+   */
+  enum class CheckState : uint8_t
+  {
+    Never,
+    Checking,
+    UpToDate,
+    Available,
+    NoUpdate,
+    NeedsManual,
     Failed
   };
 
@@ -96,6 +113,18 @@ public:
   void uploadCancel();
 
   /**
+   * @brief Starts a background check of the release manifest.
+   * @return HTTP status for the response (202 started, 409 refused) with `message` set.
+   */
+  int requestCheck(String &message);
+
+  /**
+   * @brief Starts downloading and installing the update the last check found.
+   * @return HTTP status for the response (202 started, 409 refused) with `message` set.
+   */
+  int requestInstall(String &message);
+
+  /**
    * @brief Fills the /api/update/status JSON.
    */
   void fillStatus(JsonObject out);
@@ -109,11 +138,14 @@ public:
 private:
   mutable std::mutex _lock;
   State _state = State::Idle;
+  bool _pull = false;
+  uint32_t _rebootAt = 0;
   size_t _total = 0;
   size_t _received = 0;
   uint32_t _lastDataAt = 0;
   UploadOptions _options;
   uint8_t _info[128];
+  mbedtls_sha256_context _sha;
   uint8_t _layoutHash[32];
   bool _layoutHashValid = false;
   String _reason;
@@ -125,9 +157,28 @@ private:
   uint32_t _setupDoneAt = 0;
   int _runningSlot = 0;
 
+  // Update check and the update it found
+  CheckState _check = CheckState::Never;
+  String _checkReason;
+  String _checkMessage;
+  String _availableVersion;
+  String _availableNotes;
+  String _availableUrl;
+  size_t _availableSize = 0;
+  uint8_t _availableSha[32];
+  uint32_t _nextCheckAt = 0;
+
   void bootCheck();
   void failLocked(const char *reason, const String &message);
+  bool beginLocked(size_t total, const uint8_t *data, size_t len, const UploadOptions &options, String &reason, String &message);
+  bool writeLocked(const uint8_t *data, size_t len, size_t index);
+  bool finishLocked(const uint8_t *expectedSha);
   bool checkInfoLocked();
+  void checkFailed(CheckState state, const char *reason, const String &message);
+  void runCheck();
+  void runDownload();
+  static void checkTask(void *self);
+  static void downloadTask(void *self);
 };
 
 extern UpdateManager updateManager;

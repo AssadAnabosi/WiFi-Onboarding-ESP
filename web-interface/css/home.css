@@ -90,3 +90,15 @@
     padding-right: 1rem;
   }
 }
+
+.update-badge {
+  display: none;
+  margin-bottom: 1rem;
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: var(--orange);
+  color: var(--primary-foreground);
+}
