@@ -4,30 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Arduino-framework boilerplate for Wi-Fi onboarding on ESP32/ESP8266: the device boots, tries saved STA credentials, falls back to a SoftAP (`192.168.4.1`, mDNS `config.local`), and serves a small web UI for scanning/connecting to networks and editing AP settings. Intended as a starting point for other IoT projects.
+Arduino-framework boilerplate for Wi-Fi onboarding on ESP32 (ESP8266 support was dropped; it lives on the `legacy/esp8266` branch): the device boots, tries saved STA credentials, falls back to a SoftAP (`192.168.4.1`, mDNS `config.local`), and serves a small web UI for scanning/connecting to networks and editing AP settings. Intended as a starting point for other IoT projects.
+
+The `OTA` branch is implementing signed OTA updates per the spec doc https://claude.ai/artifact/SSL3ZAkp8mneuKfF5pAVp6 ("Implementation plan" lists the 20 steps; read it with the Claude Docs tools). The spec decides structure, naming and tooling going forward — e.g. `esp/` → `esp32/`, LittleFS → NVS, web UI embedded in firmware — so check it before changing anything it covers.
 
 ## Build / flash workflow
 
 There is no CLI build, lint, or test suite — everything goes through Arduino IDE 2.
 
-1. Board packages: esp32 by Espressif **3.x**, or esp8266 community core.
-2. Libraries: ArduinoJson **v7**; ESP32 also needs ESPAsyncWebServer + AsyncTCP (both by ESP32Async).
-3. Generate the filesystem image: `python utils/webMinifier.py` (interactive — prompts for target `1`=esp8266, `2`=esp, and to confirm clearing the output dir; auto-offers to `pip install css-html-js-minify`). It copies `web-interface/` into `esp/data/www/` or `esp8266/data/www/` and minifies HTML/CSS in place (JS and `.ico` are copied unminified).
+1. Board packages: esp32 by Espressif **3.x**.
+2. Libraries: ArduinoJson **v7**, ESPAsyncWebServer + AsyncTCP (both by ESP32Async).
+3. Generate the filesystem image: `python utils/webMinifier.py` (interactive — prompts to confirm clearing the output dir; auto-offers to `pip install css-html-js-minify`). It copies `web-interface/` into `esp/data/www/` and minifies HTML/CSS in place (JS and `.ico` are copied unminified).
 4. Upload `data/` with the arduino-littlefs-upload plugin (command palette → "LittleFS to Pico/ESP8266/ESP32"; serial monitor must be closed), then compile/upload the `.ino`.
 
 `*/data/` is gitignored — always edit `web-interface/`, never the generated copies. Any web UI change requires re-running the minifier and re-uploading LittleFS.
 
 ## Architecture
 
-Two parallel sketch directories with the same class layout:
+The sketch lives in `esp/` (`esp.ino`). It still carries `#ifdef ESP32` / `ESP8266` switching (being removed per the spec). Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
 
-- `esp/` — the maintained, "generic" sketch. Uses `#ifdef ESP32` / `ESP8266` throughout but is only tested on ESP32. Uses **ESPAsyncWebServer** with `AsyncCallbackJsonWebHandler` for JSON POST bodies (`AsyncJson.h` must be included after `ESPAsyncWebServer.h`).
-- `esp8266/` — older ESP8266-only variant using the synchronous `ESP8266WebServer` (`std::bind` handlers). It has diverged from `esp/` (e.g. no WPA2-Enterprise); changes to shared behavior usually need to be ported by hand to both.
-
-Classes (in each sketch dir):
+Classes:
 
 - `ConfigStorage` — static methods over a single `/config.json` on LittleFS (keys: `wifi_ssid`, `wifi_password`, `ap_ssid`, `ap_password`, `ap_channel`, `ap_hidden`, `ap_status`, `hostname`). Every getter re-opens and re-parses the file; `begin()` creates it with defaults if missing; `factoryReset()` deletes and recreates it. Adding a setting means updating defaults in `begin()`, a getter, `saveSettings`, the GET/POST `/api/settings` handlers, and `settings.js`.
-- `WiFiManager` — `autoConnect()` (3 attempts with saved creds, then SoftAP if `ap_status` is true **or** STA failed) and `connectToNetwork()` (blocking ~10s wait; saves credentials on success). WPA2-Enterprise is encoded in the password field as `username|password` (ESP32 only) — the stored config format is unchanged.
+- `WiFiManager` — `autoConnect()` (3 attempts with saved creds, then SoftAP if `ap_status` is true **or** STA failed) and `connectToNetwork()` (blocking ~10s wait; saves credentials on success). WPA2-Enterprise is encoded in the password field as `username|password` — the stored config format is unchanged.
 - `WebServerManager` — routes pages (`/`, `/home`, `/scan`, `/settings` → `/www/*.html` on LittleFS), static `/css/`, `/js/`, and the JSON API: `GET /api` (board info; also matches `/api/health` used by the frontend's `checkConnection()`), `GET /api/status`, `GET /api/scan`, `POST /api/connect`, `POST /api/disconnect`, `GET|POST /api/settings` (POST restarts the device), `POST /api/reboot`, `POST /api/reset`. Responses use `{success, message}` via `sendMessage`/`sendJson`.
 - `esp/CoreSerial` — optional debug helper that prefixes Serial lines with the core ID (`#define Serial SerialCore`).
 
@@ -36,7 +35,7 @@ Frontend (`web-interface/`): plain HTML/CSS/vanilla JS, no build step or framewo
 ## Other notes
 
 - Default AP: SSID `ESP-Access-Point`, password `12345678`, channel 6, hostname `ESP-IoT`.
-- Untracked `main/`, `managed_components/`, `build/`, `sdkconfig*`, `dependencies.lock` in the working tree are ESP-IDF build leftovers (see remote `esp-idf` branch), not part of the Arduino sketches on this branch.
+- Untracked `main/`, `managed_components/`, `build/`, `sdkconfig*`, `dependencies.lock` in the working tree are ESP-IDF build leftovers, not part of the Arduino sketches on this branch.
 
 ## Working conventions
 
