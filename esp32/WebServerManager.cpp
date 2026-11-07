@@ -330,6 +330,7 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
   doc["home_target"] = homeTarget;
   doc["target_mismatch"] = homeTarget != OTA_TARGET_ID;
   doc["previous_version"] = updateManager.previousVersion();
+  doc["rollback_available"] = updateManager.rollbackAvailable();
   // What an update's info block must match, so the browser can check a file before sending it
   doc["project"] = PROJECT_SLUG;
   doc["chip_id"] = CONFIG_IDF_FIRMWARE_CHIP_ID;
@@ -584,6 +585,14 @@ void WebServerManager::registerUpdateRoutes()
     String message;
     int code = updateManager.requestInstall(message);
     sendMessage(request, message, code); });
+
+  server.on("/api/update/rollback", HTTP_POST, [this](AsyncWebServerRequest *request)
+            {
+    String message;
+    int code = updateManager.requestRollback(message);
+    sendMessage(request, message, code);
+    if (code == 200)
+      scheduleRestart(1000); });
 
   server.on(
       "/api/update", HTTP_POST,

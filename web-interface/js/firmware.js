@@ -22,6 +22,8 @@ function loadFirmware() {
       getById("fw-build").textContent =
         res.build + (res.commit && res.commit !== "dev" ? " (" + res.commit + ")" : "");
       getById("fw-target").textContent = res.target;
+      getById("fw-rollback").style.display = res.rollback_available ? "flex" : "none";
+      getById("fw-previous").textContent = "Previous version: v" + res.previous_version;
       if (selectedFile) checkSelectedFile();
     },
   });
@@ -188,6 +190,7 @@ function refreshFirmwareButtons() {
   getById("fw-upload").disabled = busy || updateFinishing || !selectedFile || !selectedFile.ok;
   getById("fw-check").disabled = busy || checking;
   getById("fw-install").disabled = busy || updateFinishing;
+  getById("fw-rollback-button").disabled = busy || updateFinishing;
 }
 
 function setUploading(value) {
@@ -427,6 +430,27 @@ function installUpdate() {
           refreshFirmwareButtons();
           setFirmwareMessage("Downloading...");
           pollStatus(trackInstall);
+        },
+      });
+    },
+  });
+}
+
+function rollBack() {
+  let version = device && device.previous_version;
+  if (!version) return;
+  handleModal({
+    title: "Roll back to v" + version + "?",
+    text: "The device reboots into the version it ran before the last update. Settings are kept.",
+    buttonText: "Roll back",
+    onclick: function () {
+      apiCall({
+        endpoint: "/api/update/rollback",
+        method: "POST",
+        callback: function (res) {
+          setFirmwareMessage(res.message + ". The page reloads when the device is back.");
+          toast(res.message, 10000);
+          reloadAfterReboot();
         },
       });
     },

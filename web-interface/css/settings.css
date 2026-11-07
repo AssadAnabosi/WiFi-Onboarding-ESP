@@ -164,3 +164,20 @@ input[type="checkbox"]:focus {
 #fw-install {
   border-radius: 0.5rem;
 }
+
+#fw-previous {
+  flex: 1;
+  margin: 0;
+}
+
+#fw-rollback {
+  margin-top: 0.75rem;
+}
+
+#fw-rollback-button {
+  color: var(--red);
+}
+
+#fw-rollback-button:disabled {
+  color: var(--muted-foreground);
+}

@@ -325,6 +325,45 @@ String UpdateManager::previousVersion()
   return other.valid ? other.version : String("");
 }
 
+bool UpdateManager::rollbackAvailable()
+{
+  // Hidden after a manual or automatic rollback, a USB flash, and a failed or
+  // incomplete update (Update.begin() invalidates the other slot's record).
+  // While unconfirmed the last switch is not recorded yet, and rollback is refused anyway.
+  return !_unconfirmed && ConfigStorage::getLastSwitch() == "update" && ConfigStorage::getSlot(1 - _runningSlot).valid && Update.canRollBack();
+}
+
+int UpdateManager::requestRollback(String &message)
+{
+  std::lock_guard<std::mutex> guard(_lock);
+  if (_state == State::Downloading || _state == State::Receiving || _state == State::Installing || _state == State::Rebooting)
+  {
+    message = "An update is already running";
+    return 409;
+  }
+  if (_unconfirmed)
+  {
+    message = "Finishing update, please wait " + String(confirmSecondsLeft()) + " s";
+    return 409;
+  }
+  if (!rollbackAvailable())
+  {
+    message = "No previous version to roll back to";
+    return 409;
+  }
+  String version = previousVersion();
+  if (!Update.rollBack())
+  {
+    message = "Rollback failed: the previous firmware is not bootable";
+    return 500;
+  }
+  ConfigStorage::setPendingSlot(1 - _runningSlot, "manual_rollback");
+  _state = State::Rebooting;
+  _pull = false;
+  message = "Rolling back to v" + version + ", rebooting";
+  return 200;
+}
+
 String UpdateManager::layoutHash() const
 {
   if (!_layoutHashValid)

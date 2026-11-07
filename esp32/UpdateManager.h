@@ -82,6 +82,19 @@ public:
   String previousVersion();
 
   /**
+   * @brief True when the Roll back button applies: the last switch was a successful
+   * update and the other slot still holds that previous firmware.
+   */
+  bool rollbackAvailable();
+
+  /**
+   * @brief Switches the boot slot back to the previous firmware; the caller reboots on 200.
+   * The previous firmware boots pending and goes through the same health check.
+   * @return HTTP status for the response with `message` set.
+   */
+  int requestRollback(String &message);
+
+  /**
    * @brief SHA-256 of this device's partition table as hex (an update's layout hash must match).
    */
   String layoutHash() const;
