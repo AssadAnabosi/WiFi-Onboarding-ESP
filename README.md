@@ -1,75 +1,58 @@
 # ESP32 WiFi Onboarding
 
-This project provides a simple onboarding web interface for the ESP32, designed as a boilerplate to help you quickly get started with your IoT projects.
-Allowing the user to connect it to the ESP and configure what network to connect to.
-
-**_from this point on we will be referring to the ESP32 as ESP_**
+A boilerplate for ESP32 IoT projects: a small web interface for connecting the device to Wi-Fi, plus signed over-the-air (OTA) updates that never lose your settings.
 
 > ESP8266 support has been removed. The last ESP8266-compatible version lives on the [`legacy/esp8266`](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/tree/legacy/esp8266) branch.
 
 ## Features
 
-- **Scan and Connect**: Scan for available Wi-Fi networks and connect the ESP to your chosen network.
-- **Access Point Mode**: Configure the ESP to create its own Wi-Fi Access Point for direct connection.
-- **Auto-Reconnect**: Save Wi-Fi credentials using LittleFS, allowing the device to automatically reconnect to the last used network after reboot.
-- **Responsive Web Interface**: Built with HTML, CSS, and JavaScript, the interface is lightweight, user-friendly, and works across devices.
+- **Scan and connect**: find nearby Wi-Fi networks and connect the ESP32 to one, hidden networks included.
+- **Access point mode**: the ESP32 runs its own access point for direct setup at `192.168.4.1` or `config.local`.
+- **Auto-reconnect**: Wi-Fi credentials and settings are saved and survive reboots, power loss and updates.
+- **Signed OTA updates**: upload a signed firmware file from the Settings page, or install a new release from GitHub after the device finds one.
+- **Automatic rollback**: a failed update returns to the previous firmware; a manual rollback button is also available.
+- **WPA2-Enterprise** (not verified): enter `username|password` as the password to join PEAP/MSCHAPv2 networks.
+- **Responsive web interface**: plain HTML, CSS and JavaScript, embedded in the firmware.
 
-## Usage
+## Quick start
 
-Once configured, you can access the ESP either through your own Wi-Fi network or directly via its Access Point (`192.168.4.1` or `config.local`), providing flexibility for a variety of IoT applications.
+1. Download the `.factory.bin` file for your board from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest).
+2. Flash it over USB (this wipes everything on the board):
 
-## Note
+   ```sh
+   esptool.py write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin
+   ```
 
-This project is intended as a **boilerplate** to help you quickly set up Wi-Fi management for your ESP and build upon it for your own IoT projects.
+3. Join the `ESP-Access-Point` Wi-Fi network (password `12345678`).
+4. Open `http://config.local` or `http://192.168.4.1` and connect the device to your network.
 
-## How to start
-
-1. **Download Arduino IDE 2 via either**
-
-- [Microsoft Store](https://apps.microsoft.com/detail/xpddtbj80f8pc9)
-- [Official Website](https://docs.arduino.cc/software/ide-v2/tutorials/getting-started/ide-v2-downloading-and-installing/)
-
-2. **Configure the IDE**
-
-- **Install the ESP32 Board**
-  - Arduino IDE, go to `Tools` > `Board` > `Boards Manager`, search for ESP32 and install esp32 by Espressif Systems version 3.X
-
-- **Installing Libraries**
-- Arduino IDE, go to `Sketch` > `Include Library` > `Manage Libraries...` > Search for the libraries and install the following.
-  - Install the [ArduinoJson](https://github.com/bblanchon/ArduinoJson) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ArduinoJson` (by Benoît Blanchon). Install the version 7.
-  - Install the [Async TCP](https://github.com/ESP32Async/AsyncTCP) library (by ESP32Async).
-  - Install the [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer) library via `Sketch` > `Include Library` > `Manage Libraries...` and search for `ESPAsyncWebServer` (by ESP32Async).
-
-- Select your board at `Tools` > `Board`
-- Plug in your board and select its COM port at `Tools` > `Port`
-- Optional: To reset/override previous settings, select `Tools` > `Erase Flash` > `All Flash Contents` or `Tools` > `Erase All Flash Before Sketch Upload` > `Enabled`
-- You will need [arduino-littlefs-upload filesystem uploader tool](https://github.com/earlephilhower/arduino-littlefs-upload/) to load sketch data into the ESP. [Tutorial](https://randomnerdtutorials.com/arduino-ide-2-install-esp32-littlefs/) (follow the instructions for Arduino IDE 2)
-- Run the `webMinifier` script to minify the HTML, CSS files. This will create a `data` folder with the minified files inside the `esp32` directory.
-- Upload the `data` folder to the ESP using the filesystem uploader tool. as follows:
-  - Open `esp32/esp32.ino` in your Arduino IDE.
-  - Open the command palette by selecting `Ctrl` + `Shift` + `P`, then type `LittleFS Upload` and select `LittleFS to Pico/ESP8266/ESP32`.
-  - Note: Make sure to close the serial monitor before uploading the files. If you don't, you will get an error message.
+To build it yourself instead, see [docs/local-development.md](docs/local-development.md).
 
 ## Default settings
 
-- **IP Address:** `192.168.4.1`
-- **SSID:** `ESP-Access-Point`
-- **Password:** `12345678`
-- **Channel:** `6`
-- **Hidden:** `false`
+| Setting | Value |
+| --- | --- |
+| IP address | `192.168.4.1` |
+| AP SSID | `ESP-Access-Point` |
+| AP password | `12345678` |
+| AP channel | `6` |
+| AP hidden | `false` |
 
-## File Structure
+Change the default AP password after setup: it is public.
 
-```
-📁 web-interface        # Contains the source HTML, CSS, and JS files for the web interface
-📁 esp                  # Contains the ESP sketch and the web interface files
-│   📁 data
-│       📁 www          # Contains the minified HTML, CSS, and the JS files for the web interface
-📁 utils                # Contains utility scripts
-    📄 webMinifier.py   # Script to minify HTML, CSS, files
+## Documentation
 
-```
-## Dashboard Screenshots
+- [Getting started](docs/getting-started.md): supported boards and first flash
+- [OTA updates](docs/ota-updates.md): uploading, update checks and failure behaviour
+- [Make it yours](docs/make-it-yours.md): checklist for forks
+- [Local development](docs/local-development.md): building, flashing and testing
+- [Releasing](docs/releasing.md): versioning and the release pipeline
+- [Security](docs/security.md): signing, trusted keys and known risks
+- [Architecture](docs/architecture.md): flash layout, settings storage and rollback
+- [API](docs/api.md): REST endpoints
+- [Roadmap](docs/roadmap.md): future work
+
+## Dashboard screenshots
 
 <img width="645" height="2795" alt="config local_home(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/45e8e4b1-ebd4-4c75-9d7c-4aaee84054d2" />
 
@@ -77,4 +60,6 @@ This project is intended as a **boilerplate** to help you quickly set up Wi-Fi m
 
 <img width="645" height="3714" alt="config local_settings(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/e2b67543-4c3f-431f-94f0-7bda48c5720d" />
 
+## License
 
+[MIT](LICENSE). Third-party components are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
