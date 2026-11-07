@@ -1,10 +1,12 @@
 #include "UpdateManager.h"
 #include "ProjectConfig.h"
 #include "BuildInfo.h"
+#include "ConfigStorage.h"
 #include <Update.h>
 #include <esp_flash.h>
 #include <esp_ota_ops.h>
 #include <mbedtls/sha256.h>
+#include <esp_timer.h>
 
 UpdateManager updateManager;
 
@@ -29,6 +31,34 @@ UpdateManager updateManager;
 
 // An upload that sends nothing for this long is cancelled
 #define UPLOAD_STALL_TIMEOUT_MS 30000
+
+// Health check of a newly installed firmware: healthy once setup has finished
+// (including Wi-Fi auto-connect) and it has then run this long; rolled back if
+// not healthy by the deadline (measured from boot)
+#define HEALTH_UPTIME_MS 60000UL
+#define HEALTH_DEADLINE_MS 180000UL
+
+// The core confirms every new firmware before setup() by default; keep it
+// pending so the health check decides (bootloader rollback stays armed)
+extern "C" bool verifyRollbackLater()
+{
+  return true;
+}
+
+// Runs even if setup() or loop() hangs
+static void healthDeadline(void *)
+{
+  if (updateManager.isUnconfirmed())
+  {
+    Serial.println("OTA: firmware not healthy in time, rolling back");
+    esp_ota_mark_app_invalid_rollback_and_reboot();
+  }
+}
+
+static int slotOf(const esp_partition_t *partition)
+{
+  return partition && partition->subtype == ESP_PARTITION_SUBTYPE_APP_OTA_1 ? 1 : 0;
+}
 
 static uint16_t readU16(const uint8_t *p) { return p[0] | (p[1] << 8); }
 static uint32_t readU32(const uint8_t *p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
@@ -65,8 +95,98 @@ static const char *stateName(UpdateManager::State state)
   }
 }
 
+void UpdateManager::bootCheck()
+{
+  const esp_partition_t *running = esp_ota_get_running_partition();
+  _runningSlot = slotOf(running);
+
+  uint8_t sha[32];
+  if (esp_partition_get_sha256(running, sha) != ESP_OK)
+    memset(sha, 0, sizeof(sha));
+
+  esp_ota_img_states_t state;
+  _unconfirmed = esp_ota_get_state_partition(running, &state) == ESP_OK && state == ESP_OTA_IMG_PENDING_VERIFY;
+
+  String pendingReason;
+  int pendingSlot = ConfigStorage::getPendingSlot(pendingReason);
+  if (pendingSlot >= 0 && pendingSlot != _runningSlot)
+  {
+    // The installed firmware never confirmed itself: the bootloader went back
+    Serial.println("OTA: the last update was rolled back");
+    ConfigStorage::invalidateSlot(pendingSlot);
+    ConfigStorage::setLastSwitch("auto_rollback");
+    ConfigStorage::setPendingSlot(-1, "");
+    pendingSlot = -1;
+  }
+
+  ConfigStorage::SlotRecord record = ConfigStorage::getSlot(_runningSlot);
+  bool known = record.valid && memcmp(record.sha256, sha, sizeof(sha)) == 0;
+  if (!known && pendingSlot != _runningSlot)
+  {
+    // Firmware the records don't know, with no OTA install pending: flashed over USB
+    Serial.println("OTA: new firmware from USB, resetting slot records");
+    record.valid = true;
+    record.version = FIRMWARE_VERSION;
+    record.target = OTA_TARGET_ID;
+    memcpy(record.sha256, sha, sizeof(sha));
+    ConfigStorage::setSlot(_runningSlot, record);
+    ConfigStorage::invalidateSlot(1 - _runningSlot);
+    ConfigStorage::setHomeTarget(OTA_TARGET_ID);
+    ConfigStorage::setLastSwitch("usb");
+    ConfigStorage::setPendingSlot(-1, "");
+  }
+  else if (pendingSlot == _runningSlot && !_unconfirmed)
+  {
+    // Confirmed earlier but the record was not finished
+    ConfigStorage::setLastSwitch(pendingReason);
+    ConfigStorage::setPendingSlot(-1, "");
+  }
+
+  if (ConfigStorage::getHomeTarget().isEmpty())
+    ConfigStorage::setHomeTarget(OTA_TARGET_ID);
+
+  Serial.printf("OTA: running slot %d (%s)%s\n", _runningSlot, FIRMWARE_VERSION, _unconfirmed ? ", unconfirmed" : "");
+
+  if (_unconfirmed)
+  {
+    esp_timer_create_args_t args = {};
+    args.callback = healthDeadline;
+    args.name = "ota_deadline";
+    esp_timer_handle_t timer;
+    int64_t remainingUs = (int64_t)HEALTH_DEADLINE_MS * 1000 - esp_timer_get_time();
+    if (esp_timer_create(&args, &timer) == ESP_OK)
+      esp_timer_start_once(timer, remainingUs > 0 ? remainingUs : 1);
+  }
+}
+
+void UpdateManager::setupDone()
+{
+  _setupDone = true;
+  _setupDoneAt = millis();
+  // While unconfirmed, a hang is caught by the task watchdog, whose reset rolls back
+  if (_unconfirmed)
+    enableLoopWDT();
+}
+
+uint32_t UpdateManager::confirmSecondsLeft() const
+{
+  if (!_unconfirmed)
+    return 0;
+  uint32_t now = millis();
+  uint32_t healthyAt = _setupDone ? _setupDoneAt + HEALTH_UPTIME_MS : HEALTH_DEADLINE_MS;
+  return healthyAt > now ? (healthyAt - now + 999) / 1000 : 0;
+}
+
+String UpdateManager::previousVersion()
+{
+  ConfigStorage::SlotRecord other = ConfigStorage::getSlot(1 - _runningSlot);
+  return other.valid ? other.version : String("");
+}
+
 void UpdateManager::begin()
 {
+  bootCheck();
+
   if (!Update.installSignature(&_verifier))
     Serial.println("Failed to install the update signature verifier");
   Serial.printf("OTA: %u trusted key(s)%s\n", (unsigned)TrustedKeyVerifier::trustedKeyCount(), FIRMWARE_DEV_BUILD ? " (dev build)" : "");
@@ -85,6 +205,21 @@ void UpdateManager::begin()
 
 void UpdateManager::loop()
 {
+  if (_unconfirmed)
+  {
+    if (_setupDone && millis() - _setupDoneAt >= HEALTH_UPTIME_MS)
+    {
+      esp_ota_mark_app_valid_cancel_rollback();
+      String reason;
+      ConfigStorage::getPendingSlot(reason);
+      ConfigStorage::setLastSwitch(reason.isEmpty() ? String("update") : reason);
+      ConfigStorage::setPendingSlot(-1, "");
+      _unconfirmed = false;
+      disableLoopWDT();
+      Serial.println("OTA: firmware confirmed healthy");
+    }
+  }
+
   std::lock_guard<std::mutex> guard(_lock);
   if (_state == State::Receiving && millis() - _lastDataAt > UPLOAD_STALL_TIMEOUT_MS)
   {
@@ -116,6 +251,13 @@ bool UpdateManager::uploadBegin(size_t total, const uint8_t *data, size_t len, c
     message = "An update is already running";
     return false;
   }
+  if (_unconfirmed)
+  {
+    // The other slot is the rollback target until this firmware confirms itself
+    reason = "finishing_update";
+    message = "Finishing update, please wait " + String(confirmSecondsLeft()) + " s";
+    return false;
+  }
 
   // Classic ESP32 factory images start with padding before the bootloader
   if (len > 0 && data[0] == 0xFF)
@@ -140,6 +282,9 @@ bool UpdateManager::uploadBegin(size_t total, const uint8_t *data, size_t len, c
     failLocked(reason.c_str(), message);
     return false;
   }
+
+  // The inactive slot is being overwritten: its record no longer holds
+  ConfigStorage::invalidateSlot(slotOf(esp_ota_get_next_update_partition(NULL)));
 
   _state = State::Receiving;
   _total = total;
@@ -250,6 +395,16 @@ bool UpdateManager::uploadFinish()
     return false;
   }
 
+  // Record what the new slot holds; it stays pending until it confirms itself
+  const esp_partition_t *installed = esp_ota_get_boot_partition();
+  ConfigStorage::SlotRecord record;
+  record.valid = esp_partition_get_sha256(installed, record.sha256) == ESP_OK;
+  const uint8_t *v = _info + INFO_OFF_VERSION;
+  record.version = String(readU16(v)) + "." + String(readU16(v + 2)) + "." + String(readU16(v + 4));
+  record.target = readText(_info + INFO_OFF_TARGET);
+  ConfigStorage::setSlot(slotOf(installed), record);
+  ConfigStorage::setPendingSlot(slotOf(installed), "update");
+
   Serial.printf("Update installed (key %s), rebooting\n", _verifier.matchedKeyId() ? _verifier.matchedKeyId() : "?");
   _state = State::Rebooting;
   return true;
@@ -269,6 +424,9 @@ void UpdateManager::fillStatus(JsonObject out)
   std::lock_guard<std::mutex> guard(_lock);
   out["state"] = stateName(_state);
   out["progress"] = _total ? (int)((uint64_t)_received * 100 / _total) : 0;
+  out["confirming"] = (bool)_unconfirmed;
+  if (_unconfirmed)
+    out["confirm_in_s"] = confirmSecondsLeft();
   if (_state == State::Failed)
   {
     out["error"] = _reason;

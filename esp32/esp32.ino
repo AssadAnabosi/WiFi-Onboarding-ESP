@@ -27,6 +27,7 @@ void setup() {
   } else {
     Serial.println("Error starting mDNS responder");
   }
+  updateManager.setupDone();
 }
 
 void loop() {

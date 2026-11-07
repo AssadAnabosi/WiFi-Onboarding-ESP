@@ -25,7 +25,22 @@
 #define KEY_AP_STATUS "ap_status"         // Bool
 #define KEY_HOSTNAME "hostname"           // String
 
+// "sys" namespace (slot keys are prefixed "s0_" / "s1_" for app0 / app1)
+#define KEY_HOME_TARGET "home_target"     // String
+#define KEY_LAST_SWITCH "last_switch"     // String
+#define KEY_PENDING_SLOT "pend_slot"      // Int
+#define KEY_PENDING_REASON "pend_reason"  // String
+#define KEY_SLOT_VALID "_valid"           // Bool
+#define KEY_SLOT_VERSION "_version"       // String
+#define KEY_SLOT_TARGET "_target"         // String
+#define KEY_SLOT_SHA "_sha"               // Bytes (32)
+
 // Reserved (retired) names: none yet
+
+static String slotKey(int slot, const char *suffix)
+{
+  return String(slot == 0 ? "s0" : "s1") + suffix;
+}
 
 static String readString(const char *key, const char *defaultValue)
 {
@@ -157,4 +172,102 @@ void ConfigStorage::factoryReset()
   }
   // Also drop any credentials the Wi-Fi driver kept on its own
   esp_wifi_restore();
+}
+
+String ConfigStorage::getHomeTarget()
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, true))
+    return "";
+  String value = prefs.isKey(KEY_HOME_TARGET) ? prefs.getString(KEY_HOME_TARGET, "") : String("");
+  prefs.end();
+  return value;
+}
+
+void ConfigStorage::setHomeTarget(const String &target)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, false))
+    return;
+  prefs.putString(KEY_HOME_TARGET, target);
+  prefs.end();
+}
+
+ConfigStorage::SlotRecord ConfigStorage::getSlot(int slot)
+{
+  SlotRecord record;
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, true))
+    return record;
+  String valid = slotKey(slot, KEY_SLOT_VALID);
+  if (prefs.isKey(valid.c_str()) && prefs.getBool(valid.c_str(), false))
+  {
+    record.valid = true;
+    record.version = prefs.getString(slotKey(slot, KEY_SLOT_VERSION).c_str(), "");
+    record.target = prefs.getString(slotKey(slot, KEY_SLOT_TARGET).c_str(), "");
+    record.valid = prefs.getBytes(slotKey(slot, KEY_SLOT_SHA).c_str(), record.sha256, sizeof(record.sha256)) == sizeof(record.sha256);
+  }
+  prefs.end();
+  return record;
+}
+
+void ConfigStorage::setSlot(int slot, const SlotRecord &record)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, false))
+    return;
+  prefs.putBool(slotKey(slot, KEY_SLOT_VALID).c_str(), record.valid);
+  prefs.putString(slotKey(slot, KEY_SLOT_VERSION).c_str(), record.version);
+  prefs.putString(slotKey(slot, KEY_SLOT_TARGET).c_str(), record.target);
+  prefs.putBytes(slotKey(slot, KEY_SLOT_SHA).c_str(), record.sha256, sizeof(record.sha256));
+  prefs.end();
+}
+
+void ConfigStorage::invalidateSlot(int slot)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, false))
+    return;
+  prefs.putBool(slotKey(slot, KEY_SLOT_VALID).c_str(), false);
+  prefs.end();
+}
+
+String ConfigStorage::getLastSwitch()
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, true))
+    return "";
+  String value = prefs.isKey(KEY_LAST_SWITCH) ? prefs.getString(KEY_LAST_SWITCH, "") : String("");
+  prefs.end();
+  return value;
+}
+
+void ConfigStorage::setLastSwitch(const String &reason)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, false))
+    return;
+  prefs.putString(KEY_LAST_SWITCH, reason);
+  prefs.end();
+}
+
+int ConfigStorage::getPendingSlot(String &reason)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, true))
+    return -1;
+  int slot = prefs.isKey(KEY_PENDING_SLOT) ? prefs.getInt(KEY_PENDING_SLOT, -1) : -1;
+  reason = prefs.isKey(KEY_PENDING_REASON) ? prefs.getString(KEY_PENDING_REASON, "") : String("");
+  prefs.end();
+  return slot;
+}
+
+void ConfigStorage::setPendingSlot(int slot, const String &reason)
+{
+  Preferences prefs;
+  if (!prefs.begin(NS_SYSTEM, false))
+    return;
+  prefs.putInt(KEY_PENDING_SLOT, slot);
+  prefs.putString(KEY_PENDING_REASON, reason);
+  prefs.end();
 }

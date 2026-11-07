@@ -85,6 +85,44 @@ public:
    * The firmware and system records are kept.
    */
   static void factoryReset();
+
+  // ----- System records ("sys" namespace, kept by factory reset) -----
+
+  /**
+   * @brief What one firmware slot holds.
+   */
+  struct SlotRecord
+  {
+    bool valid = false;
+    String version;
+    String target;
+    uint8_t sha256[32] = {0};
+  };
+
+  /**
+   * @brief The configuration the device was deliberately set up with (set by USB flash).
+   */
+  static String getHomeTarget();
+  static void setHomeTarget(const String &target);
+
+  /**
+   * @brief Record for app slot 0 or 1.
+   */
+  static SlotRecord getSlot(int slot);
+  static void setSlot(int slot, const SlotRecord &record);
+  static void invalidateSlot(int slot);
+
+  /**
+   * @brief Why the last slot switch happened: "update", "manual_rollback", "auto_rollback" or "usb".
+   */
+  static String getLastSwitch();
+  static void setLastSwitch(const String &reason);
+
+  /**
+   * @brief Slot an install switched to that has not confirmed itself yet (-1 for none), and why.
+   */
+  static int getPendingSlot(String &reason);
+  static void setPendingSlot(int slot, const String &reason);
 };
 
 #endif

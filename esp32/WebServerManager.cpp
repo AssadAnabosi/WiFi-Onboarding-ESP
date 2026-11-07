@@ -91,6 +91,14 @@ void WebServerManager::loop()
   }
 }
 
+bool WebServerManager::refuseWhileUnconfirmed(AsyncWebServerRequest *request)
+{
+  if (!updateManager.isUnconfirmed())
+    return false;
+  sendMessage(request, "Finishing update, please wait " + String(updateManager.confirmSecondsLeft()) + " s", 409);
+  return true;
+}
+
 void WebServerManager::scheduleRestart(uint32_t delayMs)
 {
   _restartAt = millis() + delayMs;
@@ -318,6 +326,10 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
   doc["commit"] = FIRMWARE_COMMIT;
   doc["dev"] = (bool)FIRMWARE_DEV_BUILD;
   doc["target"] = OTA_TARGET_ID;
+  String homeTarget = ConfigStorage::getHomeTarget();
+  doc["home_target"] = homeTarget;
+  doc["target_mismatch"] = homeTarget != OTA_TARGET_ID;
+  doc["previous_version"] = updateManager.previousVersion();
 
   WiFiManager::AttemptState attempt = wifiManager.attemptState();
   doc["station"]["attempt"]["state"] = attemptStateName(attempt);
@@ -475,6 +487,9 @@ void WebServerManager::handleGetSettings(AsyncWebServerRequest *request)
 
 void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const JsonObject &json)
 {
+  if (refuseWhileUnconfirmed(request))
+    return;
+
   const char *required[] = {"ap_ssid", "ap_password", "ap_channel", "ap_hidden", "ap_status", "hostname"};
   String missing;
   for (const char *key : required)
@@ -511,6 +526,8 @@ void WebServerManager::handlePostSettings(AsyncWebServerRequest *request, const 
 
 void WebServerManager::handleReset(AsyncWebServerRequest *request)
 {
+  if (refuseWhileUnconfirmed(request))
+    return;
   ConfigStorage::factoryReset();
   sendMessage(request, "Resetting to factory settings...");
   scheduleRestart();
@@ -518,6 +535,8 @@ void WebServerManager::handleReset(AsyncWebServerRequest *request)
 
 void WebServerManager::handleReboot(AsyncWebServerRequest *request)
 {
+  if (refuseWhileUnconfirmed(request))
+    return;
   sendMessage(request, "Device is rebooting...");
   scheduleRestart();
 }
@@ -586,7 +605,7 @@ void WebServerManager::handleUploadBody(AsyncWebServerRequest *request, uint8_t 
     options.allowTargetChange = request->hasParam("allow_target_change");
     if (!updateManager.uploadBegin(total, data, len, options, reason, message))
     {
-      rejectUpload(ctx, reason == "update_running" ? 409 : 400, reason, message);
+      rejectUpload(ctx, reason == "update_running" || reason == "finishing_update" ? 409 : 400, reason, message);
       return;
     }
     ctx->owner = true;

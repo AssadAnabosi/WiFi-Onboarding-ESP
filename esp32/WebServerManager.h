@@ -136,6 +136,12 @@ private:
   bool isOwnHost(String host);
 
   /**
+     * @brief Answers 409 "Finishing update" while a new firmware is unconfirmed.
+     * @return True if the request was refused.
+     */
+  bool refuseWhileUnconfirmed(AsyncWebServerRequest *request);
+
+  /**
      * @brief Registers every update route. All update routes go through this one function.
      */
   void registerUpdateRoutes();

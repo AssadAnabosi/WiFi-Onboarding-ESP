@@ -39,9 +39,30 @@ public:
   void begin();
 
   /**
-   * @brief Cancels an upload that stopped sending. Call from loop().
+   * @brief Call at the end of setup(): starts the health check of an unconfirmed firmware.
+   */
+  void setupDone();
+
+  /**
+   * @brief Runs the health check and cancels an upload that stopped sending. Call from loop().
    */
   void loop();
+
+  /**
+   * @brief True while a newly installed firmware has not confirmed itself yet.
+   * Reboots, settings changes, factory reset and new updates are refused meanwhile.
+   */
+  bool isUnconfirmed() const { return _unconfirmed; }
+
+  /**
+   * @brief Seconds until the firmware should confirm itself (0 when confirmed).
+   */
+  uint32_t confirmSecondsLeft() const;
+
+  /**
+   * @brief Version in the other slot, or "" when it holds no valid firmware.
+   */
+  String previousVersion();
 
   /**
    * @brief True while an update is receiving, installing or about to reboot.
@@ -94,6 +115,12 @@ private:
   String _message;
   TrustedKeyVerifier _verifier;
 
+  volatile bool _unconfirmed = false;
+  bool _setupDone = false;
+  uint32_t _setupDoneAt = 0;
+  int _runningSlot = 0;
+
+  void bootCheck();
   void failLocked(const char *reason, const String &message);
   bool checkInfoLocked();
 };
