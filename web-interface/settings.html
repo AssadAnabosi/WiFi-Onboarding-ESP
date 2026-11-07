@@ -10,6 +10,7 @@
     <script src="js/index.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/firmware.js"></script>
     <script src="js/modal.js"></script>
     <title>Wi-Fi On-Boarding</title>
   </head>
@@ -28,8 +29,10 @@
       <section>
         <h1>Settings</h1>
         <div class="main-actions">
-          <button onclick="reset()" class="red">Reset</button>
-          <button onclick="reboot()" class="red right">Reboot</button>
+          <button onclick="reset()" class="red lock-while-finishing">Reset</button>
+          <button onclick="reboot()" class="red right lock-while-finishing">
+            Reboot
+          </button>
         </div>
         <p style="color: oklch(63.7% 0.237 25.331); font-size: larger">
           Information:
@@ -148,13 +151,51 @@
             </tr>
             <tr>
               <td colspan="3">
-                <button onclick="save()">Save</button>
+                <button onclick="save()" class="lock-while-finishing">Save</button>
               </td>
             </tr>
           </tbody>
         </table>
       </section>
       <!-- </section> -->
+      <hr />
+      <section id="firmware">
+        <h2>Firmware</h2>
+        <table class="fw-info">
+          <tbody>
+            <tr>
+              <td>Version</td>
+              <td id="fw-installed"></td>
+            </tr>
+            <tr>
+              <td>Build</td>
+              <td id="fw-build"></td>
+            </tr>
+            <tr>
+              <td>Target</td>
+              <td id="fw-target"></td>
+            </tr>
+          </tbody>
+        </table>
+        <label for="fw-file">Upload update</label>
+        <p class="text-sm text-muted">
+          Pick a signed file ending in .ota.bin. The device reboots into it and
+          keeps its settings.
+        </p>
+        <div class="fw-upload-row">
+          <input
+            type="file"
+            id="fw-file"
+            accept=".bin"
+            onchange="pickFirmware(this)"
+          />
+          <button id="fw-upload" onclick="uploadFirmware()" disabled>
+            Upload
+          </button>
+        </div>
+        <progress id="fw-progress" max="100" value="0"></progress>
+        <p id="fw-message" class="text-sm text-muted"></p>
+      </section>
     </div>
     <footer style="text-align: center">
       <span style="letter-spacing: 0.1rem">Created By </span>
@@ -166,6 +207,7 @@
       <div class="modal">
         <span id="close-modal" class="close">&times;</span>
         <h2 id="modal-title"></h2>
+        <p id="modal-text" class="modal-text" style="display: none"></p>
         <input
           type="password"
           id="modal-input"

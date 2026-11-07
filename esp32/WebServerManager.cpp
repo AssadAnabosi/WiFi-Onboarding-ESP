@@ -330,6 +330,10 @@ void WebServerManager::handleStatus(AsyncWebServerRequest *request)
   doc["home_target"] = homeTarget;
   doc["target_mismatch"] = homeTarget != OTA_TARGET_ID;
   doc["previous_version"] = updateManager.previousVersion();
+  // What an update's info block must match, so the browser can check a file before sending it
+  doc["project"] = PROJECT_SLUG;
+  doc["chip_id"] = CONFIG_IDF_FIRMWARE_CHIP_ID;
+  doc["layout"] = updateManager.layoutHash();
 
   WiFiManager::AttemptState attempt = wifiManager.attemptState();
   doc["station"]["attempt"]["state"] = attemptStateName(attempt);

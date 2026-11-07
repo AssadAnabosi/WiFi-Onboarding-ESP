@@ -9,6 +9,10 @@
   border-radius: 0.5rem;
 }
 
+.main-actions button:disabled {
+  color: var(--muted-foreground);
+}
+
 #reload-settings {
   color: var(--foreground);
   background-color: var(--accent);
@@ -88,4 +92,49 @@ input[type="checkbox"]:checked::before {
 input[type="checkbox"]:focus {
   outline: max(2px, 0.15em) solid var(--primary);
   outline-offset: max(2px, 0.15em);
+}
+
+#firmware label {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+.fw-info td:first-child {
+  color: var(--muted-foreground);
+  width: 8rem;
+}
+
+.fw-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.fw-upload-row input[type="file"] {
+  flex: 1;
+  min-width: 12rem;
+  width: auto;
+  height: auto;
+}
+
+.fw-upload-row button {
+  border-radius: 0.5rem;
+}
+
+#fw-progress {
+  display: none;
+  width: 100%;
+  margin-top: 0.75rem;
+  accent-color: var(--primary);
+}
+
+#fw-message.error {
+  color: var(--red);
+}
+
+#fw-message.warning {
+  color: var(--orange);
 }

@@ -65,6 +65,11 @@ public:
   String previousVersion();
 
   /**
+   * @brief SHA-256 of this device's partition table as hex (an update's layout hash must match).
+   */
+  String layoutHash() const;
+
+  /**
    * @brief True while an update is receiving, installing or about to reboot.
    */
   bool isBusy() const;

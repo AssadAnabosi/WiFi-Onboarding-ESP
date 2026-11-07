@@ -28,6 +28,11 @@ function setStatusBanner(msg) {
         (banner.innerHTML = "Loading..."),
         (banner.style.color = "var(--primary-foreground)");
       break;
+    case "rebooting":
+      (banner.style.backgroundColor = "#ff0"),
+        (banner.innerHTML = "Rebooting..."),
+        (banner.style.color = "var(--primary-foreground)");
+      break;
     case "error":
       (banner.style.backgroundColor = "#d33"),
         (banner.innerHTML = "Disconnected"),
@@ -123,6 +128,76 @@ function connected(res) {
   if (typeof load !== "undefined") {
     load();
   }
+  checkUpdateStatus();
+}
+
+// While a new firmware has not confirmed itself, the device refuses reboots,
+// settings saves, factory reset and updates: show a countdown and disable them
+var finishingTimer = null;
+var updateFinishing = false;
+
+function setFinishing(seconds) {
+  let banner = getById("finishing-banner");
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "finishing-banner";
+    getById("status-banner").after(banner);
+  }
+  banner.style.display = seconds > 0 ? "block" : "none";
+  banner.textContent = "Finishing update, " + seconds + " s";
+  updateFinishing = seconds > 0;
+  document.querySelectorAll(".lock-while-finishing").forEach(function (el) {
+    el.disabled = updateFinishing;
+  });
+  if (typeof refreshFirmwareButtons !== "undefined") {
+    refreshFirmwareButtons();
+  }
+}
+
+function checkUpdateStatus() {
+  apiCall({
+    endpoint: "/api/update/status",
+    callback: function (res) {
+      clearInterval(finishingTimer);
+      if (!res.confirming) {
+        setFinishing(0);
+        return;
+      }
+      let seconds = Math.max(res.confirm_in_s || 0, 1);
+      setFinishing(seconds);
+      finishingTimer = setInterval(function () {
+        seconds--;
+        if (seconds > 0) {
+          setFinishing(seconds);
+        } else {
+          clearInterval(finishingTimer);
+          setTimeout(checkUpdateStatus, 1000);
+        }
+      }, 1000);
+    },
+  });
+}
+
+// After an install or rollback: wait for the device to go down and come back, then reload
+function reloadAfterReboot() {
+  setStatusBanner("rebooting");
+  function poll() {
+    let request = new XMLHttpRequest();
+    request.open("GET", "/api/health", true);
+    request.timeout = 3000;
+    request.onload = function () {
+      if (this.status === 200) {
+        window.location.reload();
+      } else {
+        setTimeout(poll, 2000);
+      }
+    };
+    request.onerror = request.ontimeout = function () {
+      setTimeout(poll, 2000);
+    };
+    request.send();
+  }
+  setTimeout(poll, 5000);
 }
 function checkConnection() {
   apiCall({

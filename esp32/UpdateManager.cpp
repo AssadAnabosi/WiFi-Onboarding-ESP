@@ -183,6 +183,16 @@ String UpdateManager::previousVersion()
   return other.valid ? other.version : String("");
 }
 
+String UpdateManager::layoutHash() const
+{
+  if (!_layoutHashValid)
+    return "";
+  char hex[65];
+  for (int i = 0; i < 32; i++)
+    sprintf(hex + i * 2, "%02x", _layoutHash[i]);
+  return String(hex);
+}
+
 void UpdateManager::begin()
 {
   bootCheck();
@@ -391,7 +401,7 @@ bool UpdateManager::uploadFinish()
   {
     bool badSignature = Update.getError() == UPDATE_ERROR_SIGN;
     failLocked(badSignature ? "invalid_signature" : "verification_failed",
-               badSignature ? "This file isn't signed for this project" : String("Verification failed: ") + Update.errorString());
+               badSignature ? "This file isn't signed for this project." : String("Verification failed: ") + Update.errorString());
     return false;
   }
 

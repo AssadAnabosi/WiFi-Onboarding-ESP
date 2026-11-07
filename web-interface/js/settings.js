@@ -90,6 +90,7 @@ function reboot() {
 }
 
 function load() {
+  loadFirmware();
   apiCall({
     endpoint: "/api/settings",
     callback: function (res) {

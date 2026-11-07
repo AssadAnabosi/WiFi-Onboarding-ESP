@@ -136,6 +136,15 @@ hr {
   z-index: 99;
 }
 
+#finishing-banner {
+  display: none;
+  text-align: center;
+  padding: 5px;
+  font-weight: 500;
+  background-color: var(--orange);
+  color: var(--primary-foreground);
+}
+
 .container {
   width: 100%;
   margin: 0 auto;
