@@ -2,16 +2,47 @@
 
 How the firmware is put together: an Arduino sketch in `esp32/` that keeps its settings in NVS, serves an embedded web interface, and updates itself into a second firmware slot.
 
-| File | Role |
+## Code layout
+
+The sketch root holds only what forks and tools touch; the code lives in `esp32/src/`, one folder per module (the Arduino tools compile everything under `src/`).
+
+| Path | Role |
 | --- | --- |
-| `esp32/esp32.ino` | `setup()`/`loop()`: storage, Wi-Fi, mDNS, web server, update manager |
-| `ConfigStorage` | Settings and system records in NVS |
-| `WiFiManager` | Connects with the saved network, falls back to the access point, connects to new networks |
-| `WebServerManager` | Embedded pages and the JSON API ([api.md](api.md)), cross-site protection |
-| `UpdateManager` | Uploads, update checks, downloads, rollback and the confirmation window |
-| `OtaVerifier`, `OtaKeys.h` | Tries each trusted public key when the core checks a signature |
+| `esp32.ino` | Creates the modules, hands each the others it needs, and runs `setup()`/`loop()` |
 | `ProjectConfig.h` | Everything a fork changes ([make-it-yours.md](make-it-yours.md)) |
-| `BuildInfo.h` | Version, build date, commit and dev-build flag |
+| `build_opt.h`, `partitions.csv`, `sketch.yaml`, `targets/` | The build target ([below](#build-targets)) |
+| `WebAssets.h`, `Version.h`, `OtaPublicKey.h` | Generated; never edited by hand ([below](#generated-files)) |
+| `.clang-format` | C++ formatting, used by Arduino IDE's Auto Format and most editors |
+| `src/storage/ConfigStorage` | Settings (`DeviceSettings`, the saved network) and system records in NVS |
+| `src/wifi/WiFiManager` | Saved network, access point, mDNS, scans, background connection attempts |
+| `src/web/WebServerManager` | Embedded pages and response helpers; routes by area in `SystemRoutes.cpp`, `WifiRoutes.cpp` and `UpdateRoutes.cpp` ([api.md](api.md)) |
+| `src/web/RequestGuard` | Cross-site protection for every POST |
+| `src/ota/UpdateManager` | The update state machine: uploads, update checks, downloads, rollback requests |
+| `src/ota/FirmwareSlots` | Slot records, USB-flash and rollback detection, the confirmation window |
+| `src/ota/UpdateFile` | Update file layout and the info-block rules |
+| `src/ota/UpdateCheck`, `src/ota/HttpGet` | Reading the release manifest; HTTPS downloads |
+| `src/ota/OtaVerifier`, `src/ota/OtaKeys.h` | Tries each trusted public key when the core checks a signature |
+| `src/system/` | `BuildInfo.h` (version, build date, commit, dev-build flag), `Log.h` (tagged serial lines), `Restart` (restart from `loop()` after the response), `CoreSerial` (optional debug helper) |
+
+How the modules depend on each other (arrows point at what a module uses):
+
+```mermaid
+flowchart LR
+    ino["esp32.ino"] --> web["WebServerManager"]
+    web --> wifi["WiFiManager"]
+    web --> updates["UpdateManager"]
+    web --> slots["FirmwareSlots"]
+    updates --> slots
+    updates --> file["UpdateFile, UpdateCheck, HttpGet"]
+    wifi --> storage["ConfigStorage"]
+    slots --> storage
+    web --> storage
+```
+
+- Modules are created once in `esp32.ino` and receive the modules they use as constructor references; there are no globals to reach for.
+- `setup()` starts `FirmwareSlots` first (so the rollback deadline of new firmware is armed before anything can hang), then logs the settings and starts `WiFiManager`, `UpdateManager` and `WebServerManager`, and calls `firmwareSlots.setupDone()` last. `loop()` runs `FirmwareSlots`, `UpdateManager` and `Restart`.
+- `WiFiManager`, `FirmwareSlots` and `UpdateFile` know nothing about HTTP; the web layer turns their results into API responses.
+- Files in `src/` include root files by relative path (`#include "../../ProjectConfig.h"`).
 
 ## Flash layout
 
@@ -38,7 +69,7 @@ Settings live in NVS through `Preferences`, in two namespaces:
 | `cfg` | `wifi_ssid`, `wifi_password`, `ap_ssid`, `ap_password`, `ap_channel`, `ap_hidden`, `ap_status`, `hostname` | Cleared |
 | `sys` | `home_target`, `last_switch`, the pending install (`pend_slot`, `pend_reason`), and a record per slot (`s0_`/`s1_` + `valid`, `version`, `target`, `sha`) | Kept |
 
-- All names are listed once at the top of `ConfigStorage.cpp`.
+- All names are listed once at the top of `src/storage/ConfigStorage.cpp`. The settings the Settings page edits travel together as one `DeviceSettings` struct.
 - Every read takes a default from `ProjectConfig.h`, so a new setting needs no migration.
 - An older firmware reads the same names after a rollback, so names are never renamed, reused or given another type (see [CONTRIBUTING.md](../CONTRIBUTING.md#setting-names)). Names are at most 15 characters.
 - `WiFi.persistent(false)` stops the Wi-Fi driver keeping its own copy of the credentials. The whole NVS partition is never erased.
@@ -99,7 +130,7 @@ The update check runs 30 s after boot, every 24 h and on request (see [ota-updat
 | `idle` | Nothing running |
 | `receiving` / `downloading` | Writing an uploaded or downloaded file into the inactive slot |
 | `installing` | Checking the info block, then the signature (`Update.end()`) |
-| `rebooting` | Done; the device restarts from `loop()` after the response is sent |
+| `rebooting` | Done; the device restarts from `loop()` after the response is sent (`Restart`) |
 | `failed` | The last attempt failed; `error` and `message` say why. The running firmware is unchanged |
 
 Update checks have their own state (`never`, `checking`, `up_to_date`, `available`, `no_update`, `needs_manual`, `failed`). Checks and downloads run in background tasks, so the web server stays responsive. The device checks 30 s after boot, then every 24 h plus up to 1 h, and on request. Wi-Fi scan and connect are refused while an update is writing.
@@ -111,7 +142,7 @@ An upload that receives no data for 30 s is cancelled with `Update.abort()`. As 
 The core enables the bootloader's one-shot rollback. New firmware boots as **pending**, and if the device resets before the firmware confirms itself, the bootloader marks it invalid and boots the other slot.
 
 - `verifyRollbackLater()` is overridden to return `true`. Otherwise the core would confirm every new firmware before `setup()` even runs.
-- **Health check:** once `setup()` has finished (`updateManager.setupDone()`) and the firmware has run 60 s more, it calls `esp_ota_mark_app_valid_cancel_rollback()`. Reaching the home Wi-Fi network is not required.
+- **Health check** (`FirmwareSlots`): once `setup()` has finished (`firmwareSlots.setupDone()`) and the firmware has run 60 s more, it calls `esp_ota_mark_app_valid_cancel_rollback()`. Reaching the home Wi-Fi network is not required.
 - **Deadline:** an `esp_timer` rolls back and reboots if the firmware isn't confirmed 3 minutes after boot. The loop watchdog is on while unconfirmed, so a hang also resets and rolls back.
 - While unconfirmed, reboot, settings save, factory reset, updates and manual rollback answer `409 "Finishing update, please wait N s"`.
 

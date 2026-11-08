@@ -8,8 +8,18 @@ Settings are stored in NVS by name, and rollback to an older firmware reads the 
 
 - **Never rename, reuse or change the type** of an existing setting name.
 - **Every new setting has a default**, so a device without it keeps working with no migration.
-- **Retired names stay listed as reserved** in `ConfigStorage` and are never used again.
-- Names are at most 15 characters (an NVS limit) and live in one list in `ConfigStorage`.
+- **Retired names stay listed as reserved** in `esp32/src/storage/ConfigStorage.cpp` and are never used again.
+- Names are at most 15 characters (an NVS limit) and live in one list at the top of that file.
+
+## Firmware code
+
+The sketch's code lives in `esp32/src/`, one folder per module; [docs/architecture.md](docs/architecture.md#code-layout) says what goes where. Keep to the existing patterns:
+
+- Modules are created in `esp32.ino` and get the modules they use as constructor references, not globals.
+- Hardware and storage modules (`WiFiManager`, `FirmwareSlots`, `ConfigStorage`) don't know about HTTP; routes in `esp32/src/web/` turn their results into responses.
+- Constants are `constexpr` in the `.cpp` that uses them; only `ProjectConfig.h` and build flags use `#define`.
+- Log with `LOG("<module>", "...")`; never log passwords.
+- Format with `esp32/.clang-format` (Arduino IDE: **Tools → Auto Format**). Don't format the generated headers.
 
 ## Generated files
 

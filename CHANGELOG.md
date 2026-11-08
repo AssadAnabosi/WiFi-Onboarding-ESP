@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Firmware code reorganised into `esp32/src/` (`storage`, `wifi`, `web`, `ota`, `system`), with the two largest files split into focused modules and the modules wired together in `esp32.ino` instead of through globals. The API, settings and update behaviour are unchanged.
+- New firmware arms its rollback deadline at the start of `setup()`, before connecting to Wi-Fi, so a hang while connecting also rolls back.
+- Serial log lines start with a module tag (`[wifi]`, `[ota]`, ...).
+- `esp32/.clang-format` sets the C++ style.
+
 ## [0.2.0] - 2026-11-08
 
 A new web interface with light and dark themes.
