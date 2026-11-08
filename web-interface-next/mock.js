@@ -62,8 +62,6 @@ function fake(ms, fn) {
 
 document.addEventListener("DOMContentLoaded", function () {
   buildDemoPanel();
-  let notice = $("notice-icon");
-  if (notice) notice.innerHTML = svg(WIFI_ON, 26);
   fake(450, function () {
     let s = demo();
     if (s.finishing) {

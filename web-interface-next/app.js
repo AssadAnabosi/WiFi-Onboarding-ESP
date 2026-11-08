@@ -51,18 +51,20 @@ function toggleTheme() {
 function buildChrome() {
   let body = document.body;
   let page = body.dataset.page;
+  // The device serves pages without ".html"; the static mock needs it
+  let ext = /\.html$/.test(location.pathname) ? ".html" : "";
   let tabs = page
     ? "<nav class='wrap tabs'>" +
       [["home", "Home"], ["scan", "Scan"], ["settings", "Settings"]]
         .map(function (t) {
-          return "<a href='" + t[0] + ".html'" + (t[0] === page ? " aria-current=page" : "") + ">" + t[1] + "</a>";
+          return "<a href='" + t[0] + ext + "'" + (t[0] === page ? " aria-current=page" : "") + ">" + t[1] + "</a>";
         })
         .join("") +
       "</nav>"
     : "";
   body.insertAdjacentHTML(
     "afterbegin",
-    "<header><div class='wrap row between top'><a class='brand' href='home.html'>" +
+    "<header><div class='wrap row between top'><a class='brand' href='home" + ext + "'>" +
       svg(WIFI_ON, 22) +
       "<span id='hostname'>Wi-Fi On-Boarding</span></a><div class='row'><span id='conn' class='pill' data-s='busy'>Loading</span>" +
       "<button class='btn icon-btn' onclick='toggleTheme()' aria-label='Toggle light/dark theme' title='Theme'>" +
@@ -73,8 +75,8 @@ function buildChrome() {
   );
   body.insertAdjacentHTML(
     "beforeend",
-    "<footer>Created by <a href='https://github.com/assadanabosi'>Assad Anabosi</a> · <span id='fw-version'>v" +
-      esc(body.dataset.version) +
+    "<footer>Created by <a href='https://github.com/assadanabosi'>Assad Anabosi</a> · <span id='fw-version'>" +
+      (body.dataset.version ? "v" + esc(body.dataset.version) : "") +
       "</span></footer><div id='toasts'></div>" +
       "<dialog id='dlg'><form method='dialog'><h2 id='dlg-title'></h2><p id='dlg-text' class='muted'></p>" +
       "<input id='dlg-user' autocomplete='off'><input id='dlg-pass' type='password' placeholder='Password' autocomplete='off'>" +
@@ -83,7 +85,11 @@ function buildChrome() {
       "<div class='actions'><button id='dlg-ok' class='btn primary' value='ok'></button><button class='btn' value='cancel'>Cancel</button></div></form></dialog>"
   );
 }
-document.addEventListener("DOMContentLoaded", buildChrome);
+document.addEventListener("DOMContentLoaded", function () {
+  buildChrome();
+  let notice = $("notice-icon");
+  if (notice) notice.innerHTML = svg(WIFI_ON, 26);
+});
 
 // "connected" | "loading" | "rebooting" | "error" (same names as setStatusBanner)
 function setStatus(state) {
@@ -100,13 +106,18 @@ function setStatus(state) {
   pill.textContent = s[1];
 }
 
+// While new firmware has not confirmed itself the device refuses reboots, saves,
+// resets and updates: show a countdown and disable those controls
+var updateFinishing = false;
 function setFinishing(seconds) {
   let bar = $("finishing");
-  bar.style.display = seconds > 0 ? "block" : "none";
+  updateFinishing = seconds > 0;
+  bar.style.display = updateFinishing ? "block" : "none";
   bar.textContent = "Finishing update, " + seconds + " s. Some actions are paused until then.";
   document.querySelectorAll(".lock-while-finishing").forEach(function (el) {
-    el.disabled = seconds > 0;
+    el.disabled = updateFinishing;
   });
+  if (typeof refreshFirmwareButtons !== "undefined") refreshFirmwareButtons();
 }
 
 function toast(message, ms) {
