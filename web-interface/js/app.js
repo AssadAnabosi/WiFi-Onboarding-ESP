@@ -1,7 +1,7 @@
 // Shared by every page: theme, header/footer, status pill, "Finishing update"
-// bar, dialog, password fields, firmware badge and toasts. Replaces index.js'
-// UI parts, modal.js and toast.js.
-// Loaded in <head> without defer so the theme is set before the first paint.
+// bar, notes, dialog, password fields, firmware badge and toasts. api.js talks
+// to the device. Loaded in <head> without defer so the theme is set before the
+// first paint.
 
 // Theme: the saved choice, else the system setting, else light
 function savedTheme() {
@@ -46,7 +46,8 @@ function esc(str) {
       });
 }
 
-// Icons share one 24x24 stroke style; the size comes from the caller
+// Icons share one 24x24 stroke style; the size comes from the caller.
+// Wi-Fi and eye icons: Lucide (ISC license), see THIRD_PARTY_LICENSES.md
 function svg(paths, size) {
   return (
     "<svg width='" + (size || 24) + "' height='" + (size || 24) +
@@ -54,14 +55,14 @@ function svg(paths, size) {
     paths + "</svg>"
   );
 }
-// The existing Wi-Fi on / Wi-Fi off icons, unchanged
+// Wi-Fi on / Wi-Fi off
 const WIFI_ON =
   "<path d='M12 20h.01'/><path d='M2 8.82a15 15 0 0 1 20 0'/><path d='M5 12.859a10 10 0 0 1 14 0'/><path d='M8.5 16.429a5 5 0 0 1 7 0'/>";
 const WIFI_OFF =
   "<path d='M12 20h.01'/><path d='M8.5 16.429a5 5 0 0 1 7 0'/><path d='M5 12.859a10 10 0 0 1 5.17-2.69'/><path d='M19 12.859a10 10 0 0 0-2.007-1.523'/><path d='M2 8.82a15 15 0 0 1 4.177-2.643'/><path d='M22 8.82a15 15 0 0 0-11.288-3.764'/><path d='m2 2 20 20'/>";
 // Theme toggle: half-filled circle
 const THEME = "<circle cx='12' cy='12' r='9'/><path d='M12 3a9 9 0 0 1 0 18z' fill='currentColor'/>";
-// Password visibility: eye / eye off (same icon set as the Wi-Fi icons)
+// Password visibility: eye / eye off
 const EYE =
   "<path d='M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0'/><circle cx='12' cy='12' r='3'/>";
 const EYE_OFF =
@@ -72,20 +73,18 @@ const EYE_OFF =
 function buildChrome() {
   let body = document.body;
   let page = body.dataset.page;
-  // The device serves pages without ".html"; the static mock needs it
-  let ext = /\.html$/.test(location.pathname) ? ".html" : "";
   let tabs = page
     ? "<nav class='wrap tabs'>" +
       [["home", "Home"], ["scan", "Scan"], ["settings", "Settings"]]
         .map(function (t) {
-          return "<a href='" + t[0] + ext + "'" + (t[0] === page ? " aria-current=page" : "") + ">" + t[1] + "</a>";
+          return "<a href='" + t[0] + "'" + (t[0] === page ? " aria-current=page" : "") + ">" + t[1] + "</a>";
         })
         .join("") +
       "</nav>"
     : "";
   body.insertAdjacentHTML(
     "afterbegin",
-    "<header><div class='wrap row between top'><a class='brand' href='home" + ext + "'>" +
+    "<header><div class='wrap row between top'><a class='brand' href='home'>" +
       svg(WIFI_ON, 22) +
       "<span>Wi-Fi On-Boarding</span></a><div class='row'><span id='conn' class='pill' data-s='busy'>Loading</span>" +
       "<button class='btn icon-btn' onclick='toggleTheme()' aria-label='Toggle light/dark theme' title='Theme'>" +
@@ -138,7 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (notice) notice.innerHTML = svg(WIFI_ON, 26);
 });
 
-// "connected" | "loading" | "rebooting" | "error" (same names as setStatusBanner)
+// "connected" | "loading" | "rebooting" | "error"
 function setStatus(state) {
   let pill = $("conn");
   if (!pill) return;

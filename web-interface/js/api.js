@@ -1,5 +1,6 @@
-// Talks to the device: same /api URLs as the pages the device serves itself
-// (serve.py forwards them). The API half of today's index.js.
+// Talks to the device: api() calls, the start-up connection check, the
+// "Finishing update" countdown, reloadAfterReboot() and the mismatch text.
+// Relative /api URLs, so utils/ui_preview.py can forward them to a device.
 
 /**
  * Calls the API and resolves to {status, body} for a 2xx answer. Anything else
@@ -31,7 +32,7 @@ function api(endpoint, opts) {
       try {
         body = JSON.parse(req.responseText);
       } catch (e) {}
-      // 502/504: serve.py could not reach the device
+      // 502/504: the preview server (utils/ui_preview.py) could not reach the device
       if (req.status === 502 || req.status === 504) {
         fail(body.message || "Device not reachable");
         return;

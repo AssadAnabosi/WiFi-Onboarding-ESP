@@ -1,7 +1,14 @@
-// MOCK ONLY. Stands in for the device API with fake data so the design can be
-// tried without a device. The page functions here mirror live/home.js, scan.js,
-// settings.js and firmware.js. The Demo states panel (bottom left) switches the
-// fake device's state; choices are kept in localStorage ("mock-state").
+// Fake device for utils/ui_preview.py --mock. It replaces js/api.js and the page
+// scripts (home.js, scan.js, settings.js, firmware.js) with the same functions
+// working on fake data, so every page and state can be tried without hardware.
+// The Demo states panel (bottom left) switches the fake device's state; choices
+// are kept in localStorage ("mock-state"). Keep it in step with the page scripts.
+
+// Fake versions around the one the pages were built with (VERSION)
+const V_NOW = document.body.dataset.version || "1.0.0";
+const V_PARTS = V_NOW.split(".").map(Number);
+const V_NEXT = V_PARTS[0] + "." + (V_PARTS[1] + 1) + ".0";
+const V_PREV = V_PARTS[0] + "." + Math.max(V_PARTS[1] - 1, 0) + ".0";
 
 const DEMO_KEY = "mock-state";
 const DEMO_DEFAULTS = {
@@ -99,7 +106,7 @@ function mismatchText() {
 }
 // What /api/update/status -> check would say
 function fakeCheck(state) {
-  return { state: state, version: "1.3.0", dev: demo().devUpdate };
+  return { state: state, version: V_NEXT, dev: demo().devUpdate };
 }
 
 /* ---------- Home ---------- */
@@ -128,10 +135,10 @@ function drawHome() {
   $("cards").innerHTML =
     statusCard(s.ap, "Access point", "Direct connection to the device", s.ap ? "Active" : "Off",
       [["Name", "esp32-garden-setup"], ["IP address", "192.168.4.1"]],
-      "The access point is off. Turn it on in <a href='settings.html'>Settings</a>.") +
+      "The access point is off. Turn it on in <a href='settings'>Settings</a>.") +
     statusCard(s.sta, "Wi-Fi network", "Connection to your router", s.sta ? "Connected" : "Not connected",
       [["Network", s.ssid], ["IP address", "192.168.1.42"]],
-      "Not connected to any network. <a href='scan.html'>Pick one on Scan</a>.");
+      "Not connected to any network. <a href='scan'>Pick one on Scan</a>.");
 }
 
 /* ---------- Scan ---------- */
@@ -272,7 +279,7 @@ function reboot() {
 function reset() {
   ask({
     title: "Reset settings?",
-    text: "Wi-Fi and access point settings go back to defaults. Installed firmware (v1.2.0) is not changed.",
+    text: "Wi-Fi and access point settings go back to defaults. Installed firmware (v" + V_NOW + ") is not changed.",
     ok: "Reset",
     danger: true,
     onOk: function () {
@@ -294,12 +301,12 @@ function fakeReboot(message) {
 
 function loadFirmware() {
   let s = demo();
-  $("fw-installed").textContent = "v1.2.0" + (s.dev ? " (dev)" : "");
+  $("fw-installed").textContent = "v" + V_NOW + (s.dev ? " (dev)" : "");
   $("fw-build").textContent = "2026-11-02 (a7f2fb1)";
   $("fw-target").textContent = s.mismatch ? "esp32-4mb-relay" : "esp32-4mb";
   showNote("fw-mismatch", mismatchText());
   $("fw-rollback").style.display = s.rollback ? "" : "none";
-  $("fw-previous").textContent = "Previous version: v1.1.4";
+  $("fw-previous").textContent = "Previous version: v" + V_PREV;
   // The device checks on its own 30 s after boot, so the mock starts from a finished check
   renderCheck(s.update ? "available" : "up_to_date");
 }
@@ -320,7 +327,7 @@ function renderCheck(state) {
   $("fw-badge").textContent = badge[0];
   $("fw-badge").className = "chip " + badge[1];
   if (available) {
-    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + "1.3.0 is available";
+    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + V_NEXT + " is available";
     $("fw-notes").textContent =
       "## Added\n- Light and dark themes\n- Signal bars on the Scan page\n\n## Fixed\n- Hidden networks with an empty name";
   }
@@ -358,7 +365,7 @@ function setMessage(text, kind) {
 
 function installUpdate() {
   ask({
-    title: "Install v1.3.0?",
+    title: "Install v" + V_NEXT + "?",
     text: "The device downloads the update, installs it and reboots. Settings are kept.",
     ok: "Install",
     onOk: function () {
@@ -382,13 +389,13 @@ function pickFirmware(file) {
     $("fw-upload").disabled = true;
     return;
   }
-  setMessage(file.name + ": v1.3.0 for esp32-4mb.");
+  setMessage(file.name + ": v" + V_NEXT + " for esp32-4mb.");
   $("fw-upload").disabled = updateFinishing;
 }
 
 function uploadFirmware() {
   ask({
-    title: "Install v1.3.0 (esp32-4mb)?",
+    title: "Install v" + V_NEXT + " (esp32-4mb)?",
     ok: "Install",
     onOk: function () {
       progress("Uploading…", function () {
@@ -401,7 +408,7 @@ function uploadFirmware() {
 
 function rollBack() {
   ask({
-    title: "Roll back to v1.1.4?",
+    title: "Roll back to v" + V_PREV + "?",
     text: "The device reboots into the version it ran before the last update. Settings are kept.",
     ok: "Roll back",
     danger: true,

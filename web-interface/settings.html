@@ -2,241 +2,115 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/index.css" />
-    <link rel="stylesheet" href="css/toast.css" />
-    <link rel="stylesheet" href="css/settings.css" />
-    <link rel="stylesheet" href="css/modal.css" />
-    <script src="js/index.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="js/settings.js"></script>
-    <script src="js/firmware.js"></script>
-    <script src="js/modal.js"></script>
-    <title>Wi-Fi On-Boarding</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/app.js"></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/settings.js" defer></script>
+    <script src="js/firmware.js" defer></script>
+    <title>Settings · Wi-Fi On-Boarding</title>
   </head>
-  <body onload="checkConnection()">
-    <nav>
-      <div>
-        <a href="home">Home</a>
-        <a href="scan">Scan</a>
-      </div>
-      <div>
-        <a class="active" href="settings">Settings</a>
-      </div>
-    </nav>
-    <div id="banners"><div id="status-banner"></div></div>
-    <div class="container">
-      <section>
-        <h1>Settings</h1>
-        <div class="main-actions">
-          <button onclick="reset()" class="red lock-while-finishing">Reset</button>
-          <button onclick="reboot()" class="red right lock-while-finishing">
-            Reboot
-          </button>
+  <body data-page="settings" data-version="{{VERSION}}">
+    <main class="wrap">
+      <h1>Settings</h1>
+
+      <form class="card" id="cfg" onsubmit="save(); return false">
+        <h2>Access point</h2>
+        <p class="sm muted">The device's own network, used to reach this page.</p>
+        <label class="row between">
+          <span>Enable access point<br /><span class="sm muted">Always on when no Wi-Fi network is connected.</span></span>
+          <input type="checkbox" class="switch" id="ap_status" />
+        </label>
+        <label class="row between">
+          <span>Hide network name<br /><span class="sm muted">Phones won't list it; type the name to join.</span></span>
+          <input type="checkbox" class="switch" id="ap_hidden" />
+        </label>
+        <div class="grid2">
+          <div class="field">
+            <label for="ap_ssid">Network name</label>
+            <input id="ap_ssid" maxlength="31" required />
+            <span class="sm muted">1–31 characters.</span>
+          </div>
+          <div class="field">
+            <label for="ap_password">Password</label>
+            <input id="ap_password" type="password" minlength="8" maxlength="31" autocomplete="off" />
+            <span class="sm muted">8–31 characters.</span>
+          </div>
         </div>
-        <p style="color: oklch(63.7% 0.237 25.331); font-size: larger">
-          Information:
-        </p>
-        <ul>
-          <li>
-            Click save to make sure that your changes are applied. Device will
-            reboot and page will reload in 30 seconds.
-          </li>
-          <li>
-            <strong>Reload</strong>: Loads the current settings from the device
-            / Resets form data.
-          </li>
-          <li>
-            <strong>Reset</strong>: Resets Wi-Fi and access point settings to
-            defaults. Installed firmware (v{{VERSION}}) is not changed.
-          </li>
-          <li><strong>Reboot</strong>: Restarts the device.</li>
-        </ul>
-        <p>
-          In case of an unexpected error, please connect to the device own
-          access point. or use console to check the logs.
-        </p>
+        <div class="field" style="max-width: 10rem">
+          <label for="ap_channel">Channel</label>
+          <input id="ap_channel" type="number" min="1" max="13" />
+        </div>
+
+        <h2>Device</h2>
+        <div class="field">
+          <label for="hostname">Hostname</label>
+          <input id="hostname" maxlength="31" required />
+          <span class="sm muted">How the device is named on your network. 1–31 characters.</span>
+        </div>
+
+        <div class="row between" style="flex-wrap: wrap">
+          <span class="sm muted">Saving reboots the device; the page reloads in about 30 s.</span>
+          <div class="actions">
+            <button class="btn primary lock-while-finishing">Save</button>
+            <button type="button" class="btn" onclick="loadSettings()">Reload</button>
+          </div>
+        </div>
+      </form>
+
+      <section class="card" id="firmware">
+        <div class="row between">
+          <h2>Firmware</h2>
+          <span id="fw-badge" class="chip"></span>
+        </div>
+        <p id="fw-mismatch" class="note"></p>
+        <dl class="kv">
+          <div><dt>Version</dt><dd id="fw-installed"><span class="sk"></span></dd></div>
+          <div><dt>Build</dt><dd id="fw-build"><span class="sk"></span></dd></div>
+          <div><dt>Target</dt><dd id="fw-target" class="mono"><span class="sk"></span></dd></div>
+        </dl>
+
+        <div class="row">
+          <p id="fw-check-message" class="grow sm muted"></p>
+          <button id="fw-check" class="btn lock-while-finishing" onclick="checkForUpdates()">Check for updates</button>
+        </div>
+
+        <div id="fw-available" style="display: none" class="card" >
+          <div class="row between">
+            <strong id="fw-available-title"></strong>
+            <button id="fw-install" class="btn primary lock-while-finishing" onclick="installUpdate()">Install</button>
+          </div>
+          <pre id="fw-notes" class="notes"></pre>
+        </div>
+
+        <label class="drop" id="drop">
+          <input type="file" id="fw-file" class="lock-while-finishing" accept=".bin" onchange="pickFirmware(this.files[0])" />
+          <strong>Upload an update file</strong>
+          <span class="sm muted">Drop a signed <span class="mono">.ota.bin</span> here or click to pick one. Settings are kept.</span>
+        </label>
+        <div id="fw-picked" class="row" style="display: none">
+          <p id="fw-message" class="grow sm"></p>
+          <button id="fw-upload" class="btn primary lock-while-finishing" onclick="uploadFirmware()">Upload</button>
+        </div>
+        <progress id="fw-progress" max="100" value="0" style="display: none"></progress>
+
+        <div id="fw-rollback" class="row" style="display: none">
+          <p id="fw-previous" class="grow sm muted"></p>
+          <button id="fw-rollback-button" class="btn danger lock-while-finishing" onclick="rollBack()">Roll back</button>
+        </div>
       </section>
-      <hr />
-      <section style="position: relative">
-        <h2>Configuration</h2>
-        <button id="reload-settings" onclick="load()">Reload</button>
+
+      <section class="card">
+        <h2>Device actions</h2>
+        <div class="split">
+          <p class="grow">Reboot<br /><span class="sm muted">Restarts the device. Settings are kept.</span></p>
+          <button class="btn lock-while-finishing" onclick="reboot()">Reboot</button>
+        </div>
+        <div class="split">
+          <p class="grow">Reset settings<br /><span class="sm muted">Wi-Fi and access point settings go back to defaults. The installed firmware stays.</span></p>
+          <button class="btn danger lock-while-finishing" onclick="reset()">Reset</button>
+        </div>
       </section>
-      <!-- <section> -->
-      <section>
-        <table>
-          <tbody>
-            <!-- AP SSID -->
-            <tr>
-              <td><label for="ap_ssid">AP SSID</label></td>
-              <td><input type="text" name="ap_ssid" id="ap_ssid" /></td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">
-                  SSID of access point used for the web interface (if enabled).
-                  The length must be between 1 and 31 characters.
-                </p>
-              </td>
-            </tr>
-            <!-- AP Password -->
-            <tr>
-              <td><label for="ap_password">AP Password</label></td>
-              <td>
-                <input type="text" name="ap_password" id="ap_password" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">
-                  Password of access point used for the web interface (if
-                  enabled). The length must be between 8 and 31 characters.
-                </p>
-              </td>
-            </tr>
-            <!-- AP Channel -->
-            <tr>
-              <td><label for="ap_channel">AP Channel</label></td>
-              <td>
-                <input type="number" name="ap_channel" id="ap_channel" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">
-                  Default WiFi channel that is used when starting.
-                </p>
-              </td>
-            </tr>
-            <!-- AP Hidden -->
-            <tr>
-              <td><label for="ap_hidden">AP Hidden</label></td>
-              <td>
-                <input type="checkbox" name="ap_hidden" id="ap_hidden" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">
-                  Hides the access point that is used for the web interface (if
-                  enabled).
-                </p>
-              </td>
-            </tr>
-            <!-- Access Point Enabled -->
-            <tr>
-              <td><label for="ap_status">Access Point</label></td>
-              <td>
-                <input type="checkbox" name="ap_status" id="ap_status" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">Enables the access point.</p>
-              </td>
-            </tr>
-            <!-- Hostname -->
-            <tr>
-              <td><label for="hostname">Hostname</label></td>
-              <td>
-                <input type="text" name="hostname" id="hostname" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p class="text-sm text-muted">
-                  Hostname of the device. This is used to identify the device on
-                  the network. The length must be between 1 and 31 characters.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="3">
-                <button onclick="save()" class="lock-while-finishing">Save</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-      <!-- </section> -->
-      <hr />
-      <section id="firmware">
-        <h2>Firmware</h2>
-        <p id="fw-mismatch" class="mismatch-warning"></p>
-        <table class="fw-info">
-          <tbody>
-            <tr>
-              <td>Version</td>
-              <td id="fw-installed"></td>
-            </tr>
-            <tr>
-              <td>Build</td>
-              <td id="fw-build"></td>
-            </tr>
-            <tr>
-              <td>Target</td>
-              <td id="fw-target"></td>
-            </tr>
-          </tbody>
-        </table>
-        <div id="fw-rollback" class="fw-upload-row" style="display: none">
-          <p id="fw-previous" class="text-sm"></p>
-          <button id="fw-rollback-button" class="lock-while-finishing" onclick="rollBack()">
-            Roll back
-          </button>
-        </div>
-        <label>Updates</label>
-        <div class="fw-upload-row">
-          <p id="fw-check-message" class="text-sm text-muted"></p>
-          <button id="fw-check" onclick="checkForUpdates()">
-            Check for updates
-          </button>
-        </div>
-        <div id="fw-available" style="display: none">
-          <p id="fw-available-title" class="fw-available-title"></p>
-          <pre id="fw-notes" class="fw-notes"></pre>
-          <button id="fw-install" onclick="installUpdate()">Install</button>
-        </div>
-        <label for="fw-file">Upload update</label>
-        <p class="text-sm text-muted">
-          Pick a signed file ending in .ota.bin. The device reboots into it and
-          keeps its settings.
-        </p>
-        <div class="fw-upload-row">
-          <input
-            type="file"
-            id="fw-file"
-            accept=".bin"
-            onchange="pickFirmware(this)"
-          />
-          <button id="fw-upload" onclick="uploadFirmware()" disabled>
-            Upload
-          </button>
-        </div>
-        <progress id="fw-progress" max="100" value="0"></progress>
-        <p id="fw-message" class="text-sm text-muted"></p>
-      </section>
-    </div>
-    <footer style="text-align: center">
-      <span style="letter-spacing: 0.1rem">Created By </span>
-      <a href="https://github.com/assadanabosi">Assad Anabosi</a>
-      <br />
-      <small id="fw-version" class="text-muted">v{{VERSION}}</small>
-    </footer>
-    <div id="modal-container" class="modal-container" style="display: none">
-      <div class="modal">
-        <span id="close-modal" class="close">&times;</span>
-        <h2 id="modal-title"></h2>
-        <p id="modal-text" class="modal-text" style="display: none"></p>
-        <input
-          type="password"
-          id="modal-input"
-          placeholder="Enter Password"
-          style="display: none"
-        />
-        <br />
-        <button id="modal-button"></button>
-      </div>
-    </div>
+    </main>
   </body>
 </html>
