@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-08
+
+### Fixed
+
+- Signal bars on the Scan page are coloured on the device again. The minified stylesheet dropped the quotes in the level selectors, which made them invalid, so only the preview showed the colours.
+
+### Changed
+
+- The Scan list no longer repeats the signal strength in dBm next to the channel and MAC; hover the signal bars to see it.
+
 ## [0.2.0] - 2026-11-08
 
 A new web interface with light and dark themes.
