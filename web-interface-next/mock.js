@@ -140,22 +140,37 @@ function level(rssi) {
   return rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : 1;
 }
 
+// The scan list as /api/scan reports it. A name that isn't broadcast belongs to
+// the hidden network: like the device (which matches by BSSID), that entry is
+// marked connected and carries the real name.
+function scanResults() {
+  let s = demo();
+  let joinedHidden = s.sta && !NETWORKS.some(function (n) {
+    return !n.hidden && n.ssid === s.ssid;
+  });
+  return NETWORKS.map(function (n) {
+    let connected = s.sta && (n.hidden ? joinedHidden : n.ssid === s.ssid);
+    return Object.assign({}, n, { connected: connected, ssid: n.hidden && connected ? s.ssid : n.ssid });
+  });
+}
+
 function scan() {
   $("rescan").disabled = true;
   $("rescan").textContent = "Scanning…";
   fake(900, function () {
-    let s = demo();
     $("rescan").disabled = false;
     $("rescan").textContent = "Rescan";
     $("hidden-btn").disabled = false;
     $("count").textContent = NETWORKS.length;
-    $("list").innerHTML = NETWORKS.map(function (n, i) {
-      let on = s.sta && n.ssid === s.ssid;
+    $("list").innerHTML = scanResults().map(function (n, i) {
+      let on = n.connected;
       let open = n.enc === "OPEN";
+      // A hidden network can't be picked from the list unless it is the connected one
+      let locked = n.hidden && !on;
       return (
-        "<li><button class='net' onclick='pick(" + i + ")'" + (on ? " data-on" : "") + (n.hidden ? " disabled" : "") + ">" +
+        "<li><button class='net' onclick='pick(" + i + ")'" + (on ? " data-on" : "") + (locked ? " disabled" : "") + ">" +
         "<span class='bars' data-l='" + level(n.rssi) + "' title='" + n.rssi + " dBm'><i></i><i></i><i></i><i></i></span>" +
-        "<span class='grow'><b>" + (n.hidden ? "<i class='muted'>Hidden network</i>" : esc(n.ssid)) + "</b>" +
+        "<span class='grow'><b>" + (locked ? "<i class='muted'>Hidden network</i>" : esc(n.ssid)) + "</b>" +
         "<small>Ch " + n.channel + " · " + n.rssi + " dBm · <span class='mono'>" + n.mac + "</span></small></span>" +
         (on ? "<span class='chip ok'>Connected</span>" : "<span class='chip'>" + (open ? "Open" : esc(n.enc)) + "</span>") +
         "</button></li>"
@@ -165,9 +180,8 @@ function scan() {
 }
 
 function pick(i) {
-  let n = NETWORKS[i];
-  let s = demo();
-  if (s.sta && n.ssid === s.ssid) {
+  let n = scanResults()[i];
+  if (n.connected) {
     ask({
       title: "Disconnect from " + n.ssid + "?",
       text: "The device stays reachable through its access point.",
