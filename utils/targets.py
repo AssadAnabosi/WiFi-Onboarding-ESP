@@ -57,10 +57,13 @@ def load_sketch(sketch_yaml=SKETCH_YAML):
     return profiles, data.get("default_profile")
 
 
-def partitions_file(target, default_target, sketch_dir=SKETCH_DIR):
-    if target == default_target:
-        return sketch_dir / "partitions.csv"
+def partitions_file(target, sketch_dir=SKETCH_DIR):
+    """A target's own partition table. esp32/partitions.csv is only the copy the build reads."""
     return sketch_dir / "targets" / f"{target}.partitions.csv"
+
+
+def read_text(path):
+    return path.read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
 def build_opt(target, commit=None):
@@ -106,31 +109,29 @@ def check(sketch_dir=SKETCH_DIR):
         header = sketch_dir / "targets" / f"{target}.h"
         if not header.exists():
             problems.append(f"{target}: missing {header.relative_to(sketch_dir.parent).as_posix()}")
-        partitions = partitions_file(target, default_target, sketch_dir)
+        partitions = partitions_file(target, sketch_dir)
         if not partitions.exists():
             problems.append(f"{target}: missing {partitions.relative_to(sketch_dir.parent).as_posix()}")
     if default_target in profiles:
-        committed = (sketch_dir / "build_opt.h").read_text(encoding="utf-8").replace("\r\n", "\n")
-        if committed != build_opt(default_target):
+        if read_text(sketch_dir / "build_opt.h") != build_opt(default_target):
             problems.append(f"esp32/build_opt.h does not match the default target '{default_target}'")
+        source = partitions_file(default_target, sketch_dir)
+        if source.exists() and read_text(sketch_dir / "partitions.csv") != read_text(source):
+            problems.append(f"esp32/partitions.csv does not match the default target '{default_target}'")
     return problems
 
 
 def prepare(target, commit=None, sketch_dir=SKETCH_DIR):
-    profiles, default_target = load_sketch(sketch_dir / "sketch.yaml")
+    profiles, _default_target = load_sketch(sketch_dir / "sketch.yaml")
     if target not in profiles:
         raise ValueError(f"unknown target '{target}'")
-    source = partitions_file(target, default_target, sketch_dir)
-    destination = sketch_dir / "partitions.csv"
-    if source != destination:
-        shutil.copyfile(source, destination)
+    shutil.copyfile(partitions_file(target, sketch_dir), sketch_dir / "partitions.csv")
     (sketch_dir / "build_opt.h").write_text(build_opt(target, commit), encoding="utf-8", newline="\n")
 
 
 def check_size(target, binary, sketch_dir=SKETCH_DIR):
     """Return (level, message): level is 'ok', 'warning' or 'error'."""
-    _profiles, default_target = load_sketch(sketch_dir / "sketch.yaml")
-    slot = app_slot_size(partitions_file(target, default_target, sketch_dir))
+    slot = app_slot_size(partitions_file(target, sketch_dir))
     size = Path(binary).stat().st_size
     ratio = size / slot
     message = f"{target}: firmware {size} bytes, app slot {slot} bytes ({ratio:.1%})"

@@ -30,7 +30,7 @@ Checklist for turning a fork into your own project, with its own releases and it
 
 7. **Branding:** page titles in `web-interface/*.html`; the header name, footer and colours in `web-interface/js/app.js` and `web-interface/css/style.css` (colour tokens at the top, light and dark); `web-interface/favicon.ico`; and the README. Keep the MIT license notice and `THIRD_PARTY_LICENSES.md`.
 
-8. **Confirm the board and flash layout** before your first release. The partition table (`esp32/partitions.csv`) and bootloader are never changed by an update, so a layout change after release means every device needs a USB flash. To support other boards, add build targets (see [architecture.md](architecture.md#build-targets)).
+8. **Confirm the board and flash layout** before your first release. The partition table (`esp32/targets/<target>.partitions.csv`) and bootloader are never changed by an update, so a layout change after release means every device needs a USB flash. To support other boards, add build targets (see [architecture.md](architecture.md#build-targets)).
 
 9. **Optional: allow configuration switches over OTA.** By default a device keeps its *home target* (the configuration it was USB-flashed with) and warns when it runs another configuration's file. To make an installed configuration the new home target instead, call `ConfigStorage::setHomeTarget(OTA_TARGET_ID);` in `FirmwareSlots::loop()` (`esp32/src/ota/FirmwareSlots.cpp`), where the firmware confirms itself (next to `esp_ota_mark_app_valid_cancel_rollback()`).
 

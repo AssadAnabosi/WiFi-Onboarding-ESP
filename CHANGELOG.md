@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `esp32-8mb` build target for classic ESP32 modules with 8 MB flash (e.g. ESP32-WROVER-E on an ESP32-WROVER-DevKitC), with two ~3.9 MB app slots. Moving a board from `esp32-4mb` to it needs one USB flash, since the flash layout differs.
 
+### Fixed
+
+- `python utils/targets.py prepare esp32-4mb` now puts the default partition table back after another target was prepared. Every target's table lives in `esp32/targets/<target>.partitions.csv`; `esp32/partitions.csv` is the committed copy of the default target's, and `targets.py check` fails if it drifts.
+
 ## [0.3.0] - 2026-11-09
 
 ### Added

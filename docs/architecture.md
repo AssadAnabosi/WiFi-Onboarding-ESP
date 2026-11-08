@@ -46,7 +46,7 @@ flowchart LR
 
 ## Flash layout
 
-`esp32-4mb` uses `esp32/partitions.csv`:
+`esp32-4mb` uses `esp32/targets/esp32-4mb.partitions.csv`:
 
 | Partition | Offset | Size | Holds |
 | --- | --- | --- | --- |
@@ -100,11 +100,11 @@ Each target is made of:
 | Piece | File |
 | --- | --- |
 | Build profile (board, partition scheme, pinned core and libraries) | A profile named after the target in `esp32/sketch.yaml` |
-| Partition table | `esp32/partitions.csv` for the default target, `esp32/targets/<target>.partitions.csv` for the others |
+| Partition table | `esp32/targets/<target>.partitions.csv` |
 | Feature switches | `esp32/targets/<target>.h` |
 | Build flags (`-DUPDATE_SIGN`, `OTA_TARGET_ID`, `OTA_TARGET_HEADER`) | `esp32/build_opt.h`, committed for the default target |
 
-To add a target, add those three files; CI builds every profile without workflow changes. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder.
+To add a target, add those three files; CI builds every profile without workflow changes. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder. Both are committed for the default target, and `targets.py check` fails if either no longer matches it.
 
 The target ID is compiled in. The device never guesses it from the hardware, since two configurations can share the same chip.
 
