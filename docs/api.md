@@ -72,7 +72,7 @@ When no recent results exist (older than 15 s), it starts a scan and answers `20
 { "ssid": "Home", "password": "secret" }
 ```
 
-Answers `202 "Connecting to Home"`, then connects in the background (about 10 s). Poll `GET /api/status` → `station.attempt.state`. On success the credentials are saved. For WPA2-Enterprise, send `username|password` as the password. `400` without `ssid`; `409` while scanning, already connecting, or while an update is running.
+Answers `202 "Connecting to Home"`, then connects in the background (about 10 s). Poll `GET /api/status` → `station.attempt.state`. On success the credentials are saved. On failure the saved network is kept and the device reconnects to it (up to about 10 s more, before the state turns `failed`); if that fails too, it starts its access point so it stays reachable. For WPA2-Enterprise, send `username|password` as the password. `400` without `ssid`; `409` while scanning, already connecting, or while an update is running.
 
 ### `POST /api/disconnect`
 

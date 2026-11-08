@@ -30,7 +30,7 @@ arduino-cli upload --profile esp32-4mb --build-path build -p <PORT> esp32
 
 ## Edit loop
 
-1. Firmware: edit the files in `esp32/`.
+1. Firmware: edit the files in `esp32/src/` (one folder per module, see [architecture.md](architecture.md#code-layout)) and `esp32/esp32.ino`. Format C++ with the sketch's `.clang-format`: Arduino IDE's **Tools → Auto Format** uses it, as do most editors. Leave the generated headers (`WebAssets.h`, `Version.h`, `OtaPublicKey*.h`) alone.
 2. Web interface: edit `web-interface/`, then regenerate the embedded copy:
 
    ```sh
@@ -39,7 +39,7 @@ arduino-cli upload --profile esp32-4mb --build-path build -p <PORT> esp32
 
    This minifies and gzips the pages into `esp32/WebAssets.h` and writes `esp32/Version.h` from the `VERSION` file. Commit the source change and the regenerated files together; CI fails if they drift. To see a change before flashing, use the [preview](#preview-the-web-interface).
 3. Compile and upload over USB (above). Uploading over USB keeps the settings stored on the device.
-4. Watch the serial monitor at 115200 baud.
+4. Watch the serial monitor at 115200 baud. Each line starts with its module's tag: `[cfg]`, `[wifi]`, `[web]`, `[ota]` or `[sys]`.
 
 For a completely clean start, erase the flash: Arduino IDE's **Tools → Erase All Flash Before Sketch Upload**, or `esptool.py erase_flash`. This wipes the settings.
 
