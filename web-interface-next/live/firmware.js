@@ -25,6 +25,7 @@ function loadFirmware() {
     showNote("fw-mismatch", mismatchText(res));
     $("fw-rollback").style.display = res.rollback_available ? "" : "none";
     $("fw-previous").textContent = "Previous version: v" + res.previous_version;
+    renderBadge();
     if (selectedFile) checkSelectedFile();
   });
 }
@@ -178,11 +179,11 @@ function updateRunning() {
 function refreshFirmwareButtons() {
   let busy = updateRunning();
   let checking = updateStatus && updateStatus.check.state === "checking";
-  $("fw-file").disabled = busy;
-  $("drop").style.pointerEvents = busy ? "none" : "";
+  // Picking a file and checking are locked while an update runs or finishes, like installing
+  $("fw-file").disabled = busy || updateFinishing;
   $("fw-upload").disabled = busy || updateFinishing || !selectedFile || !selectedFile.ok;
   $("fw-upload").style.display = selectedFile && selectedFile.ok && !busy ? "" : "none";
-  $("fw-check").disabled = busy || checking;
+  $("fw-check").disabled = busy || checking || updateFinishing;
   $("fw-install").disabled = busy || updateFinishing;
   $("fw-rollback-button").disabled = busy || updateFinishing;
 }
@@ -333,13 +334,19 @@ function renderCheck(check) {
 
   let available = check.state === "available";
   $("fw-available").style.display = available ? "" : "none";
-  $("fw-badge").textContent = available ? "Update available" : check.state === "up_to_date" ? "Up to date" : "";
-  $("fw-badge").className = "chip" + (available || check.state === "up_to_date" ? " ok" : "");
+  renderBadge();
   if (available) {
-    $("fw-available-title").textContent = "v" + check.version + " is available";
+    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + check.version + " is available";
     // Release notes are plain text: never parsed as HTML
     $("fw-notes").textContent = check.notes || "No release notes.";
   }
+}
+
+// "Update available" / "Dev update available" / "Dev build" / "Up to date"
+function renderBadge() {
+  let badge = firmwareBadge(updateStatus && updateStatus.check, device && device.dev);
+  $("fw-badge").textContent = badge[0];
+  $("fw-badge").className = "chip " + badge[1];
 }
 
 // Called by api.js on page load and by the polls below
@@ -430,7 +437,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let drop = $("drop");
   drop.ondragover = function (e) {
     e.preventDefault();
-    drop.classList.add("over");
+    if (!$("fw-file").disabled) drop.classList.add("over");
   };
   drop.ondragleave = function () {
     drop.classList.remove("over");
@@ -438,6 +445,6 @@ document.addEventListener("DOMContentLoaded", function () {
   drop.ondrop = function (e) {
     e.preventDefault();
     drop.classList.remove("over");
-    if (!updateRunning()) pickFirmware(e.dataTransfer.files[0]);
+    if (!$("fw-file").disabled) pickFirmware(e.dataTransfer.files[0]);
   };
 });

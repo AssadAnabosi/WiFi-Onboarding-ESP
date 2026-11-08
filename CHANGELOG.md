@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `check.dev` in `GET /api/update/status`: `true` when the available update came from the local dev manifest rather than a GitHub release.
+
 ## [0.1.0] - 2026-11-08
 
 First release of the ESP32-only boilerplate with signed over-the-air updates.

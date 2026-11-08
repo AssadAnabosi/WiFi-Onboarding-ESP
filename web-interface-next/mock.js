@@ -1,6 +1,7 @@
 // MOCK ONLY. Stands in for the device API with fake data so the design can be
-// tried from disk. The page functions here map onto home.js / scan.js /
-// settings.js / firmware.js; the fake calls become apiCall() to the real endpoints.
+// tried without a device. The page functions here mirror live/home.js, scan.js,
+// settings.js and firmware.js. The Demo states panel (bottom left) switches the
+// fake device's state; choices are kept in localStorage ("mock-state").
 
 const DEMO_KEY = "mock-state";
 const DEMO_DEFAULTS = {
@@ -8,6 +9,8 @@ const DEMO_DEFAULTS = {
   sta: true,
   ssid: "HomeNet",
   update: false,
+  devUpdate: false,
+  dev: false,
   finishing: false,
   mismatch: false,
   rollback: false,
@@ -17,6 +20,8 @@ const DEMO_LABELS = {
   ap: "Access point on",
   sta: "Wi-Fi connected",
   update: "Update available",
+  devUpdate: "Update is a dev build",
+  dev: "Running a dev build",
   finishing: "Finishing update",
   mismatch: "Config mismatch",
   rollback: "Rollback available",
@@ -64,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
   buildDemoPanel();
   fake(450, function () {
     let s = demo();
+    if (s.dev) $("fw-version").textContent += " (dev)";
     if (s.finishing) {
       let n = 48;
       setFinishing(n);
@@ -91,9 +97,9 @@ function mismatchText() {
     ? "This device was set up as esp32-4mb but is running esp32-4mb-relay. To fix this, upload a file ending in -esp32-4mb.ota.bin from Settings."
     : "";
 }
-function showNote(id, text) {
-  $(id).textContent = text;
-  $(id).classList.toggle("show", !!text);
+// What /api/update/status -> check would say
+function fakeCheck(state) {
+  return { state: state, version: "1.3.0", dev: demo().devUpdate };
 }
 
 /* ---------- Home ---------- */
@@ -118,9 +124,7 @@ function statusCard(on, title, subtitle, chip, rows, offText) {
 function drawHome() {
   let s = demo();
   showNote("mismatch", mismatchText());
-  let badge = $("update-badge");
-  badge.textContent = "Update v1.3.0 available, open Settings to install →";
-  badge.classList.toggle("show", s.update);
+  showUpdateNote(s.update ? fakeCheck("available") : null);
   $("cards").innerHTML =
     statusCard(s.ap, "Access point", "Direct connection to the device", s.ap ? "Active" : "Off",
       [["Name", "esp32-garden-setup"], ["IP address", "192.168.4.1"]],
@@ -276,30 +280,33 @@ function fakeReboot(message) {
 
 function loadFirmware() {
   let s = demo();
-  $("fw-installed").textContent = "v1.2.0";
+  $("fw-installed").textContent = "v1.2.0" + (s.dev ? " (dev)" : "");
   $("fw-build").textContent = "2026-11-02 (a7f2fb1)";
   $("fw-target").textContent = s.mismatch ? "esp32-4mb-relay" : "esp32-4mb";
   showNote("fw-mismatch", mismatchText());
   $("fw-rollback").style.display = s.rollback ? "" : "none";
   $("fw-previous").textContent = "Previous version: v1.1.4";
-  renderCheck(s.update ? "available" : "never");
+  // The device checks on its own 30 s after boot, so the mock starts from a finished check
+  renderCheck(s.update ? "available" : "up_to_date");
 }
 
 function renderCheck(state) {
   let msg = {
     never: "Not checked yet.",
     checking: "Checking for updates…",
-    up_to_date: "You're on the latest version.",
+    up_to_date: "Up to date.",
     available: "",
   }[state];
   $("fw-check-message").textContent = msg;
-  $("fw-check").disabled = state === "checking";
+  $("fw-check").disabled = state === "checking" || updateFinishing;
+  let check = fakeCheck(state);
   let available = state === "available";
   $("fw-available").style.display = available ? "" : "none";
-  $("fw-badge").textContent = available ? "Update available" : state === "up_to_date" ? "Up to date" : "";
-  $("fw-badge").className = "chip" + (available || state === "up_to_date" ? " ok" : "");
+  let badge = firmwareBadge(check, demo().dev);
+  $("fw-badge").textContent = badge[0];
+  $("fw-badge").className = "chip " + badge[1];
   if (available) {
-    $("fw-available-title").textContent = "v1.3.0 is available";
+    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + "1.3.0 is available";
     $("fw-notes").textContent =
       "## Added\n- Light and dark themes\n- Signal bars on the Scan page\n\n## Fixed\n- Hidden networks with an empty name";
   }
@@ -362,7 +369,7 @@ function pickFirmware(file) {
     return;
   }
   setMessage(file.name + ": v1.3.0 for esp32-4mb.");
-  $("fw-upload").disabled = false;
+  $("fw-upload").disabled = updateFinishing;
 }
 
 function uploadFirmware() {
@@ -397,7 +404,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!drop) return;
   drop.ondragover = function (e) {
     e.preventDefault();
-    drop.classList.add("over");
+    if (!$("fw-file").disabled) drop.classList.add("over");
   };
   drop.ondragleave = function () {
     drop.classList.remove("over");
@@ -405,7 +412,7 @@ document.addEventListener("DOMContentLoaded", function () {
   drop.ondrop = function (e) {
     e.preventDefault();
     drop.classList.remove("over");
-    pickFirmware(e.dataTransfer.files[0]);
+    if (!$("fw-file").disabled) pickFirmware(e.dataTransfer.files[0]);
   };
 });
 
@@ -422,7 +429,8 @@ function buildDemoPanel() {
       return "<label class='row between sm'>" + DEMO_LABELS[k] +
         "<input type='checkbox' class='switch' data-k='" + k + "'" + (s[k] ? " checked" : "") + "></label>";
     }).join("") +
-    "<button class='btn' onclick='location.reload()'>Apply</button></div>" +
+    "<div class='row'><button class='btn grow' onclick='location.reload()'>Apply</button>" +
+    "<button class='btn grow' onclick='demoToast()'>Test toast</button></div></div>" +
     "<button class='btn' style='box-shadow:var(--shadow)' onclick=\"let d=$('demo');d.style.display=d.style.display?'':'none'\">Demo states</button>";
   document.body.appendChild(box);
   document.body.style.paddingBottom = "3.5rem";
@@ -433,4 +441,16 @@ function buildDemoPanel() {
       setDemo(p);
     };
   });
+}
+
+// Cycles through short and long sample messages so toasts can be checked
+var demoToasts = [
+  "Settings saved",
+  "Connecting to HomeNet…",
+  "Request failed: the device did not answer",
+  "This file is for esp32-4mb-relay. This device runs esp32-4mb. The correct file for this device ends in -esp32-4mb.ota.bin.",
+];
+var demoToastIndex = 0;
+function demoToast() {
+  toast(demoToasts[demoToastIndex++ % demoToasts.length], 4000);
 }

@@ -1,28 +1,53 @@
-"""Serve the live redesign pages and forward /api/* to a real device.
+"""Local server for the UI redesign: the offline mock or the live pages.
 
-The device only accepts POSTs whose Host and Origin are its own name and sends
-no CORS headers, so a page on localhost cannot call it directly. This server
-serves the pages and passes API calls on with Host/Origin set to the device,
-so the pages use the same relative /api URLs they would on the device.
+Mock:  python web-interface-next/serve.py --mock
+       Fake data and the Demo states panel; no device needed.
+Live:  python web-interface-next/serve.py [--device config.local]
+       The same pages with the scripts in live/, talking to a real device.
 
-Usage: python web-interface-next/serve.py [--device config.local] [--port 8766]
-Then open http://localhost:8766
+Both open on http://localhost:8766 (--port to change it). Pages are served
+without ".html" (/home, /scan, /settings), as the device serves them.
+
+Live mode builds each page from the mock's HTML, swapping mock.js for the
+live/ scripts, so there is one copy of the markup. API calls are forwarded to
+the device: it only accepts POSTs whose Host and Origin are its own name and
+sends no CORS headers, so a page on localhost could not call it directly.
 """
 
 import argparse
 import http.client
 import json
 import mimetypes
+import re
 import socket
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# Live pages first, then the shared style.css / app.js next to the mock
-ROOTS = [HERE / "live", HERE]
+LIVE = HERE / "live"
 API_TIMEOUT_S = 15
 UPLOAD_TIMEOUT_S = 120
+
+MOCK_SCRIPT = '<script src="mock.js" defer></script>'
+# Scripts each live page loads instead of mock.js (app.js is already in every page)
+LIVE_SCRIPTS = {
+    "index": ["api.js"],
+    "home": ["api.js", "home.js"],
+    "scan": ["api.js", "scan.js"],
+    "settings": ["api.js", "settings.js", "firmware.js"],
+}
+
+
+def live_page(name, html):
+    """Turn a mock page into its live version."""
+    if MOCK_SCRIPT not in html:
+        raise ValueError(f"{name}.html: expected {MOCK_SCRIPT}")
+    scripts = "\n    ".join(f'<script src="{s}" defer></script>' for s in LIVE_SCRIPTS[name])
+    html = html.replace(MOCK_SCRIPT, scripts)
+    # Links without ".html", as on the device; the version comes from /api/health
+    html = re.sub(r'href="([a-z]+)\.html', r'href="\1', html)
+    return re.sub(r'data-version="[^"]*"', 'data-version=""', html)
 
 
 class Device:
@@ -38,39 +63,46 @@ class Device:
         return self.ip
 
 
-def find_file(url_path):
-    """Map a URL to a file: "/" is index.html and "/home" is home.html, as on the device."""
-    rel = url_path.split("?", 1)[0].lstrip("/") or "index.html"
-    if "." not in Path(rel).name:
-        rel += ".html"
-    for root in ROOTS:
-        path = (root / rel).resolve()
-        if root in path.parents and path.is_file():
-            return path
-    return None
-
-
 class Handler(BaseHTTPRequestHandler):
-    device = None
+    device = None  # None in mock mode
 
     def do_GET(self):
         if self.path.startswith("/api/"):
-            self.proxy()
+            self.api()
         else:
             self.serve_file()
 
     def do_POST(self):
         if self.path.startswith("/api/"):
-            self.proxy()
+            self.api()
         else:
             self.send_error(405)
 
+    def find(self, url_path):
+        """Return (path, bytes) for a URL: "/" is index.html and "/home" is home.html."""
+        rel = url_path.split("?", 1)[0].lstrip("/") or "index.html"
+        if "." not in Path(rel).name:
+            rel += ".html"
+        roots = [LIVE, HERE] if self.device else [HERE]
+        for root in roots:
+            path = (root / rel).resolve()
+            if root not in path.parents or not path.is_file():
+                continue
+            # The fake API must never load next to the real one
+            if self.device and path.name == "mock.js":
+                continue
+            data = path.read_bytes()
+            name = path.stem
+            if self.device and path.suffix == ".html" and name in LIVE_SCRIPTS:
+                data = live_page(name, data.decode("utf-8")).encode("utf-8")
+            return path, data
+        return None, None
+
     def serve_file(self):
-        path = find_file(self.path)
+        path, data = self.find(self.path)
         if not path:
             self.send_error(404)
             return
-        data = path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
         self.send_header("Content-Length", str(len(data)))
@@ -78,7 +110,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def proxy(self):
+    def api(self):
+        if not self.device:
+            self.send_json(404, {"success": False, "message": "Mock mode: there is no device API"})
+            return
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
         headers = {"Host": self.device.host}
@@ -87,8 +122,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.command == "POST":
             # What a page served by the device itself would send
             headers["Origin"] = "http://" + self.device.host
-        timeout = UPLOAD_TIMEOUT_S if self.path.startswith("/api/update?") or self.path == "/api/update" else API_TIMEOUT_S
+        upload = self.path.split("?", 1)[0] == "/api/update"
+        timeout = UPLOAD_TIMEOUT_S if upload else API_TIMEOUT_S
 
+        error = None
         for attempt in range(2):
             try:
                 conn = http.client.HTTPConnection(self.device.address(refresh=attempt > 0), 80, timeout=timeout)
@@ -125,15 +162,19 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--mock", action="store_true", help="serve the offline mock instead of the live pages")
     parser.add_argument("--device", default="config.local", help="device host name or IP (default: config.local)")
     parser.add_argument("--port", type=int, default=8766, help="local port (default: 8766)")
     args = parser.parse_args()
 
-    Handler.device = Device(args.device)
-    try:
-        print(f"Device {args.device} is at {Handler.device.address()}")
-    except OSError as e:
-        print(f"Warning: cannot resolve {args.device} yet ({e}); will retry on each request")
+    if args.mock:
+        print("Mock mode: fake data, use the Demo states button to switch states")
+    else:
+        Handler.device = Device(args.device)
+        try:
+            print(f"Live mode: device {args.device} is at {Handler.device.address()}")
+        except OSError as e:
+            print(f"Live mode: cannot resolve {args.device} yet ({e}); retrying on each request")
     print(f"Open http://localhost:{args.port}")
     ThreadingHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
 

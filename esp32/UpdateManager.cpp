@@ -18,8 +18,10 @@
 // Dev builds may check a local manifest (utils/keygen.py --dev-manifest-url), plain HTTP allowed
 #if FIRMWARE_DEV_BUILD && defined(OTA_DEV_MANIFEST_URL)
 #define OTA_MANIFEST_URL OTA_DEV_MANIFEST_URL
+#define OTA_MANIFEST_IS_DEV true
 #else
 #define OTA_MANIFEST_URL "https://github.com/" OTA_GITHUB_OWNER "/" OTA_GITHUB_REPO "/releases/latest/download/manifest.json"
+#define OTA_MANIFEST_IS_DEV false
 #endif
 
 UpdateManager updateManager;
@@ -681,6 +683,8 @@ void UpdateManager::fillStatus(JsonObject out)
   {
     check["version"] = _availableVersion;
     check["notes"] = _availableNotes;
+    // Found in the local dev manifest rather than a GitHub release
+    check["dev"] = OTA_MANIFEST_IS_DEV;
   }
   if (!_checkMessage.isEmpty())
   {

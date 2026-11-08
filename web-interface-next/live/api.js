@@ -120,8 +120,3 @@ function mismatchText(status) {
     ". To fix this, upload a file ending in -" + status.home_target + ".ota.bin from Settings."
   );
 }
-
-function showNote(id, text) {
-  $(id).textContent = text;
-  $(id).classList.toggle("show", !!text);
-}

@@ -31,7 +31,7 @@
           </div>
           <div class="field">
             <label for="ap_password">Password</label>
-            <input id="ap_password" minlength="8" maxlength="31" />
+            <input id="ap_password" type="password" minlength="8" maxlength="31" autocomplete="off" />
             <span class="sm muted">8–31 characters.</span>
           </div>
         </div>
@@ -70,7 +70,7 @@
 
         <div class="row">
           <p id="fw-check-message" class="grow sm muted"></p>
-          <button id="fw-check" class="btn" onclick="checkForUpdates()">Check for updates</button>
+          <button id="fw-check" class="btn lock-while-finishing" onclick="checkForUpdates()">Check for updates</button>
         </div>
 
         <div id="fw-available" style="display: none" class="card" >
@@ -82,7 +82,7 @@
         </div>
 
         <label class="drop" id="drop">
-          <input type="file" id="fw-file" accept=".bin" onchange="pickFirmware(this.files[0])" />
+          <input type="file" id="fw-file" class="lock-while-finishing" accept=".bin" onchange="pickFirmware(this.files[0])" />
           <strong>Upload an update file</strong>
           <span class="sm muted">Drop a signed <span class="mono">.ota.bin</span> here or click to pick one. Settings are kept.</span>
         </label>

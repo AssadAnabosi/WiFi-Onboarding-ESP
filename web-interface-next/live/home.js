@@ -36,9 +36,7 @@ function load() {
   });
 }
 
-// "Update vX.Y.Z available" once a check has found one
+// "Update vX.Y.Z available" once a check has found one (warning colour for a dev update)
 function onUpdateStatus(res) {
-  let available = res.check && res.check.state === "available";
-  $("update-badge").classList.toggle("show", available);
-  if (available) $("update-badge").textContent = "Update v" + res.check.version + " available, open Settings to install →";
+  showUpdateNote(res.check);
 }
