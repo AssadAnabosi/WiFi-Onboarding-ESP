@@ -166,6 +166,21 @@ bool WiFiManager::startConnect(const String &ssid, const String &password)
   return true;
 }
 
+void WiFiManager::restoreConnection()
+{
+  // A failed attempt never replaces the saved network, so this is the last one that worked
+  String ssid = ConfigStorage::getWiFiSSID();
+  if (!ssid.isEmpty())
+  {
+    LOG("wifi", "Going back to the saved network");
+    if (connect(ssid, ConfigStorage::getWiFiPassword()))
+      return;
+  }
+  // Keep the device reachable when the access point is disabled
+  if (!(WiFi.getMode() & WIFI_AP))
+    startAccessPoint(ConfigStorage::loadSettings());
+}
+
 void WiFiManager::connectTask(void *arg)
 {
   WiFiManager *self = static_cast<WiFiManager *>(arg);
@@ -177,6 +192,9 @@ void WiFiManager::connectTask(void *arg)
     self->_attemptPassword = "";
   }
   bool connected = self->connect(ssid, password);
+  if (!connected)
+    self->restoreConnection();
+  // Reported only now, so scans and new attempts wait until the fallback has finished
   self->_attemptState = connected ? AttemptState::Succeeded : AttemptState::Failed;
   vTaskDelete(nullptr);
 }

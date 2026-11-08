@@ -68,7 +68,8 @@ public:
 
   /**
    * @brief Starts connecting to a network in a background task, so the web server keeps running.
-   * The network is saved once the connection succeeds.
+   * The network is saved once the connection succeeds. If it fails, the device goes back to the
+   * saved network, or starts the access point when that fails too.
    * @return False if a connection attempt is already running or the task could not start.
    */
   bool startConnect(const String &ssid, const String &password);
@@ -110,6 +111,12 @@ private:
    * @brief Connects to a network and waits up to 10 s. Saves the network on success.
    */
   bool connect(const String &ssid, const String &password);
+
+  /**
+   * @brief After a failed attempt: reconnects to the saved network, or starts the access point
+   * if that fails too, so the device stays reachable.
+   */
+  void restoreConnection();
   void startAccessPoint(const DeviceSettings &settings);
   void startMdns();
   static void connectTask(void *arg);

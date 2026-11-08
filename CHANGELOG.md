@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Serial log lines start with a module tag (`[wifi]`, `[ota]`, ...).
 - `esp32/.clang-format` sets the C++ style.
 
+### Fixed
+
+- A failed connection to a new network (for example a wrong password) no longer leaves the device off Wi-Fi until the next reboot: it reconnects to the saved network, or starts its access point if that fails too.
+
 ## [0.2.1] - 2026-11-08
 
 ### Fixed
