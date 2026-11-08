@@ -1,6 +1,6 @@
 # OTA updates
 
-The device updates itself over Wi-Fi, by a file you upload or by a release it finds on GitHub, and never loses its settings doing so. Both paths share one set of checks, and only one update runs at a time.
+The device updates itself over Wi-Fi, by a file you upload or by a release it finds on GitHub, and never loses its settings doing so. Both paths share one set of checks, and only one update runs at a time. [architecture.md](architecture.md#update-states) has a diagram of the whole flow.
 
 Every update is a signed `.ota.bin` file: firmware and web interface together, for one build target. Unsigned files, files signed by an unknown key and files for another chip are always refused. See [security.md](security.md) for how signing works.
 
