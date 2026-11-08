@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
+A new web interface with light and dark themes.
+
 ### Added
 
+- Light and dark themes. The first visit follows the system setting (light when there is none), and the toggle in the header remembers your choice.
+- A show/hide button in every password field: the access point password and the network and enterprise sign-in dialogs.
+- "Dev build" and "Dev update available" badges on the Firmware card, and a dev-update note on Home, in the warning colour.
 - `check.dev` in `GET /api/update/status`: `true` when the available update came from the local dev manifest rather than a GitHub release.
+- `utils/ui_preview.py`: preview the web interface on a PC against a fake device with switchable states (`--mock`) or a real one, without flashing.
+
+### Changed
+
+- Redesigned web interface: connection status as a pill in the header, tabs, status cards with aligned rows, Scan as one list on every screen size with signal bars, Settings grouped with help under each field and a Device actions card, a drop zone for update files, native dialogs and toasts at the bottom.
+- The "Finishing update" bar and the update and mismatch notes slide in and out.
+- Check for updates and update uploads are also locked while an update finishes.
+- When the device refuses a request (for example while an update finishes), the page shows its message and stays "Connected" instead of showing "Disconnected".
+- The access point password is hidden in Settings until you show it.
+- The web interface is one stylesheet and fewer scripts: 12 embedded files instead of 18, about 11% smaller.
 
 ## [0.1.0] - 2026-11-08
 
