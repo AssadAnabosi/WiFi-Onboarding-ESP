@@ -1,0 +1,3 @@
+-DUPDATE_SIGN
+-DOTA_TARGET_ID=\"esp32-4mb\"
+-DOTA_TARGET_HEADER=\"targets/esp32-4mb.h\"

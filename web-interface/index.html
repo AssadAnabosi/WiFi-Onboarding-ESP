@@ -10,7 +10,7 @@
     <title>Wi-Fi On-Boarding</title>
   </head>
   <body onload="checkConnection()">
-    <div id="status-banner"></div>
+    <div id="banners"><div id="status-banner"></div></div>
     <div class="container">
       <h1>Warning</h1>
       <div style="margin: 1rem">
@@ -28,6 +28,8 @@
     <footer style="text-align: center">
       <span style="letter-spacing: 0.1rem">Created By </span>
       <a href="https://github.com/assadanabosi">Assad Anabosi</a>
+      <br />
+      <small id="fw-version" class="text-muted">v{{VERSION}}</small>
     </footer>
   </body>
 </html>

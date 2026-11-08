@@ -17,6 +17,7 @@ const handleInputChange = (isTextInputVisible, isHidden) => {
 
 function handleModal({
   title,
+  text,
   input,
   isEnterprise,
   isHidden,
@@ -25,6 +26,11 @@ function handleModal({
 }) {
   const isTextInputVisible = isEnterprise || isHidden;
   getById("modal-title").innerText = title;
+  let modalText = getById("modal-text");
+  if (modalText) {
+    modalText.innerText = text || "";
+    modalText.style.display = text ? "block" : "none";
+  }
   getById("modal-button").innerText = buttonText;
   getById("modal-button").classList.remove("red");
   if (input) {

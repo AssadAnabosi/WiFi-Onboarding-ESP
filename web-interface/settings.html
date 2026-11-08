@@ -10,6 +10,7 @@
     <script src="js/index.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/firmware.js"></script>
     <script src="js/modal.js"></script>
     <title>Wi-Fi On-Boarding</title>
   </head>
@@ -23,13 +24,15 @@
         <a class="active" href="settings">Settings</a>
       </div>
     </nav>
-    <div id="status-banner"></div>
+    <div id="banners"><div id="status-banner"></div></div>
     <div class="container">
       <section>
         <h1>Settings</h1>
         <div class="main-actions">
-          <button onclick="reset()" class="red">Reset</button>
-          <button onclick="reboot()" class="red right">Reboot</button>
+          <button onclick="reset()" class="red lock-while-finishing">Reset</button>
+          <button onclick="reboot()" class="red right lock-while-finishing">
+            Reboot
+          </button>
         </div>
         <p style="color: oklch(63.7% 0.237 25.331); font-size: larger">
           Information:
@@ -44,7 +47,8 @@
             / Resets form data.
           </li>
           <li>
-            <strong>Reset</strong>: Resets the device to factory settings.
+            <strong>Reset</strong>: Resets Wi-Fi and access point settings to
+            defaults. Installed firmware (v{{VERSION}}) is not changed.
           </li>
           <li><strong>Reboot</strong>: Restarts the device.</li>
         </ul>
@@ -148,22 +152,82 @@
             </tr>
             <tr>
               <td colspan="3">
-                <button onclick="save()">Save</button>
+                <button onclick="save()" class="lock-while-finishing">Save</button>
               </td>
             </tr>
           </tbody>
         </table>
       </section>
       <!-- </section> -->
+      <hr />
+      <section id="firmware">
+        <h2>Firmware</h2>
+        <p id="fw-mismatch" class="mismatch-warning"></p>
+        <table class="fw-info">
+          <tbody>
+            <tr>
+              <td>Version</td>
+              <td id="fw-installed"></td>
+            </tr>
+            <tr>
+              <td>Build</td>
+              <td id="fw-build"></td>
+            </tr>
+            <tr>
+              <td>Target</td>
+              <td id="fw-target"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div id="fw-rollback" class="fw-upload-row" style="display: none">
+          <p id="fw-previous" class="text-sm"></p>
+          <button id="fw-rollback-button" class="lock-while-finishing" onclick="rollBack()">
+            Roll back
+          </button>
+        </div>
+        <label>Updates</label>
+        <div class="fw-upload-row">
+          <p id="fw-check-message" class="text-sm text-muted"></p>
+          <button id="fw-check" onclick="checkForUpdates()">
+            Check for updates
+          </button>
+        </div>
+        <div id="fw-available" style="display: none">
+          <p id="fw-available-title" class="fw-available-title"></p>
+          <pre id="fw-notes" class="fw-notes"></pre>
+          <button id="fw-install" onclick="installUpdate()">Install</button>
+        </div>
+        <label for="fw-file">Upload update</label>
+        <p class="text-sm text-muted">
+          Pick a signed file ending in .ota.bin. The device reboots into it and
+          keeps its settings.
+        </p>
+        <div class="fw-upload-row">
+          <input
+            type="file"
+            id="fw-file"
+            accept=".bin"
+            onchange="pickFirmware(this)"
+          />
+          <button id="fw-upload" onclick="uploadFirmware()" disabled>
+            Upload
+          </button>
+        </div>
+        <progress id="fw-progress" max="100" value="0"></progress>
+        <p id="fw-message" class="text-sm text-muted"></p>
+      </section>
     </div>
     <footer style="text-align: center">
       <span style="letter-spacing: 0.1rem">Created By </span>
       <a href="https://github.com/assadanabosi">Assad Anabosi</a>
+      <br />
+      <small id="fw-version" class="text-muted">v{{VERSION}}</small>
     </footer>
     <div id="modal-container" class="modal-container" style="display: none">
       <div class="modal">
         <span id="close-modal" class="close">&times;</span>
         <h2 id="modal-title"></h2>
+        <p id="modal-text" class="modal-text" style="display: none"></p>
         <input
           type="password"
           id="modal-input"

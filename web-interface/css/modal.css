@@ -46,3 +46,9 @@
 .modal-input {
   width: 100%;
 }
+
+.modal-text {
+  max-width: 28rem;
+  text-align: left;
+  white-space: pre-line;
+}

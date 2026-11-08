@@ -90,3 +90,23 @@
     padding-right: 1rem;
   }
 }
+
+.update-badge {
+  display: none;
+  margin-bottom: 1rem;
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: bold;
+  text-decoration: none;
+  background-color: var(--orange);
+  color: var(--primary-foreground);
+}
+
+/* Overrides the global a:hover, which would turn the text green on orange */
+.update-badge:hover,
+.update-badge:focus-visible {
+  background-color: transparent;
+  color: var(--orange);
+  box-shadow: inset 0 0 0 1px var(--orange);
+}

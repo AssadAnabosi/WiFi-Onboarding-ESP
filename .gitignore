@@ -1,3 +1,6 @@
-/esp8266/data/*
-/esp/data/*
+__pycache__/
 /test
+# OTA signing keys: never commit private keys
+*.pem
+/keys/
+esp32/OtaPublicKey.local.h

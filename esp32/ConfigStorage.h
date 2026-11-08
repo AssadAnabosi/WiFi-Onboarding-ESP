@@ -1,0 +1,128 @@
+#ifndef ConfigStorage_h
+#define ConfigStorage_h
+
+#include <Arduino.h>
+
+/**
+ * @brief A utility class to manage persistent configuration storage, such as WiFi and Access Point settings.
+ */
+class ConfigStorage
+{
+public:
+  /**
+   * @brief Prints the current settings (without passwords) to the serial log.
+   */
+  static void begin();
+
+  /**
+   * @brief Saves WiFi credentials to persistent storage.
+   * @param ssid The WiFi SSID.
+   * @param password The WiFi password.
+   */
+  static void saveWiFiCredentials(const String &ssid, const String &password);
+
+  /**
+   * @brief Reads the stored WiFi SSID from persistent storage.
+   * @return The stored WiFi SSID.
+   */
+  static String getWiFiSSID();
+
+  /**
+   * @brief Reads the stored WiFi password from persistent storage.
+   * @return The stored WiFi password.
+   */
+  static String getWiFiPassword();
+
+  /**
+   * @brief Saves Access Point (AP) settings and hostname to persistent storage.
+   * @param ssid The AP SSID.
+   * @param password The AP password.
+   * @param channel The AP WiFi channel.
+   * @param hidden Whether the AP should be hidden.
+   * @param status Whether the AP should be enabled.
+   * @param hostname The hostname for the device.
+   */
+  static void saveSettings(const String &ssid, const String &password, int channel, bool hidden, bool status, const String &hostname);
+
+  /**
+   * @brief Reads the stored hostname from persistent storage.
+   * @return The stored hostname.
+   */
+  static String getHostname();
+
+  /**
+   * @brief Reads the stored AP SSID from persistent storage.
+   * @return The stored AP SSID.
+   */
+  static String getAPSSID();
+
+  /**
+   * @brief Reads the stored AP password from persistent storage.
+   * @return The stored AP password.
+   */
+  static String getAPPassword();
+
+  /**
+   * @brief Reads the stored AP WiFi channel from persistent storage.
+   * @return The stored AP channel.
+   */
+  static int getAPChannel();
+
+  /**
+   * @brief Reads the stored AP hidden status from persistent storage.
+   * @return True if the AP is hidden, false otherwise.
+   */
+  static bool getAPHidden();
+
+  /**
+   * @brief Reads the stored AP status (enabled/disabled) from persistent storage.
+   * @return True if the AP is enabled, false otherwise.
+   */
+  static bool getAPStatus();
+
+  /**
+   * @brief Performs a factory reset: clears user settings and the Wi-Fi driver's credentials.
+   * The firmware and system records are kept.
+   */
+  static void factoryReset();
+
+  // ----- System records ("sys" namespace, kept by factory reset) -----
+
+  /**
+   * @brief What one firmware slot holds.
+   */
+  struct SlotRecord
+  {
+    bool valid = false;
+    String version;
+    String target;
+    uint8_t sha256[32] = {0};
+  };
+
+  /**
+   * @brief The configuration the device was deliberately set up with (set by USB flash).
+   */
+  static String getHomeTarget();
+  static void setHomeTarget(const String &target);
+
+  /**
+   * @brief Record for app slot 0 or 1.
+   */
+  static SlotRecord getSlot(int slot);
+  static void setSlot(int slot, const SlotRecord &record);
+  static void invalidateSlot(int slot);
+
+  /**
+   * @brief Why the last slot switch happened: "update", "manual_rollback", "auto_rollback" or "usb".
+   */
+  static String getLastSwitch();
+  static void setLastSwitch(const String &reason);
+
+  /**
+   * @brief Slot an install switched to that has not confirmed itself yet (-1 for none), and why.
+   */
+  static int getPendingSlot(String &reason);
+  static void setPendingSlot(int slot, const String &reason);
+};
+
+#endif

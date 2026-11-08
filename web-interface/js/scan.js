@@ -7,10 +7,10 @@ updateListeners = function () {
     networks?.forEach(function (network) {
       network.onclick = function () {
         var connected = this.getAttribute("data-connected") === "true";
+        var ssid = this.getAttribute("data-ssid");
         if (connected) {
           disconnect(ssid);
         } else {
-          var ssid = this.getAttribute("data-ssid");
           connect(ssid);
         }
       };
@@ -117,7 +117,12 @@ function load() {
   apiCall({
     endpoint: "/api/scan",
     timeout: 10000,
-    callback: function (res) {
+    callback: function (res, status) {
+      // 202: the scan is still running in the background
+      if (status === 202) {
+        setTimeout(load, 1000);
+        return;
+      }
       access_points = res;
       setStatusBanner("connected");
       draw();
@@ -147,14 +152,11 @@ function connect(ssid) {
       isEnterprise: isEnterprise,
       buttonText: "Connect",
       onclick: function () {
-        let passwordPayload = "";
-        if (this.isEnterprise) {
-          let username = getById("modal-input-username").value;
-          passwordPayload = username + "|";
-        } else {
-          let password = getById("modal-input").value;
-          passwordPayload += password;
-        }
+        let password = getById("modal-input").value;
+        // Enterprise credentials travel as "username|password"
+        let passwordPayload = isEnterprise
+          ? getById("modal-input-text").value + "|" + password
+          : password;
         sendConnectRequest(ssid, passwordPayload);
       },
     });
@@ -168,7 +170,40 @@ function sendConnectRequest(ssid, password) {
     timeout: 10000,
     data: { ssid: ssid, password: password },
     callback: function () {
-      toast("Connected to " + ssid);
+      toast("Connecting to " + ssid + "...", 15000);
+      waitForConnection(ssid, Date.now() + 30000);
+    },
+  });
+}
+
+// The device connects in the background; poll its status until the attempt ends
+function waitForConnection(ssid, deadline) {
+  const retry = function () {
+    if (Date.now() > deadline) {
+      toast("Timed out waiting for " + ssid, 6000);
+      load();
+      return;
+    }
+    setTimeout(function () {
+      waitForConnection(ssid, deadline);
+    }, 1000);
+  };
+  apiCall({
+    endpoint: "/api/status",
+    timeout: 3000,
+    onTimeout: retry,
+    onError: retry,
+    callback: function (res) {
+      const attempt = res.station.attempt;
+      if (attempt.state === "connecting") {
+        retry();
+        return;
+      }
+      if (attempt.state === "succeeded") {
+        toast("Connected to " + ssid);
+      } else {
+        toast("Failed to connect to " + ssid, 6000);
+      }
       load();
     },
   });
