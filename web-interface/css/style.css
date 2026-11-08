@@ -544,7 +544,9 @@ input:focus {
   display: block;
   color: var(--muted);
 }
-/* Signal strength: four CSS bars, lit up to data-l */
+/* Signal strength: four CSS bars, lit up to the level class l1..l4
+   (a class, not [data-l="1"]: the minifier drops the quotes and an
+   unquoted value starting with a digit is invalid CSS) */
 .bars {
   display: flex;
   align-items: flex-end;
@@ -560,13 +562,13 @@ input:focus {
 .bars i:nth-child(2) { height: 50%; }
 .bars i:nth-child(3) { height: 75%; }
 .bars i:nth-child(4) { height: 100%; }
-.bars[data-l="1"] i:nth-child(-n + 1),
-.bars[data-l="2"] i:nth-child(-n + 2),
-.bars[data-l="3"] i:nth-child(-n + 3),
-.bars[data-l="4"] i {
+.bars.l1 i:nth-child(-n + 1),
+.bars.l2 i:nth-child(-n + 2),
+.bars.l3 i:nth-child(-n + 3),
+.bars.l4 i {
   background: var(--accent);
 }
-.bars[data-l="1"] i:nth-child(1) {
+.bars.l1 i:nth-child(1) {
   background: var(--danger);
 }
 
