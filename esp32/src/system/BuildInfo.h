@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Version.h"
+#include "../../Version.h"
 
 /**
  * @brief Build identity reported by the API and shown in the UI.
@@ -8,7 +8,7 @@
  * A dev build is any build that finds the gitignored OtaPublicKey.local.h
  * (created by `utils/keygen.py --dev`).
  */
-#if __has_include("OtaPublicKey.local.h")
+#if __has_include("../../OtaPublicKey.local.h")
 #define FIRMWARE_DEV_BUILD 1
 #else
 #define FIRMWARE_DEV_BUILD 0

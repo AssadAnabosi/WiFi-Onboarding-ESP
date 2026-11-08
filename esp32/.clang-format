@@ -1,0 +1,14 @@
+# C++ style for the sketch. Arduino IDE (Tools > Auto Format) and most editors use this file.
+# Generated headers (WebAssets.h, Version.h, OtaPublicKey*.h) are written by utils/ scripts: don't format them.
+BasedOnStyle: LLVM
+IndentWidth: 2
+BreakBeforeBraces: Allman
+ColumnLimit: 0
+AccessModifierOffset: -2
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+IndentCaseLabels: false
+NamespaceIndentation: None
+FixNamespaceComments: true
+# Include order matters: AsyncJson.h must come after ESPAsyncWebServer.h
+SortIncludes: Never

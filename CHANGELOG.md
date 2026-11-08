@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Firmware code reorganised into `esp32/src/` (`storage`, `wifi`, `web`, `ota`, `system`), with the two largest files split into focused modules and the modules wired together in `esp32.ino` instead of through globals. The API, settings and update behaviour are unchanged.
+- New firmware arms its rollback deadline at the start of `setup()`, before connecting to Wi-Fi, so a hang while connecting also rolls back.
+- Serial log lines start with a module tag (`[wifi]`, `[ota]`, ...).
+- `esp32/.clang-format` sets the C++ style.
+
+### Fixed
+
+- A failed connection to a new network (for example a wrong password) no longer leaves the device off Wi-Fi until the next reboot: it reconnects to the saved network, or starts its access point if that fails too.
+
 ## [0.2.1] - 2026-11-08
 
 ### Fixed
