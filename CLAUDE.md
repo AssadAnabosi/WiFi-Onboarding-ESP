@@ -47,7 +47,6 @@ Frontend (`web-interface/`): plain HTML/CSS/vanilla JS, no build step or framewo
 ## Working conventions
 
 - Commit messages follow the Conventional Commits spec: https://www.conventionalcommits.org/en/v1.0.0/#specification (`type(scope): description`, optional body/footers, `!` or `BREAKING CHANGE:` for breaking changes).
-- All commits must be authored as `Assad Anabosi <assad.anabosi@icloud.com>`.
 - Do not add AI co-author trailers (e.g. `Co-Authored-By: Claude ...`) or any other AI attribution to commit messages.
 - Whenever a phase or item of a plan/spec is finished, mark it as completed in that plan/spec file.
 - Do not assume. If something is debatable, requires a choice the docs/specs don't specify, or conflicts with the docs, stop and ask the user — present the options along with your recommendation — before proceeding.
