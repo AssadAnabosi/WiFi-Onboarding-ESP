@@ -52,14 +52,6 @@ Change the default AP password after setup: it is public.
 - [API](docs/api.md): REST endpoints
 - [Roadmap](docs/roadmap.md): future work
 
-## Dashboard screenshots
-
-<img width="645" height="2795" alt="config local_home(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/45e8e4b1-ebd4-4c75-9d7c-4aaee84054d2" />
-
-<img width="645" height="2795" alt="config local_scan(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/125d1c18-506c-40c7-898d-b8cf1026e4db" />
-
-<img width="645" height="3714" alt="config local_settings(iPhone 14 Pro Max)" src="https://github.com/user-attachments/assets/e2b67543-4c3f-431f-94f0-7bda48c5720d" />
-
 ## License
 
 [MIT](LICENSE). Third-party components are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
