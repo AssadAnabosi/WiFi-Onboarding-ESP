@@ -1,25 +1,48 @@
 # Getting started
 
-How to get the firmware onto a board for the first time.
-
-> Outline only. This page is filled in before the v0.1.0 release.
+How to get the firmware onto a board for the first time. After this first USB flash, updates go over the air (see [ota-updates.md](ota-updates.md)).
 
 ## Supported hardware
 
-Classic ESP32 modules with at least 4 MB flash (`esp32-4mb`): ESP32-WROOM-32/32D/32E/32UE, ESP32-WROVER (PSRAM unused; GPIO16/17 reserved), ESP32-PICO-D4. ESP32-SOLO-1 is unsupported for now. Chips without Wi-Fi (ESP32-H2, ESP32-P4) are not and will not be supported.
+The one build target today is `esp32-4mb`: any classic ESP32 module with at least 4 MB flash.
+
+| Module | Notes |
+| --- | --- |
+| ESP32-WROOM-32, -32D, -32E, -32UE | Supported |
+| ESP32-WROVER (any flash size) | Supported. The extra RAM (PSRAM) is not used, and GPIO16/GPIO17 are wired to it, so your own hardware must not use those pins |
+| ESP32-PICO-D4 | Supported |
+| ESP32-SOLO-1 (single core) | Not supported for now: it needs a special core build |
+| ESP32-H2, ESP32-P4 and other chips without Wi-Fi | Never supported. Wi-Fi onboarding and OTA are the whole project, so the firmware refuses to compile for them |
+
+Other chips with Wi-Fi (ESP32-S3, -C3, -C6 and so on) can be added as new build targets; see [architecture.md](architecture.md#build-targets).
 
 ## Option 1: flash a release
 
-Download `wifi-onboarding-<version>-esp32-4mb.factory.bin` and flash it with `esptool.py write_flash 0x0 <file>`. This wipes everything, settings included.
+1. Download `wifi-onboarding-<version>-esp32-4mb.factory.bin` from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest). Optionally check it against `SHA256SUMS` from the same release.
+2. Install [esptool](https://docs.espressif.com/projects/esptool/) (`pip install esptool`) and connect the board over USB.
+3. Flash the whole image at offset 0:
+
+   ```sh
+   esptool.py --chip esp32 --port <PORT> write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin
+   ```
+
+   `<PORT>` is e.g. `COM3` on Windows or `/dev/ttyUSB0` on Linux. Newer esptool versions also accept `esptool write-flash`.
+
+The factory image is a full 4 MB image: bootloader, partition table and firmware. **Flashing it wipes everything on the board, settings included.** It is only for USB flashing; the device's update page refuses it. Later versions are installed with the `.ota.bin` file instead.
 
 ## Option 2: build it yourself
 
-See [local-development.md](local-development.md).
+Build with Arduino IDE 2 or `arduino-cli` and upload over USB. See [local-development.md](local-development.md).
 
 ## First setup
 
-Join `ESP-Access-Point` (password `12345678`), open `config.local` or `192.168.4.1`, connect to your Wi-Fi network, change the AP password.
+1. On a phone or laptop, join the Wi-Fi network **`ESP-Access-Point`**, password **`12345678`**.
+2. Open **`http://config.local`** or **`http://192.168.4.1`**.
+3. On **Scan**, pick your network, enter its password and connect. The device saves the credentials once the connection works.
+4. On **Settings**, change the access point password. The default one is public.
+
+On every boot the device tries the saved network three times. If that fails, or if the access point is enabled in Settings, it also runs its own access point at `192.168.4.1`. Once it is on your network, open it at the IP address your router gave it (shown on the Home page while you are connected to the access point). The hostname setting (`ESP-IoT` by default) is the name the device gives your router.
 
 ## WPA2-Enterprise (not verified)
 
-Enter `username|password` as the network password. Not yet tested on a real enterprise network.
+To join a WPA2-Enterprise (PEAP/MSCHAPv2) network, enter `username|password` as the network password. This has not been tested on a real enterprise network yet.
