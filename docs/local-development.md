@@ -37,7 +37,7 @@ arduino-cli upload --profile esp32-4mb --build-path build -p <PORT> esp32
    python utils/build_assets.py
    ```
 
-   This minifies and gzips the pages into `esp32/WebAssets.h` and writes `esp32/Version.h` from the `VERSION` file. Commit the source change and the regenerated files together; CI fails if they drift.
+   This minifies and gzips the pages into `esp32/WebAssets.h` and writes `esp32/Version.h` from the `VERSION` file. Commit the source change and the regenerated files together; CI fails if they drift. To see a change before flashing, use the [preview](#preview-the-web-interface).
 3. Compile and upload over USB (above). Uploading over USB keeps the settings stored on the device.
 4. Watch the serial monitor at 115200 baud.
 
@@ -50,6 +50,50 @@ python -m unittest discover -s utils/tests
 ```
 
 CI runs the same tests, the generated-files check, `python utils/targets.py check` and a build of every target.
+
+## Preview the web interface
+
+`utils/ui_preview.py` serves `web-interface/` on your PC, so you can work on the pages without building or flashing. It needs only Python 3.
+
+```sh
+python utils/ui_preview.py --mock                     # fake device, no hardware
+python utils/ui_preview.py                            # real device at config.local
+python utils/ui_preview.py --device 192.168.1.26      # real device by name or IP
+```
+
+Open http://localhost:8766 (`--port` to change it; run both side by side on different ports). Pages are served without `.html` (`/home`, `/scan`, `/settings`), as on the device, with `{{VERSION}}` filled in. Edit a file and reload.
+
+### Mock: a fake device
+
+`--mock` swaps `js/api.js` and the page scripts for `utils/ui_mock.js`, which answers with fake data and plays every flow out with short delays (connect, disconnect, save, reboot, install, upload of any file ending in `.ota.bin`, rollback). The **Demo states** button (bottom left) switches the fake device's state; flip the switches, then **Apply**. The choice is kept in the browser until you change it.
+
+| Switch | What changes |
+| --- | --- |
+| Access point on | Home: access point card active or off |
+| Wi-Fi connected | Home: Wi-Fi card; Scan: the connected network highlighted |
+| Update available | Home: "Update vX.Y.Z available" note; Firmware: badge, release notes and Install. Off shows "Up to date" |
+| Update is a dev build | With Update available: "Dev update available" badge and note in the warning colour |
+| Running a dev build | "(dev)" after the version; "Dev build" badge when no update is offered |
+| Finishing update | The "Finishing update, N s" bar; reboot, reset, save, check, upload, install and rollback disabled until it ends |
+| Config mismatch | The configuration-mismatch warning on Home and in the Firmware card |
+| Rollback available | Firmware: "Previous version" and Roll back |
+| Device offline | Every request fails: "Disconnected" and an error toast |
+
+**Test toast** shows sample messages, short and long. When page behaviour changes, update `ui_mock.js` too: `utils/tests/test_ui_preview.py` fails if a page calls a function the mock doesn't define.
+
+### Live: a real device
+
+Without `--mock` the real scripts run and `/api/*` is forwarded to the device. The device only accepts POSTs whose Host and Origin are its own name and sends no CORS headers, so the preview sets both to the device; the pages use the same relative `/api/...` URLs as on the device. Everything acts on the device (connect, save, reboot, reset, updates), and the device must run firmware with the API the pages expect. To see each state on real hardware:
+
+| State | How to get it |
+| --- | --- |
+| Dev build | Flash a dev build ([Dev keys](#dev-keys)) |
+| Update available | A newer GitHub release, or a local manifest ([Testing pulls locally](#testing-pulls-locally)), then **Check for updates** |
+| Dev update available | A dev build pointed at a local manifest that offers a newer version |
+| Finishing update | Install any update: the countdown runs for about 60 s after the device is back |
+| Rollback available | After an update has confirmed itself |
+| Config mismatch | Install a file built for another target (confirm the target change) |
+| Disconnected | Unplug the device, or start with a wrong `--device` |
 
 ## Flash a release over USB
 

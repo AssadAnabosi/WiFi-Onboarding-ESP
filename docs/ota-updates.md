@@ -88,7 +88,7 @@ Update check results:
 
 New firmware starts *unconfirmed*. It confirms itself once setup has finished and it has run for 60 s more; the device doesn't need to reach your Wi-Fi network for that. Until then:
 
-- every page shows a **"Finishing update, N s"** banner;
+- every page shows a **"Finishing update, N s"** bar under the tabs, and the buttons for these actions are disabled;
 - reboot, settings save, factory reset, new updates and rollback are refused with "Finishing update, please wait N s";
 - Wi-Fi scan and connect keep working.
 

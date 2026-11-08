@@ -12,7 +12,7 @@ A boilerplate for ESP32 IoT projects: a small web interface for connecting the d
 - **Signed OTA updates**: upload a signed firmware file from the Settings page, or install a new release from GitHub after the device finds one.
 - **Automatic rollback**: a failed update returns to the previous firmware; a manual rollback button is also available.
 - **WPA2-Enterprise** (not verified): enter `username|password` as the password to join PEAP/MSCHAPv2 networks.
-- **Responsive web interface**: plain HTML, CSS and JavaScript, embedded in the firmware.
+- **Responsive web interface**: light and dark themes, plain HTML, CSS and JavaScript, embedded in the firmware. Preview it on your PC against a fake or real device with `utils/ui_preview.py`.
 
 ## Quick start
 
