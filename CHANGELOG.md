@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-08
+
+### Changed
+
+- Picking an open network on the Scan page now asks for confirmation before connecting, and notes that the network is not encrypted.
+
 ## [0.2.1] - 2026-11-08
 
 ### Fixed
