@@ -21,7 +21,7 @@ After changing anything in `web-interface/` or `VERSION`, run:
 python utils/build_assets.py
 ```
 
-and commit the source change and the regenerated files together. CI fails if they drift.
+and commit the source change and the regenerated files together. CI fails if they drift. Try page changes first with `python utils/ui_preview.py --mock` (or against a device without `--mock`); see [docs/local-development.md](docs/local-development.md#preview-the-web-interface).
 
 ## Dependencies
 

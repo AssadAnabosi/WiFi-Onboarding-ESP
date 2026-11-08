@@ -2,34 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/index.css" />
-    <link rel="stylesheet" href="css/toast.css" />
-    <script src="js/index.js"></script>
-    <script src="js/toast.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/app.js"></script>
+    <script src="js/api.js" defer></script>
     <title>Wi-Fi On-Boarding</title>
   </head>
-  <body onload="checkConnection()">
-    <div id="banners"><div id="status-banner"></div></div>
-    <div class="container">
-      <h1>Warning</h1>
-      <div style="margin: 1rem">
-        <p class="centered">This code is far from perfect or clean.</p>
-        <p class="centered">It is a work in progress.</p>
-        <p class="centered">Use at your own risk.</p>
-        <br />
-        <p class="centered font-bold">
-          <a class="button ghost" href="home">
-            I have read and understood the notice
-          </a>
+  <body data-version="{{VERSION}}">
+    <main class="wrap" style="justify-content: center; max-width: 28rem">
+      <div class="card" style="text-align: center; align-items: center; padding: 2rem 1.5rem">
+        <span class="ico on" id="notice-icon"></span>
+        <h1>Before you start</h1>
+        <p class="muted">
+          This project is a work in progress and the code is far from perfect.
+          Use it at your own risk.
         </p>
+        <a class="btn primary block" href="home">I understand, continue</a>
       </div>
-    </div>
-    <footer style="text-align: center">
-      <span style="letter-spacing: 0.1rem">Created By </span>
-      <a href="https://github.com/assadanabosi">Assad Anabosi</a>
-      <br />
-      <small id="fw-version" class="text-muted">v{{VERSION}}</small>
-    </footer>
+    </main>
   </body>
 </html>

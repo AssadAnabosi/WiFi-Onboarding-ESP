@@ -1,5 +1,6 @@
 // Firmware card: installed version, update checks and installs from the release
-// manifest, and manual upload of a signed .ota.bin.
+// manifest, and manual upload of a signed .ota.bin. The browser applies the
+// device's file rules (except the signature) before anything is sent.
 // Update file layout: [firmware][info block, 128 bytes][signature, 512 bytes]
 const INFO_SIZE = 128;
 const SIGNATURE_SIZE = 512;
@@ -11,22 +12,21 @@ var device = null;
 var selectedFile = null;
 var updateStatus = null;
 var installing = false;
+var uploading = false;
 
 function loadFirmware() {
-  apiCall({
-    endpoint: "/api/status",
-    callback: function (res) {
-      device = res;
-      getById("fw-installed").textContent =
-        "v" + res.version + (res.dev ? " (dev)" : "");
-      getById("fw-build").textContent =
-        res.build + (res.commit && res.commit !== "dev" ? " (" + res.commit + ")" : "");
-      getById("fw-target").textContent = res.target;
-      showMismatch("fw-mismatch", res);
-      getById("fw-rollback").style.display = res.rollback_available ? "flex" : "none";
-      getById("fw-previous").textContent = "Previous version: v" + res.previous_version;
-      if (selectedFile) checkSelectedFile();
-    },
+  api("/api/status").then(function (r) {
+    if (!r) return;
+    let res = r.body;
+    device = res;
+    $("fw-installed").textContent = "v" + res.version + (res.dev ? " (dev)" : "");
+    $("fw-build").textContent = res.build + (res.commit && res.commit !== "dev" ? " (" + res.commit + ")" : "");
+    $("fw-target").textContent = res.target;
+    showNote("fw-mismatch", mismatchText(res));
+    $("fw-rollback").style.display = res.rollback_available ? "" : "none";
+    $("fw-previous").textContent = "Previous version: v" + res.previous_version;
+    renderBadge();
+    if (selectedFile) checkSelectedFile();
   });
 }
 
@@ -140,15 +140,9 @@ async function analyzeFile(file) {
       warnings.push("This restores the device's original configuration (" + target + ").");
     } else {
       warnings.push(
-        "This file is for " +
-          target +
-          ". This device runs " +
-          device.target +
-          ". The correct file for this device ends in -" +
-          device.target +
-          ".ota.bin. If you continue, future updates will follow " +
-          target +
-          "."
+        "This file is for " + target + ". This device runs " + device.target +
+          ". The correct file for this device ends in -" + device.target +
+          ".ota.bin. If you continue, future updates will follow " + target + "."
       );
     }
     params.push("allow_target_change=1");
@@ -171,32 +165,32 @@ async function analyzeFile(file) {
 }
 
 function setFirmwareMessage(text, kind) {
-  let message = getById("fw-message");
-  message.textContent = text;
-  message.className = "text-sm " + (kind || "text-muted");
+  $("fw-picked").style.display = text ? "" : "none";
+  $("fw-message").textContent = text;
+  $("fw-message").className = "grow sm " + (kind === "error" ? "err" : kind || "muted");
 }
-
-var uploading = false;
 
 function updateRunning() {
   let state = updateStatus ? updateStatus.state : "idle";
   return uploading || installing || ["downloading", "receiving", "installing", "rebooting"].includes(state);
 }
 
-// Called by index.js when the "Finishing update" state changes
+// Called by app.js when the "Finishing update" state changes
 function refreshFirmwareButtons() {
   let busy = updateRunning();
   let checking = updateStatus && updateStatus.check.state === "checking";
-  getById("fw-file").disabled = busy;
-  getById("fw-upload").disabled = busy || updateFinishing || !selectedFile || !selectedFile.ok;
-  getById("fw-check").disabled = busy || checking;
-  getById("fw-install").disabled = busy || updateFinishing;
-  getById("fw-rollback-button").disabled = busy || updateFinishing;
+  // Picking a file and checking are locked while an update runs or finishes, like installing
+  $("fw-file").disabled = busy || updateFinishing;
+  $("fw-upload").disabled = busy || updateFinishing || !selectedFile || !selectedFile.ok;
+  $("fw-upload").style.display = selectedFile && selectedFile.ok && !busy ? "" : "none";
+  $("fw-check").disabled = busy || checking || updateFinishing;
+  $("fw-install").disabled = busy || updateFinishing;
+  $("fw-rollback-button").disabled = busy || updateFinishing;
 }
 
 function setUploading(value) {
   uploading = value;
-  getById("fw-progress").style.display = value ? "block" : "none";
+  $("fw-progress").style.display = value ? "" : "none";
   refreshFirmwareButtons();
 }
 
@@ -217,22 +211,22 @@ async function checkSelectedFile() {
   }
   if (!selectedFile || selectedFile.file !== file) return;
   if (result.error) {
-    setFirmwareMessage(result.error, "error");
+    setFirmwareMessage(file.name + ": " + result.error, "error");
     return;
   }
   selectedFile.result = result;
   selectedFile.ok = true;
-  let summary = "v" + result.version + " for " + result.target + ".";
+  let summary = file.name + ": v" + result.version + " for " + result.target + ".";
   if (result.warnings.length) {
-    setFirmwareMessage(summary + " " + result.warnings.join(" "), "warning");
+    setFirmwareMessage(summary + " " + result.warnings.join(" "), "warn");
   } else {
     setFirmwareMessage(summary);
   }
   refreshFirmwareButtons();
 }
 
-function pickFirmware(input) {
-  selectedFile = input.files.length ? { file: input.files[0], ok: false } : null;
+function pickFirmware(file) {
+  selectedFile = file ? { file: file, ok: false } : null;
   if (!selectedFile) {
     setFirmwareMessage("");
     refreshFirmwareButtons();
@@ -244,11 +238,11 @@ function pickFirmware(input) {
 function uploadFirmware() {
   if (!selectedFile || !selectedFile.ok) return;
   let result = selectedFile.result;
-  handleModal({
+  ask({
     title: "Install v" + result.version + " (" + result.target + ")?",
     text: result.warnings.join("\n\n"),
-    buttonText: "Install",
-    onclick: function () {
+    ok: "Install",
+    onOk: function () {
       sendFirmware(selectedFile.file, result.params);
     },
   });
@@ -256,18 +250,17 @@ function uploadFirmware() {
 
 function sendFirmware(file, params) {
   let request = new XMLHttpRequest();
-  let url = "/api/update" + (params.length ? "?" + params.join("&") : "");
-  request.open("POST", url, true);
+  request.open("POST", "/api/update" + (params.length ? "?" + params.join("&") : ""), true);
   request.setRequestHeader("Content-Type", "application/octet-stream");
 
   setUploading(true);
-  getById("fw-progress").value = 0;
+  $("fw-progress").value = 0;
   setFirmwareMessage("Uploading...");
 
   request.upload.onprogress = function (event) {
     if (event.lengthComputable) {
       let percent = Math.floor((event.loaded * 100) / event.total);
-      getById("fw-progress").value = percent;
+      $("fw-progress").value = percent;
       setFirmwareMessage("Uploading... " + percent + "%");
     }
   };
@@ -297,29 +290,12 @@ function sendFirmware(file, params) {
   request.send(file);
 }
 
-function getStatus(callback) {
-  let request = new XMLHttpRequest();
-  request.open("GET", "/api/update/status", true);
-  request.timeout = 4000;
-  request.onload = function () {
-    let res = null;
-    try {
-      res = this.status === 200 ? JSON.parse(this.responseText) : null;
-    } catch (e) {}
-    callback(res);
-  };
-  request.onerror = request.ontimeout = function () {
-    callback(null);
-  };
-  request.send();
-}
-
 // Polls /api/update/status every second until done(status) returns true
 function pollStatus(done) {
-  getStatus(function (res) {
-    if (res) {
-      onUpdateStatus(res);
-      if (done(res)) return;
+  api("/api/update/status", { quiet: true, timeout: 4000 }).then(function (r) {
+    if (r) {
+      onUpdateStatus(r.body);
+      if (done(r.body)) return;
     }
     setTimeout(function () {
       pollStatus(done);
@@ -328,9 +304,8 @@ function pollStatus(done) {
 }
 
 function renderCheck(check) {
-  let message = getById("fw-check-message");
   let text = "";
-  let kind = "text-muted";
+  let kind = "muted";
   switch (check.state) {
     case "never":
       text = "Not checked yet.";
@@ -342,32 +317,39 @@ function renderCheck(check) {
       text = "Up to date.";
       break;
     case "available":
-      text = "";
       break;
     case "no_update":
       text = check.message;
       break;
     case "needs_manual":
       text = check.message;
-      kind = "warning";
+      kind = "warn";
       break;
     default:
       text = check.message || "The update check failed.";
-      kind = "error";
+      kind = "err";
   }
-  message.textContent = text;
-  message.className = "text-sm " + kind;
+  $("fw-check-message").textContent = text;
+  $("fw-check-message").className = "grow sm " + kind;
 
   let available = check.state === "available";
-  getById("fw-available").style.display = available ? "block" : "none";
+  $("fw-available").style.display = available ? "" : "none";
+  renderBadge();
   if (available) {
-    getById("fw-available-title").textContent = "Update v" + check.version + " available";
+    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + check.version + " is available";
     // Release notes are plain text: never parsed as HTML
-    getById("fw-notes").textContent = check.notes || "No release notes.";
+    $("fw-notes").textContent = check.notes || "No release notes.";
   }
 }
 
-// Called by index.js on page load and by the polls below
+// "Update available" / "Dev update available" / "Dev build" / "Up to date"
+function renderBadge() {
+  let badge = firmwareBadge(updateStatus && updateStatus.check, device && device.dev);
+  $("fw-badge").textContent = badge[0];
+  $("fw-badge").className = "chip " + badge[1];
+}
+
+// Called by api.js on page load and by the polls below
 function onUpdateStatus(res) {
   updateStatus = res;
   renderCheck(res.check);
@@ -379,22 +361,19 @@ function onUpdateStatus(res) {
 }
 
 function checkForUpdates() {
-  apiCall({
-    endpoint: "/api/update/check",
-    method: "POST",
-    callback: function () {
-      pollStatus(function (res) {
-        return res.check.state !== "checking";
-      });
-    },
+  api("/api/update/check", { method: "POST" }).then(function (r) {
+    if (!r) return;
+    pollStatus(function (res) {
+      return res.check.state !== "checking";
+    });
   });
 }
 
 function trackInstall(res) {
-  let progress = getById("fw-progress");
+  let progress = $("fw-progress");
   switch (res.state) {
     case "downloading":
-      progress.style.display = "block";
+      progress.style.display = "";
       progress.value = res.progress;
       setFirmwareMessage("Downloading... " + res.progress + "%");
       return false;
@@ -418,20 +397,17 @@ function trackInstall(res) {
 function installUpdate() {
   let check = updateStatus && updateStatus.check;
   if (!check || check.state !== "available") return;
-  handleModal({
+  ask({
     title: "Install v" + check.version + "?",
     text: "The device downloads the update, installs it and reboots. Settings are kept.",
-    buttonText: "Install",
-    onclick: function () {
-      apiCall({
-        endpoint: "/api/update/install",
-        method: "POST",
-        callback: function () {
-          installing = true;
-          refreshFirmwareButtons();
-          setFirmwareMessage("Downloading...");
-          pollStatus(trackInstall);
-        },
+    ok: "Install",
+    onOk: function () {
+      api("/api/update/install", { method: "POST" }).then(function (r) {
+        if (!r) return;
+        installing = true;
+        refreshFirmwareButtons();
+        setFirmwareMessage("Downloading...");
+        pollStatus(trackInstall);
       });
     },
   });
@@ -440,20 +416,35 @@ function installUpdate() {
 function rollBack() {
   let version = device && device.previous_version;
   if (!version) return;
-  handleModal({
+  ask({
     title: "Roll back to v" + version + "?",
     text: "The device reboots into the version it ran before the last update. Settings are kept.",
-    buttonText: "Roll back",
-    onclick: function () {
-      apiCall({
-        endpoint: "/api/update/rollback",
-        method: "POST",
-        callback: function (res) {
-          setFirmwareMessage(res.message + ". The page reloads when the device is back.");
-          toast(res.message, 10000);
-          reloadAfterReboot();
-        },
+    ok: "Roll back",
+    danger: true,
+    onOk: function () {
+      api("/api/update/rollback", { method: "POST" }).then(function (r) {
+        if (!r) return;
+        setFirmwareMessage(r.body.message + ". The page reloads when the device is back.");
+        toast(r.body.message, 10000);
+        reloadAfterReboot();
       });
     },
   });
 }
+
+// Drag and drop onto the upload box
+document.addEventListener("DOMContentLoaded", function () {
+  let drop = $("drop");
+  drop.ondragover = function (e) {
+    e.preventDefault();
+    if (!$("fw-file").disabled) drop.classList.add("over");
+  };
+  drop.ondragleave = function () {
+    drop.classList.remove("over");
+  };
+  drop.ondrop = function (e) {
+    e.preventDefault();
+    drop.classList.remove("over");
+    if (!$("fw-file").disabled) pickFirmware(e.dataTransfer.files[0]);
+  };
+});

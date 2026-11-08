@@ -1,0 +1,742 @@
+/* One stylesheet for every page. Light is the default; [data-theme=dark] is
+   set by app.js before first paint (saved choice, else the system setting). */
+:root {
+  --bg: #f5f6f8;
+  --surface: #fff;
+  --surface-2: #eef0f3;
+  --border: #e2e5ea;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #15803d;
+  --accent-fg: #fff;
+  --accent-soft: #dcfce7;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.07);
+  --r: 14px;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #0d0f12;
+  --surface: #16191e;
+  --surface-2: #1f232a;
+  --border: #2a2f37;
+  --text: #e6e8eb;
+  --muted: #959cab;
+  --accent: #22c55e;
+  --accent-fg: #052e16;
+  --accent-soft: rgb(34 197 94 / 0.14);
+  --warn: #f5a524;
+  --warn-soft: rgb(245 165 36 / 0.14);
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.14);
+  --shadow: none;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1 {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.muted {
+  color: var(--muted);
+}
+.sm {
+  font-size: 0.85rem;
+}
+.mono {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.85em;
+}
+svg {
+  flex: none;
+}
+
+/* Layout */
+.wrap {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+/* Flex columns (page and cards) rather than grid: a hidden note's -1rem margin
+   must be able to cancel the gap, and grid rows can't shrink below zero */
+main.wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  padding-bottom: 2rem;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.between {
+  justify-content: space-between;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.grid2 {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+/* Status cards side by side: each card spans two shared rows (head, details),
+   so the details start at the same height even when one subtitle wraps */
+/* Card header: icon, title and badge on the top line in every card, so a
+   wrapped subtitle only adds height below the title */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.head h2 {
+  line-height: 1.6rem;
+}
+.head .chip {
+  margin-top: 0.2rem;
+}
+.cards > .card {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+}
+
+/* Header: brand, connection pill, theme toggle; tabs underneath */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.top {
+  height: 3.5rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  font-weight: 650;
+}
+.brand:hover {
+  text-decoration: none;
+}
+.brand svg {
+  color: var(--accent);
+}
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+.tabs a {
+  padding: 0.6rem 0.9rem;
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.tabs a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+.tabs a[aria-current] {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Connection pill: replaces the full-width coloured status bar */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill[data-s="ok"]::before {
+  background: var(--accent);
+}
+.pill[data-s="busy"]::before {
+  background: var(--warn);
+  animation: pulse 1s infinite;
+}
+.pill[data-s="error"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* "Finishing update, N s" stays as a full-width bar: it explains disabled buttons.
+   It slides down from under the tabs (0fr -> 1fr row) and back up when hidden. */
+.bar {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.bar > div {
+  overflow: hidden;
+  padding: 0 1rem;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease, padding 0.3s ease;
+}
+.bar.show {
+  grid-template-rows: 1fr;
+}
+.bar.show > div {
+  padding: 0.45rem 1rem;
+  transform: none;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* Clear the sticky header and the "Finishing update" bar */
+  scroll-margin-top: 9.5rem;
+}
+.card > h2 + p {
+  margin-top: -0.75rem;
+}
+.ico {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.ico.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Key / value rows */
+.kv {
+  margin: 0;
+  display: grid;
+}
+.kv div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border);
+}
+.kv dt {
+  color: var(--muted);
+}
+.kv dd {
+  margin: 0;
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Chips */
+.chip {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chip.ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.chip.bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+/* Dev build / dev update: same colour as the warning notes */
+.chip.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* Notices: warning colour by default, .info in the accent colour. They slide
+   open and shut; the -1rem margin cancels the parent's gap while hidden. */
+.note {
+  display: block;
+  max-height: 0;
+  margin-bottom: -1rem;
+  padding: 0 1rem;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  border-radius: var(--r);
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--warn-soft);
+  color: var(--warn);
+  transition: max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease, opacity 0.3s ease, visibility 0s 0.3s;
+}
+.note.info {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.note.show {
+  max-height: 12rem;
+  margin-bottom: 0;
+  padding: 0.75rem 1rem;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.btn.primary:hover {
+  filter: brightness(1.08);
+}
+.btn.danger {
+  color: var(--danger);
+}
+.btn.danger.primary {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn.block {
+  width: 100%;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+}
+.icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  color: var(--text);
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Forms */
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+label,
+.label {
+  font-weight: 550;
+}
+input:not([type="checkbox"]):not([type="file"]) {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+/* Password field with the show/hide eye inside it (added by app.js) */
+.pw {
+  position: relative;
+  display: block;
+}
+.pw > input:not([type="checkbox"]) {
+  padding-right: 2.75rem;
+}
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.eye:hover {
+  color: var(--text);
+}
+/* Checkbox drawn as a switch */
+.switch {
+  appearance: none;
+  flex: none;
+  width: 2.5rem;
+  height: 1.5rem;
+  margin: 0;
+  border-radius: 99px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.switch:checked {
+  background: var(--accent);
+}
+.switch:checked::after {
+  transform: translateX(1rem);
+}
+/* Primary action first in the DOM (Enter submits it), shown on the right */
+.actions {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  gap: 0.5rem;
+}
+
+/* Network list (Scan) */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.list li + li {
+  border-top: 1px solid var(--border);
+}
+.net {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.1rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.net:hover {
+  background: var(--surface-2);
+}
+.net:disabled {
+  cursor: default;
+  background: none;
+}
+.net[data-on] {
+  background: var(--accent-soft);
+}
+.net b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.net small {
+  display: block;
+  color: var(--muted);
+}
+/* Signal strength: four CSS bars, lit up to data-l */
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 1.1rem;
+}
+.bars i {
+  width: 4px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.bars i:nth-child(1) { height: 25%; }
+.bars i:nth-child(2) { height: 50%; }
+.bars i:nth-child(3) { height: 75%; }
+.bars i:nth-child(4) { height: 100%; }
+.bars[data-l="1"] i:nth-child(-n + 1),
+.bars[data-l="2"] i:nth-child(-n + 2),
+.bars[data-l="3"] i:nth-child(-n + 3),
+.bars[data-l="4"] i {
+  background: var(--accent);
+}
+.bars[data-l="1"] i:nth-child(1) {
+  background: var(--danger);
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+details ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Firmware */
+.drop {
+  display: grid;
+  place-items: center;
+  gap: 0.2rem;
+  padding: 1.1rem;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r);
+  text-align: center;
+  cursor: pointer;
+}
+.drop:hover,
+.drop.over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.drop input {
+  display: none;
+}
+/* Locked while an update runs or finishes */
+.drop:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--border);
+  background: none;
+}
+progress {
+  width: 100%;
+  height: 0.5rem;
+  appearance: none;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--surface-2);
+  accent-color: var(--accent);
+}
+progress::-webkit-progress-bar {
+  background: var(--surface-2);
+}
+progress::-webkit-progress-value {
+  background: var(--accent);
+}
+progress::-moz-progress-bar {
+  background: var(--accent);
+}
+.notes {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+.err {
+  color: var(--danger);
+}
+.warn {
+  color: var(--warn);
+}
+
+/* Danger zone rows */
+.split {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.split:first-of-type {
+  border: 0;
+  padding: 0;
+}
+
+/* Dialog (native <dialog>) */
+dialog {
+  width: min(26rem, calc(100% - 2rem));
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.25);
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(2px);
+}
+dialog form {
+  display: grid;
+  gap: 0.9rem;
+}
+dialog p {
+  white-space: pre-line;
+}
+
+/* Toasts */
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: grid;
+  gap: 0.5rem;
+  width: min(24rem, calc(100% - 2rem));
+}
+.toast {
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.9rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+  animation: up 0.2s ease-out;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast.out {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* Loading placeholders */
+.sk {
+  display: inline-block;
+  min-width: 5rem;
+  min-height: 1em;
+  border-radius: 6px;
+  background: var(--surface-2);
+  animation: pulse 1.6s infinite;
+}
+
+footer {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

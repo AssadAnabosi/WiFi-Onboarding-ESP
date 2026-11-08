@@ -1,62 +1,42 @@
-let connections_status = {
-  softAP: { enabled: false },
-  station: { connected: false },
-};
+// Home: access point and Wi-Fi status cards from /api/status
 
-const iconWiFiOn =
-  "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='icon icon-true'><path d='M12 20h.01'></path><path d='M2 8.82a15 15 0 0 1 20 0'></path><path d='M5 12.859a10 10 0 0 1 14 0'></path><path d='M8.5 16.429a5 5 0 0 1 7 0'></path></svg>";
-const iconWiFiOff =
-  "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='icon icon-false'><path d='M12 20h.01'></path><path d='M8.5 16.429a5 5 0 0 1 7 0'></path><path d='M5 12.859a10 10 0 0 1 5.17-2.69'></path><path d='M19 12.859a10 10 0 0 0-2.007-1.523'></path><path d='M2 8.82a15 15 0 0 1 4.177-2.643'></path><path d='M22 8.82a15 15 0 0 0-11.288-3.764'></path><path d='m2 2 20 20'></path></svg>";
-
-const getAPCard = (ap) =>
-  `<div class='card'>${
-    ap.enabled
-      ? "<div class='card-badge badge-green'>Active</div>"
-      : "<div class='card-badge badge-red'>Inactive</div>"
-  }<div class='card-title'>Soft Access Point Mode</div><div class='card-description text-sm text-muted'>Access point for direct connection</div><div class='card-content'>${
-    ap.enabled ? iconWiFiOn : iconWiFiOff
-  }<div class='connection-details'>${
-    ap.enabled
-      ? `<div><p class='text-sm text-muted'>SSID</p><p class='font-medium'>${ap.ssid}</p></div><div><p class='text-sm text-muted'>IP Address</p><p class='font-medium'>${ap.ip}</p></div>`
-      : "<div><p class='text-sm text-muted'>Access Point is disabled</p><p class='font-medium'>Enable it in the settings</p></div>"
-  }</div></div></div>`;
-
-const getStationCard = (ap) =>
-  `<div class="card">${
-    ap.connected
-      ? "<div class='card-badge badge-green'>Connected</div>"
-      : "<div class='card-badge badge-red'>Disconnected</div>"
-  }<div class="card-title">Station Mode</div><div class="card-description">Connection to existing WiFi network</div><div class="card-content">${
-    ap.connected ? iconWiFiOn : iconWiFiOff
-  }<div class="connection-details">${
-    ap.connected
-      ? `<div><p class="text-sm text-muted">Connected to</p><p class="font-medium">${ap.ssid}</p></div><div><p class="text-sm text-muted" style="margin-top: 0.25rem">IP Address</p><p class="font-medium">${ap.ip}</p></div>`
-      : '<div><p class="text-sm text-muted">Not connected to any network</p><p class="font-medium">Go to Scan page to connect</p></div>'
-  }</div></div></div>`;
-
-function draw() {
-  let cardsContainer = document.getElementById("cards-container");
-  cardsContainer.innerHTML =
-    getAPCard(connections_status.softAP) +
-    getStationCard(connections_status.station);
+function statusCard(on, title, subtitle, chip, rows, offText) {
+  return (
+    "<article class='card'><div class='head'><span class='ico" + (on ? " on" : "") + "'>" +
+    svg(on ? WIFI_ON : WIFI_OFF) +
+    "</span><div class='grow'><h2>" + title + "</h2><p class='sm muted'>" + subtitle +
+    "</p></div><span class='chip " + (on ? "ok" : "bad") + "'>" + chip + "</span></div>" +
+    (on
+      ? "<dl class='kv'>" +
+        rows
+          .map(function (r) {
+            return "<div><dt>" + r[0] + "</dt><dd>" + esc(r[1]) + "</dd></div>";
+          })
+          .join("") +
+        "</dl>"
+      : "<p class='muted'>" + offText + "</p>") +
+    "</article>"
+  );
 }
 
 function load() {
-  apiCall({
-    endpoint: "/api/status",
-    callback: function (res) {
-      connections_status = res;
-      showMismatch("mismatch-warning", res);
-      draw();
-    },
-    draw: draw,
+  api("/api/status").then(function (r) {
+    if (!r) return;
+    let s = r.body;
+    showNote("mismatch", mismatchText(s));
+    $("cards").innerHTML =
+      statusCard(s.softAP.enabled, "Access point", "Direct connection to the device",
+        s.softAP.enabled ? "Active" : "Off",
+        [["Name", s.softAP.ssid], ["IP address", s.softAP.ip]],
+        "The access point is off. Turn it on in <a href='settings'>Settings</a>.") +
+      statusCard(s.station.connected, "Wi-Fi network", "Connection to your router",
+        s.station.connected ? "Connected" : "Not connected",
+        [["Network", s.station.ssid], ["IP address", s.station.ip]],
+        "Not connected to any network. <a href='scan'>Pick one on Scan</a>.");
   });
 }
 
-// "Update vX.Y.Z available" once a check has found one
+// "Update vX.Y.Z available" once a check has found one (warning colour for a dev update)
 function onUpdateStatus(res) {
-  let badge = getById("update-badge");
-  let available = res.check && res.check.state === "available";
-  badge.style.display = available ? "inline-block" : "none";
-  if (available) badge.textContent = "Update v" + res.check.version + " available";
+  showUpdateNote(res.check);
 }

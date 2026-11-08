@@ -2,176 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="css/index.css" />
-    <link rel="stylesheet" href="css/toast.css" />
-    <link rel="stylesheet" href="css/scan.css" />
-    <link rel="stylesheet" href="css/modal.css" />
-    <script src="js/index.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="js/scan.js"></script>
-    <script src="js/modal.js"></script>
-    <title>Wi-Fi On-Boarding</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/app.js"></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/scan.js" defer></script>
+    <title>Scan · Wi-Fi On-Boarding</title>
   </head>
-  <body onload="checkConnection()">
-    <nav>
-      <div>
-        <a href="home">Home</a>
-        <a class="active" href="scan">Scan</a>
+  <body data-page="scan" data-version="{{VERSION}}">
+    <main class="wrap">
+      <div class="row between">
+        <h1>Networks <span id="count" class="chip"></span></h1>
+        <button id="rescan" class="btn" onclick="scan()">Rescan</button>
       </div>
-      <div>
-        <a href="settings">Settings</a>
-      </div>
-    </nav>
-    <div id="banners"><div id="status-banner"></div></div>
-    <div class="container">
-      <section>
-        <h1>Scan</h1>
-        <p style="color: oklch(63.7% 0.237 25.331); font-size: larger">
-          Information:
-        </p>
+      <details>
+        <summary>About connecting</summary>
         <ul>
-          <li>The network you are connected to is highlighted in the list.</li>
+          <li>Tap a network to connect, or the connected one to disconnect.</li>
           <li>
-            While on smaller screens, rows become clickable buttons to
-            connect/disconnect from the network.
+            If you opened this page through your router rather than the device's
+            own access point, the page can lose the device while it switches
+            networks.
           </li>
           <li>
-            Clicking connect/disconnect will not respond back to the browser if
-            you're not accessing the interface via the soft access point.
+            If something goes wrong, join the device's access point again or
+            check the serial log.
           </li>
         </ul>
-        <p>
-          In case of an unexpected error, please connect to the device own
-          access point. or use console to check the logs.
-        </p>
-      </section>
-      <hr />
-      <section style="position: relative">
-        <h2>Access Points<span id="access-points-total">: 0</span></h2>
-        <button id="scan-access-points" onclick="load()">Scan APs</button>
-      </section>
-      <section>
-        <table id="access-points-table">
-          <thead>
-            <th class="network-ssid">SSID</th>
-            <th class="network-ch" style="text-align: center">Ch</th>
-            <th class="network-enc"></th>
-            <th class="network-mac">MAC</th>
-            <th class="network-action"></th>
-          </thead>
-          <tbody id="access-points-tbody">
-            <tr class="network">
-              <td class="network-ssid">
-                <p
-                  style="height: 21px; width: 125px"
-                  class="bg-background skeleton"
-                ></p>
-                <p style="height: 30px" class="bg-background skeleton"></p>
-              </td>
-              <td class="network-channel" style="text-align: center">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 22px"
-                ></p>
-              </td>
-              <td class="network-enc">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 100px"
-                ></p>
-              </td>
-              <td class="network-mac">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 150px"
-                ></p>
-              </td>
-
-              <td class="action-button">
-                <p
-                  class="skeleton bg-background"
-                  style="
-                    width: 130px;
-                    height: 40px;
-                    border-radius: var(--radius);
-                  "
-                ></p>
-              </td>
-            </tr>
-            <tr class="network">
-              <td class="network-ssid">
-                <p
-                  style="height: 21px; width: 125px"
-                  class="bg-background skeleton"
-                ></p>
-                <p style="height: 30px" class="bg-background skeleton"></p>
-              </td>
-              <td class="network-channel" style="text-align: center">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 22px"
-                ></p>
-              </td>
-              <td class="network-enc">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 100px"
-                ></p>
-              </td>
-              <td class="network-mac">
-                <p
-                  class="bg-background skeleton"
-                  style="height: 22px; width: 150px"
-                ></p>
-              </td>
-
-              <td class="action-button">
-                <p
-                  class="skeleton bg-background"
-                  style="
-                    width: 130px;
-                    height: 40px;
-                    border-radius: var(--radius);
-                  "
-                ></p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <button id="hidden-network-button" class="green" disabled="true">
-          Hidden Network
-        </button>
-      </section>
-    </div>
-    <footer style="text-align: center">
-      <span style="letter-spacing: 0.1rem">Created By </span>
-      <a href="https://github.com/assadanabosi">Assad Anabosi</a>
-      <br />
-      <small id="fw-version" class="text-muted">v{{VERSION}}</small>
-    </footer>
-    <div id="modal-container" class="modal-container" style="display: none">
-      <div class="modal">
-        <span id="close-modal" class="close">&times;</span>
-        <h2 id="modal-title"></h2>
-        <div class="modal-inputs-container">
-          <input
-            id="modal-input-text"
-            class="modal-input"
-            type="text"
-            style="display: none"
-          />
-          <input
-            id="modal-input"
-            class="modal-input"
-            type="password"
-            placeholder="Enter Password"
-            style="display: none"
-          />
-        </div>
-        <br />
-        <button id="modal-button"></button>
-      </div>
-    </div>
+      </details>
+      <ul id="list" class="list">
+        <li class="net"><span class="sk" style="width: 100%; height: 2.4rem"></span></li>
+        <li class="net"><span class="sk" style="width: 100%; height: 2.4rem"></span></li>
+        <li class="net"><span class="sk" style="width: 100%; height: 2.4rem"></span></li>
+      </ul>
+      <button id="hidden-btn" class="btn block" onclick="connectHidden()" disabled>
+        + Hidden network
+      </button>
+    </main>
   </body>
 </html>

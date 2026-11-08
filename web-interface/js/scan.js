@@ -1,232 +1,133 @@
-var access_points = [];
+// Scan: network list from /api/scan, connect / disconnect
 
-updateListeners = function () {
-  if (window.innerWidth <= 768) {
-    // get all elements with class 'network' and add onclick event
-    var networks = document.querySelectorAll(".network");
-    networks?.forEach(function (network) {
-      network.onclick = function () {
-        var connected = this.getAttribute("data-connected") === "true";
-        var ssid = this.getAttribute("data-ssid");
-        if (connected) {
-          disconnect(ssid);
-        } else {
-          connect(ssid);
-        }
-      };
-    });
-    var actionButtons = document.querySelectorAll(".network-action");
-    // hide action buttons
-    actionButtons?.forEach(function (button) {
-      button.style.display = "none";
-    });
-  } else {
-    // revert to default behavior
-    var networks = document.querySelectorAll(".network");
-    networks?.forEach(function (network) {
-      network.onclick = null;
-    });
-    var actionButtons = document.querySelectorAll(".network-action");
-    actionButtons?.forEach(function (button) {
-      button.style.display = null;
-    });
-  }
-};
+var networks = [];
 
-function getTableHeader() {
-  thead = document.createElement("thead");
-  thead.innerHTML = `<thead><th class="network-ssid">SSID</th><th class="network-ch" style="text-align: center">Ch</th><th class="network-enc"></th><th class="network-mac">MAC</th><th class="network-action"></th></thead>`;
-  return thead;
+function load() {
+  scan();
 }
 
-function getNetworkRow(ap) {
-  ssid = esc(ap.ssid);
-  channel = ap.channel;
-  rssi = ap.rssi;
-  enc = esc(ap.enc);
-  mac = ap.mac;
-  connected = ap.connected;
-  hidden = ap.hidden;
-  width = parseInt(rssi) + 130;
-  if (width < 50) color = "meter-red";
-  else if (width < 70) color = "meter-orange";
-  else color = "meter-green";
+function setScanning(on) {
+  $("rescan").disabled = on;
+  $("rescan").textContent = on ? "Scanning…" : "Rescan";
+}
 
-  let row = document.createElement("tr");
-  row.className = "network";
-  row.setAttribute("data-connected", connected);
-  row.setAttribute("data-ssid", ssid);
-  row.innerHTML = `<td class='network-ssid'><span style='font-weight: 500'>${ssid}</span><div class='meter-background'> <div class='meter-foreground ${color}' style='width: ${width}%;'><div class='meter-value'>${rssi}</div></div></div></td><td class='network-channel' style='text-align: center;'>${channel}</td><td class='network-enc'>${enc} ${" "}${
-    enc == "OPEN" ? "&#x1F513;" : "&#x1f512;"
-  } ${" "} ${
-    hidden ? "&#x1F441;" : ""
-  }</td><td class='network-mac'>${mac}</td>${
-    connected
-      ? `<td class='network-action' ><button class='red' onclick='disconnect("${ssid}")'>Disconnect</button></td>`
-      : !hidden
-      ? `<td class='network-action' ><button class='green' onclick='connect("${ssid}")'>Connect</button></td>`
-      : `<td></td>`
-  }
-`;
-  return row;
+function scan() {
+  setScanning(true);
+  api("/api/scan", { timeout: 10000 }).then(function (r) {
+    if (!r) {
+      setScanning(false);
+      return;
+    }
+    // 202: the scan is still running in the background
+    if (r.status === 202) {
+      setTimeout(scan, 1000);
+      return;
+    }
+    networks = Array.isArray(r.body) ? r.body : [];
+    setScanning(false);
+    draw();
+  });
+}
+
+function level(rssi) {
+  return rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : 1;
 }
 
 function draw() {
-  getById("scan-access-points").disabled = false;
-  let totalSpan = getById("access-points-total");
-  totalSpan.innerHTML = `: ${access_points.length}`;
-  let table = getById("access-points-table");
-  table.innerHTML = "";
-  if (access_points.length == 0) {
+  $("hidden-btn").disabled = false;
+  $("count").textContent = networks.length;
+  if (!networks.length) {
+    $("list").innerHTML = "<li class='net muted'>No networks found. Try Rescan.</li>";
     return;
   }
-  let thead = getTableHeader();
-  let tbody = document.createElement("tbody");
-  tbody.className = "access-points-table-body";
-
-  access_points.forEach(function (ap) {
-    tbody.appendChild(getNetworkRow(ap));
-  });
-
-  table.appendChild(thead);
-  table.appendChild(tbody);
-  button = getById("hidden-network-button");
-  button.disabled = false;
-  button.onclick = function () {
-    handleModal({
-      title: "Connect to Hidden Network",
-      isHidden: true,
-      input: true,
-      buttonText: "Connect",
-      onclick: function () {
-        let ssid = getById("modal-input-text").value;
-        let password = getById("modal-input").value;
-        sendConnectRequest(ssid, password);
-      },
-    });
-  };
-  updateListeners();
-
-  window.addEventListener("resize", function () {
-    updateListeners();
-  });
+  $("list").innerHTML = networks
+    .map(function (n, i) {
+      // A hidden network can't be picked from the list unless it is the connected one
+      let locked = n.hidden && !n.connected;
+      return (
+        "<li><button class='net' onclick='pick(" + i + ")'" + (n.connected ? " data-on" : "") + (locked ? " disabled" : "") + ">" +
+        "<span class='bars' data-l='" + level(n.rssi) + "' title='" + n.rssi + " dBm'><i></i><i></i><i></i><i></i></span>" +
+        "<span class='grow'><b>" + (locked ? "<i class='muted'>Hidden network</i>" : esc(n.ssid)) + "</b>" +
+        "<small>Ch " + n.channel + " · " + n.rssi + " dBm · <span class='mono'>" + esc(n.mac) + "</span></small></span>" +
+        (n.connected
+          ? "<span class='chip ok'>Connected</span>"
+          : "<span class='chip'>" + (n.enc === "OPEN" ? "Open" : esc(n.enc.replace(/-PSK$/, ""))) + "</span>") +
+        "</button></li>"
+      );
+    })
+    .join("");
 }
 
-function load() {
-  getById("scan-access-points").disabled = true;
-  apiCall({
-    endpoint: "/api/scan",
-    timeout: 10000,
-    callback: function (res, status) {
-      // 202: the scan is still running in the background
-      if (status === 202) {
-        setTimeout(load, 1000);
-        return;
-      }
-      access_points = res;
-      setStatusBanner("connected");
-      draw();
+function pick(i) {
+  let n = networks[i];
+  if (n.connected) {
+    ask({
+      title: "Disconnect from " + n.ssid + "?",
+      text: "The saved password is forgotten. The device stays reachable through its access point if it is on.",
+      ok: "Disconnect",
+      danger: true,
+      onOk: function () {
+        api("/api/disconnect", { method: "POST" }).then(function (r) {
+          if (r) toast(r.body.message || "Disconnected");
+          scan();
+        });
+      },
+    });
+    return;
+  }
+  if (n.enc === "OPEN") return join(n.ssid, "");
+  let enterprise = n.enc === "WPA2-ENTERPRISE";
+  ask({
+    title: "Connect to " + n.ssid,
+    text: enterprise ? "This network asks for a username and password." : "",
+    user: enterprise ? "Username" : null,
+    pass: true,
+    minPass: enterprise ? 1 : 8,
+    ok: "Connect",
+    onOk: function (user, pass) {
+      // Enterprise credentials travel as "username|password"
+      join(n.ssid, enterprise ? user + "|" + pass : pass);
     },
   });
 }
 
-function connect(ssid) {
-  var ap = access_points.find((ap) => ap.ssid === ssid);
-  if (!ap) {
-    alert("Network not found");
-    return;
-  }
-
-  const openNetworks = ["NONE", "OPEN"];
-  enc = ap.enc;
-  const isEnterprise = enc === "WPA2-ENTERPRISE";
-
-  if (openNetworks.includes(enc)) {
-    // No password needed
-    sendConnectRequest(ssid, "");
-  } else {
-    // Show password modal
-    handleModal({
-      title: "Connect to " + ssid,
-      input: true,
-      isEnterprise: isEnterprise,
-      buttonText: "Connect",
-      onclick: function () {
-        let password = getById("modal-input").value;
-        // Enterprise credentials travel as "username|password"
-        let passwordPayload = isEnterprise
-          ? getById("modal-input-text").value + "|" + password
-          : password;
-        sendConnectRequest(ssid, passwordPayload);
-      },
-    });
-  }
+function connectHidden() {
+  ask({
+    title: "Connect to a hidden network",
+    user: "Network name",
+    pass: true,
+    ok: "Connect",
+    onOk: function (ssid, pass) {
+      join(ssid, pass);
+    },
+  });
 }
 
-function sendConnectRequest(ssid, password) {
-  apiCall({
-    endpoint: "/api/connect",
-    method: "POST",
-    timeout: 10000,
-    data: { ssid: ssid, password: password },
-    callback: function () {
-      toast("Connecting to " + ssid + "...", 15000);
-      waitForConnection(ssid, Date.now() + 30000);
-    },
+function join(ssid, password) {
+  api("/api/connect", { method: "POST", timeout: 10000, data: { ssid: ssid, password: password } }).then(function (r) {
+    if (!r) return;
+    toast("Connecting to " + ssid + "…", 4000);
+    waitForConnection(ssid, Date.now() + 30000);
   });
 }
 
 // The device connects in the background; poll its status until the attempt ends
 function waitForConnection(ssid, deadline) {
-  const retry = function () {
-    if (Date.now() > deadline) {
-      toast("Timed out waiting for " + ssid, 6000);
-      load();
-      return;
-    }
-    setTimeout(function () {
-      waitForConnection(ssid, deadline);
-    }, 1000);
-  };
-  apiCall({
-    endpoint: "/api/status",
-    timeout: 3000,
-    onTimeout: retry,
-    onError: retry,
-    callback: function (res) {
-      const attempt = res.station.attempt;
-      if (attempt.state === "connecting") {
-        retry();
+  api("/api/status", { timeout: 3000, quiet: true }).then(function (r) {
+    let state = r && r.body.station.attempt.state;
+    if (!r || state === "connecting") {
+      if (Date.now() > deadline) {
+        toast("Timed out waiting for " + ssid, 6000);
+        scan();
         return;
       }
-      if (attempt.state === "succeeded") {
-        toast("Connected to " + ssid);
-      } else {
-        toast("Failed to connect to " + ssid, 6000);
-      }
-      load();
-    },
-  });
-}
-
-function disconnect(ssid) {
-  handleModal({
-    title: "Are you sure you want to disconnect from " + ssid + "?",
-    input: false,
-    buttonText: "Disconnect",
-    onclick: function () {
-      sendDisconnectRequest();
-    },
-  });
-}
-
-function sendDisconnectRequest() {
-  apiCall({
-    endpoint: "/api/disconnect",
-    method: "POST",
-    callback: function () {
-      toast("Successfully disconnected");
-      load();
-    },
+      setStatus("loading");
+      setTimeout(function () {
+        waitForConnection(ssid, deadline);
+      }, 1000);
+      return;
+    }
+    toast(state === "succeeded" ? "Connected to " + ssid : "Failed to connect to " + ssid, 6000);
+    scan();
   });
 }

@@ -110,7 +110,7 @@ See [ota-updates.md](ota-updates.md) for the behaviour behind these routes.
   "source": "upload",
   "progress": 0,
   "confirming": false,
-  "check": { "state": "available", "version": "0.2.0", "notes": "..." }
+  "check": { "state": "available", "version": "0.2.0", "notes": "...", "dev": false }
 }
 ```
 
@@ -123,6 +123,7 @@ See [ota-updates.md](ota-updates.md) for the behaviour behind these routes.
 | `confirming`, `confirm_in_s` | New firmware still unconfirmed, and seconds left |
 | `check.state` | `never`, `checking`, `up_to_date`, `available`, `no_update`, `needs_manual` or `failed` |
 | `check.version`, `check.notes` | The available update and its release notes (plain text, up to 4 KB) |
+| `check.dev` | With `available`: `true` when the update came from the local dev manifest (dev builds with `keygen.py --dev-manifest-url`), `false` for a GitHub release |
 | `check.error`, `check.message` | Why the last check didn't find an update |
 
 ### `POST /api/update`

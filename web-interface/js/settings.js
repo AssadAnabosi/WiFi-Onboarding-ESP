@@ -1,106 +1,72 @@
-var settings = {
-  ap_ssid: "",
-  ap_password: "",
-  // ap_channel: 0,
-  ap_hidden: false,
-  ap_status: false,
-  hostname: "",
-};
+// Settings: /api/settings form, reboot and reset. Firmware card is firmware.js.
 
-function draw() {
-  getById("reload-settings").disabled = true;
-  for (var key in settings) {
-    if (typeof settings[key] == "boolean") {
-      getById(key).checked = settings[key];
-    } else if (typeof settings[key] == "number") {
-      getById(key).value = settings[key];
-    } else if (typeof settings[key] == "string") {
-      getById(key).value = settings[key].toString();
-    }
-  }
+const SETTING_KEYS = ["ap_ssid", "ap_password", "ap_channel", "ap_hidden", "ap_status", "hostname"];
+var settings = {};
 
-  getById("reload-settings").disabled = false;
+function load() {
+  loadSettings();
+  loadFirmware();
 }
 
-function save() {
-  handleModal({
-    title: "Save settings",
-    buttonText: "Save",
-    onclick: function () {
-      let newSettings = {};
-      for (var key in settings) {
-        key = esc(key);
-        if (typeof settings[key] == "boolean") {
-          newSettings[key] = getById(key).checked;
-        } else if (typeof settings[key] == "number") {
-          newSettings[key] = parseInt(getById(key).value);
-        } else if (typeof settings[key] == "string") {
-          newSettings[key] = getById(key).value.toString();
-        }
-      }
-      toast("Saving settings...", 25000);
-      apiCall({
-        endpoint: "/api/settings",
-        method: "POST",
-        data: newSettings,
-        timeout: 8000,
-      });
-      alert("Saving... page will reload in 30 seconds");
-      setTimeout(function () {
-        window.location.reload();
-      }, 30000);
-    },
+function loadSettings() {
+  api("/api/settings").then(function (r) {
+    if (!r) return;
+    settings = r.body;
+    SETTING_KEYS.forEach(function (k) {
+      if (typeof settings[k] === "boolean") $(k).checked = settings[k];
+      else $(k).value = settings[k];
+    });
   });
 }
 
-function reset() {
-  handleModal({
-    title: "Reset settings",
-    text:
-      "Resets Wi-Fi and access point settings to defaults. Installed firmware (v" +
-      (device ? device.version : getById("fw-version").textContent.replace(/^v| \(dev\)$/g, "")) +
-      ") is not changed.",
-    buttonText: "Reset",
-    onclick: function () {
-      toast("Resetting settings...", 25000);
-      apiCall({
-        endpoint: "/api/reset",
-        method: "POST",
+function save() {
+  ask({
+    title: "Save settings?",
+    text: "The device reboots to apply them. The page reloads when it is back.",
+    ok: "Save and reboot",
+    onOk: function () {
+      let data = {};
+      SETTING_KEYS.forEach(function (k) {
+        let el = $(k);
+        data[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? parseInt(el.value, 10) : el.value;
       });
-      alert("Resetting... page will reload in 30 seconds");
-      setTimeout(function () {
-        window.location.reload();
-      }, 30000);
+      api("/api/settings", { method: "POST", data: data, timeout: 8000 }).then(function (r) {
+        if (!r) return;
+        toast(r.body.message || "Settings saved", 6000);
+        reloadAfterReboot();
+      });
     },
   });
 }
 
 function reboot() {
-  handleModal({
-    title: "Reboot device",
-    buttonText: "Reboot",
-    onclick: function () {
-      toast("Rebooting...", 25000);
-      apiCall({
-        endpoint: "/api/reboot",
-        method: "POST",
+  ask({
+    title: "Reboot the device?",
+    ok: "Reboot",
+    onOk: function () {
+      api("/api/reboot", { method: "POST" }).then(function (r) {
+        if (!r) return;
+        toast(r.body.message || "Rebooting", 6000);
+        reloadAfterReboot();
       });
-      alert("Rebooting... page will reload in 30 seconds");
-      setTimeout(function () {
-        window.location.reload();
-      }, 30000);
     },
   });
 }
 
-function load() {
-  loadFirmware();
-  apiCall({
-    endpoint: "/api/settings",
-    callback: function (res) {
-      settings = res;
-      setStatusBanner("connected");
-      draw();
+function reset() {
+  ask({
+    title: "Reset settings?",
+    text:
+      "Wi-Fi and access point settings go back to defaults. Installed firmware (" +
+      $("fw-installed").textContent + ") is not changed.",
+    ok: "Reset",
+    danger: true,
+    onOk: function () {
+      api("/api/reset", { method: "POST" }).then(function (r) {
+        if (!r) return;
+        toast(r.body.message || "Resetting", 6000);
+        reloadAfterReboot();
+      });
     },
   });
 }

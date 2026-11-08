@@ -27,6 +27,8 @@ A check reads the release manifest (`manifest.json`) of the latest release of th
 - the Firmware card shows the version and its release notes (as plain text);
 - nothing installs until you click **Install**. The device then downloads the file in the background, checks its size and SHA-256 against the manifest, and runs the same checks as a manual upload.
 
+A dev build can check a local manifest instead ([local-development.md](local-development.md#testing-pulls-locally)); an update found there is reported with `check.dev: true` in `GET /api/update/status`, so a UI can tell a dev update from a release.
+
 Requirements for a check or download:
 
 - The device must be connected to a Wi-Fi network with internet. In access-point-only mode it reports "No internet".
@@ -86,7 +88,7 @@ Update check results:
 
 New firmware starts *unconfirmed*. It confirms itself once setup has finished and it has run for 60 s more; the device doesn't need to reach your Wi-Fi network for that. Until then:
 
-- every page shows a **"Finishing update, N s"** banner;
+- every page shows a **"Finishing update, N s"** bar under the tabs, and the buttons for these actions are disabled;
 - reboot, settings save, factory reset, new updates and rollback are refused with "Finishing update, please wait N s";
 - Wi-Fi scan and connect keep working.
 

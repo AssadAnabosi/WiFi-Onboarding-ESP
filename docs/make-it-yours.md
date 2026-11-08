@@ -28,7 +28,7 @@ Checklist for turning a fork into your own project, with its own releases and it
 
 6. **Start your own history:** set `VERSION` to `0.1.0`, empty `CHANGELOG.md` down to its header and an `[Unreleased]` section, then run `python utils/build_assets.py`.
 
-7. **Branding:** page titles and footer in `web-interface/*.html`, `web-interface/favicon.ico`, and the README. Keep the MIT license notice and `THIRD_PARTY_LICENSES.md`.
+7. **Branding:** page titles in `web-interface/*.html`; the header name, footer and colours in `web-interface/js/app.js` and `web-interface/css/style.css` (colour tokens at the top, light and dark); `web-interface/favicon.ico`; and the README. Keep the MIT license notice and `THIRD_PARTY_LICENSES.md`.
 
 8. **Confirm the board and flash layout** before your first release. The partition table (`esp32/partitions.csv`) and bootloader are never changed by an update, so a layout change after release means every device needs a USB flash. To support other boards, add build targets (see [architecture.md](architecture.md#build-targets)).
 
