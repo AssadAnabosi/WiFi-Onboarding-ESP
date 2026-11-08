@@ -56,6 +56,16 @@ flowchart LR
 | `app1` | 0x200000 | 0x1F0000 (~1.9 MB) | Firmware slot B |
 | `coredump` | 0x3F0000 | 64 KB | Crash information for debugging |
 
+`esp32-8mb` uses `esp32/targets/esp32-8mb.partitions.csv`: the same partitions at the same offsets up to `app0`, with each app slot doubled.
+
+| Partition | Offset | Size | Holds |
+| --- | --- | --- | --- |
+| `nvs` | 0x9000 | 20 KB | Settings and system records |
+| `otadata` | 0xE000 | 8 KB | Which app slot boots, and whether it is confirmed |
+| `app0` | 0x10000 | 0x3F0000 (~3.9 MB) | Firmware slot A |
+| `app1` | 0x400000 | 0x3F0000 (~3.9 MB) | Firmware slot B |
+| `coredump` | 0x7F0000 | 64 KB | Crash information for debugging |
+
 The bootloader sits at 0x1000 and the partition table at 0x8000. An update writes only the slot that isn't running, so settings survive every update and rollback.
 
 The partition table and bootloader are **frozen from v0.1.0 on**: updates never change them, so a new layout would need a USB flash on every device. `otadata` must stay at 0xE000 and `app0` at 0x10000, which the core's factory-image recipe assumes. The SHA-256 of the table (padded to 0xC00 bytes) is the *layout hash* in every update file; a file for another layout is refused.

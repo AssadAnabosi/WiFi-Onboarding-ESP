@@ -4,12 +4,19 @@ How to get the firmware onto a board for the first time. After this first USB fl
 
 ## Supported hardware
 
-The one build target today is `esp32-4mb`: any classic ESP32 module with at least 4 MB flash.
+There are two build targets, both for classic ESP32 modules:
+
+| Target | Flash | App slots |
+| --- | --- | --- |
+| `esp32-4mb` | 4 MB or more | 2 × ~1.9 MB |
+| `esp32-8mb` | 8 MB or more | 2 × ~3.9 MB |
+
+Pick the one that matches your board's flash size; `esptool.py flash_id` prints it. An `esp32-4mb` build also runs on an 8 MB board but leaves half the flash unused. Moving a board from one target to the other takes a USB flash, because the flash layout differs.
 
 | Module | Notes |
 | --- | --- |
 | ESP32-WROOM-32, -32D, -32E, -32UE | Supported |
-| ESP32-WROVER (any flash size) | Supported. The extra RAM (PSRAM) is not used, and GPIO16/GPIO17 are wired to it, so your own hardware must not use those pins |
+| ESP32-WROVER, -WROVER-E (e.g. on an ESP32-WROVER-DevKitC) | Supported. The extra RAM (PSRAM) is not used, and GPIO16/GPIO17 are wired to it, so your own hardware must not use those pins |
 | ESP32-PICO-D4 | Supported |
 | ESP32-SOLO-1 (single core) | Not supported for now: it needs a special core build |
 | ESP32-H2, ESP32-P4 and other chips without Wi-Fi | Never supported. Wi-Fi onboarding and OTA are the whole project, so the firmware refuses to compile for them |
@@ -18,12 +25,12 @@ Other chips with Wi-Fi (ESP32-S3, -C3, -C6 and so on) can be added as new build 
 
 ## Option 1: flash a release
 
-1. Download `wifi-onboarding-<version>-esp32-4mb.factory.bin` from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest). Optionally check it against `SHA256SUMS` from the same release.
+1. Download `wifi-onboarding-<version>-<target>.factory.bin` for your target (e.g. `esp32-4mb`) from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest). Optionally check it against `SHA256SUMS` from the same release.
 2. Install [esptool](https://docs.espressif.com/projects/esptool/) (`pip install esptool`) and connect the board over USB.
 3. Flash the whole image at offset 0:
 
    ```sh
-   esptool.py --chip esp32 --port <PORT> write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin
+   esptool.py --chip esp32 --port <PORT> write_flash 0x0 wifi-onboarding-<version>-<target>.factory.bin
    ```
 
    `<PORT>` is e.g. `COM3` on Windows or `/dev/ttyUSB0` on Linux. Newer esptool versions also accept `esptool write-flash`.
