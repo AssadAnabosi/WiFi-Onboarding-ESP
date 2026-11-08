@@ -69,7 +69,30 @@ The target ID is compiled in. The device never guesses it from the hardware, sin
 
 ## Update states
 
-`UpdateManager` runs every update path (manual upload, pulled download, rollback) through one state machine behind one lock, so only one update runs at a time:
+`UpdateManager` runs every update path (manual upload, pulled download, rollback) through one state machine behind one lock, so only one update runs at a time. A pulled update and a manual upload enter at different states, then share the same checks, reboot and confirmation; every failure ends on firmware that works:
+
+```mermaid
+flowchart TD
+    check["Update check: checking"] -->|"newer version for this target"| available["Update check: available"]
+    available -->|"user clicks Install"| downloading
+    upload(["Manual upload of a .ota.bin"]) --> receiving
+    downloading --> installing
+    receiving --> installing
+    installing -->|"info block and signature OK"| rebooting
+    rebooting --> pending["New firmware boots unconfirmed<br/>Finishing update, N s"]
+    pending -->|"setup done, then 60 s up"| confirmed(["Confirmed: idle"])
+    downloading -->|"transfer or checksum fails"| failed["failed: old firmware keeps running"]
+    receiving -->|"transfer fails"| failed
+    installing -->|"file rule or signature fails"| failed
+    pending -->|"reset, crash, hang or 3-minute deadline"| rolledback["Rolled back: previous version boots"]
+
+    classDef bad stroke:#d33,stroke-width:2px
+    classDef good stroke:#3c5,stroke-width:2px
+    class failed,rolledback bad
+    class confirmed good
+```
+
+The update check runs 30 s after boot, every 24 h and on request (see [ota-updates.md](ota-updates.md#update-checks)). The states in lowercase are the `state` values of `GET /api/update/status`:
 
 | State | Meaning |
 | --- | --- |
