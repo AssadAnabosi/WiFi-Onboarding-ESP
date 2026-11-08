@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-09
+
 ### Added
 
 - `esp32-8mb` build target for classic ESP32 modules with 8 MB flash (e.g. ESP32-WROVER-E on an ESP32-WROVER-DevKitC), with two ~3.9 MB app slots. Moving a board from `esp32-4mb` to it needs one USB flash, since the flash layout differs.
