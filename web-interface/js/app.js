@@ -47,7 +47,7 @@ function esc(str) {
 }
 
 // Icons share one 24x24 stroke style; the size comes from the caller.
-// Wi-Fi and eye icons: Lucide (ISC license), see THIRD_PARTY_LICENSES.md
+// Icons from Lucide (ISC license), see THIRD_PARTY_LICENSES.md
 function svg(paths, size) {
   return (
     "<svg width='" + (size || 24) + "' height='" + (size || 24) +
@@ -60,6 +60,22 @@ const WIFI_ON =
   "<path d='M12 20h.01'/><path d='M2 8.82a15 15 0 0 1 20 0'/><path d='M5 12.859a10 10 0 0 1 14 0'/><path d='M8.5 16.429a5 5 0 0 1 7 0'/>";
 const WIFI_OFF =
   "<path d='M12 20h.01'/><path d='M8.5 16.429a5 5 0 0 1 7 0'/><path d='M5 12.859a10 10 0 0 1 5.17-2.69'/><path d='M19 12.859a10 10 0 0 0-2.007-1.523'/><path d='M2 8.82a15 15 0 0 1 4.177-2.643'/><path d='M22 8.82a15 15 0 0 0-11.288-3.764'/><path d='m2 2 20 20'/>";
+// Access point on: radio tower
+const RADIO_TOWER =
+  "<path d='M4.9 16.1C1 12.2 1 5.8 4.9 1.9'/><path d='M7.8 4.7a6.14 6.14 0 0 0-.8 7.5'/><circle cx='12' cy='9' r='2'/><path d='M16.2 4.8c2 2 2.26 5.11.8 7.47'/><path d='M19.1 1.9a9.96 9.96 0 0 1 0 14.1'/><path d='M9.5 18h5'/><path d='m8 22 4-11 4 11'/>";
+// Brand: Wi-Fi with a cog
+const WIFI_COG =
+  "<path d='m14.305 19.53.923-.382'/><path d='m15.228 16.852-.923-.383'/><path d='m16.852 15.228-.383-.923'/><path d='m16.852 20.772-.383.924'/><path d='m19.148 15.228.383-.923'/><path d='m19.53 21.696-.382-.924'/><path d='M2 8.82a15 15 0 0 1 20 0'/><path d='m20.772 16.852.924-.383'/><path d='m20.772 19.148.924.383'/><path d='M5 12.859a10 10 0 0 1 10.18-2.342'/><path d='M8.5 16.429a5 5 0 0 1 1.998-1.2'/><circle cx='18' cy='18' r='3'/>";
+// Tabs: house / radar / settings cog
+const HOUSE =
+  "<path d='M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8'/><path d='M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/>";
+const RADAR =
+  "<path d='M19.07 4.93A10 10 0 0 0 6.99 3.34'/><path d='M4 6h.01'/><path d='M2.29 9.62A10 10 0 1 0 21.31 8.35'/><path d='M16.24 7.76A6 6 0 1 0 8.23 16.67'/><path d='M12 18h.01'/><path d='M17.99 11.66A6 6 0 0 1 15.77 16.67'/><circle cx='12' cy='12' r='2'/><path d='m13.41 10.59 5.66-5.66'/>";
+const SETTINGS_COG =
+  "<path d='M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915'/><circle cx='12' cy='12' r='3'/>";
+// Home Device card: CPU
+const CPU =
+  "<path d='M12 20v2'/><path d='M12 2v2'/><path d='M17 20v2'/><path d='M17 2v2'/><path d='M2 12h2'/><path d='M2 17h2'/><path d='M2 7h2'/><path d='M20 12h2'/><path d='M20 17h2'/><path d='M20 7h2'/><path d='M7 20v2'/><path d='M7 2v2'/><rect x='4' y='4' width='16' height='16' rx='2'/><rect x='8' y='8' width='8' height='8' rx='1'/>";
 // Theme toggle: half-filled circle
 const THEME = "<circle cx='12' cy='12' r='9'/><path d='M12 3a9 9 0 0 1 0 18z' fill='currentColor'/>";
 // Password visibility: eye / eye off
@@ -75,9 +91,9 @@ function buildChrome() {
   let page = body.dataset.page;
   let tabs = page
     ? "<nav class='wrap tabs'>" +
-      [["home", "Home"], ["scan", "Scan"], ["settings", "Settings"]]
+      [["home", "Home", HOUSE], ["networks", "Networks", RADAR], ["settings", "Settings", SETTINGS_COG]]
         .map(function (t) {
-          return "<a href='" + t[0] + "'" + (t[0] === page ? " aria-current=page" : "") + ">" + t[1] + "</a>";
+          return "<a href='" + t[0] + "'" + (t[0] === page ? " aria-current=page" : "") + ">" + svg(t[2], 16) + t[1] + "</a>";
         })
         .join("") +
       "</nav>"
@@ -85,7 +101,7 @@ function buildChrome() {
   body.insertAdjacentHTML(
     "afterbegin",
     "<header><div class='wrap row between top'><a class='brand' href='home'>" +
-      svg(WIFI_ON, 22) +
+      svg(WIFI_COG, 22) +
       "<span>Wi-Fi On-Boarding</span></a><div class='row'><span id='conn' class='pill' data-s='busy'>Loading</span>" +
       "<button class='btn icon-btn' onclick='toggleTheme()' aria-label='Toggle light/dark theme' title='Theme'>" +
       svg(THEME, 20) +

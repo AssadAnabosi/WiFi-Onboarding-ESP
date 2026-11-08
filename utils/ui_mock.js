@@ -1,5 +1,5 @@
 // Fake device for utils/ui_preview.py --mock. It replaces js/api.js and the page
-// scripts (home.js, scan.js, settings.js, firmware.js) with the same functions
+// scripts (home.js, networks.js, settings.js, firmware.js) with the same functions
 // working on fake data, so every page and state can be tried without hardware.
 // The Demo states panel (bottom left) switches the fake device's state; choices
 // are kept in localStorage ("mock-state"). Keep it in step with the page scripts.
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     let page = document.body.dataset.page;
     if (page === "home") drawHome();
-    if (page === "scan") scan();
+    if (page === "networks") scan();
     if (page === "settings") {
       loadSettings();
       loadFirmware();
@@ -111,19 +111,45 @@ function fakeCheck(state) {
 
 /* ---------- Home ---------- */
 
-function statusCard(on, title, subtitle, chip, rows, offText) {
+function statusCard(on, icon, title, subtitle, chip, rows, offText) {
   return (
     "<article class='card'><div class='head'><span class='ico" + (on ? " on" : "") + "'>" +
-    svg(on ? WIFI_ON : WIFI_OFF) +
+    svg(icon) +
     "</span><div class='grow'><h2>" + title + "</h2><p class='sm muted'>" + subtitle +
     "</p></div><span class='chip " + (on ? "ok" : "bad") + "'>" + chip + "</span></div>" +
-    (on
-      ? "<dl class='kv'>" +
-        rows.map(function (r) {
-          return "<div><dt>" + r[0] + "</dt><dd>" + esc(r[1]) + "</dd></div>";
-        }).join("") +
-        "</dl>"
-      : "<p class='muted'>" + offText + "</p>") +
+    (on ? kvList(rows) : "<p class='muted'>" + offText + "</p>") +
+    "</article>"
+  );
+}
+
+function kvList(rows, cls) {
+  return (
+    "<dl class='kv" + (cls ? " " + cls : "") + "'>" +
+    rows.map(function (r) {
+      return "<div><dt>" + r[0] + "</dt><dd>" + esc(r[1]) + "</dd></div>";
+    }).join("") +
+    "</dl>"
+  );
+}
+
+// What /api/health -> data reports about the board
+const BOARD = {
+  chip_info: { chip_model: "ESP32-D0WD-V3", chip_revision: 301, cores: 2, cpu_freq_mhz: 240 },
+  memory: { flash_size_mb: 8, free_heap_kb: 182 },
+};
+
+function deviceCard() {
+  let chip = BOARD.chip_info;
+  let mem = BOARD.memory;
+  return (
+    "<article class='card wide'><div class='head'><span class='ico'>" + svg(CPU) +
+    "</span><div class='grow'><h2>Device</h2></div></div>" +
+    kvList([
+      ["Chip", chip.chip_model + " v3.1"],
+      ["CPU", chip.cores + " cores · " + chip.cpu_freq_mhz + " MHz"],
+      ["Flash", mem.flash_size_mb + " MB"],
+      ["Free heap", mem.free_heap_kb + " KB"],
+    ], "cols2") +
     "</article>"
   );
 }
@@ -133,15 +159,16 @@ function drawHome() {
   showNote("mismatch", mismatchText());
   showUpdateNote(s.update ? fakeCheck("available") : null);
   $("cards").innerHTML =
-    statusCard(s.ap, "Access point", "Direct connection to the device", s.ap ? "Active" : "Off",
+    statusCard(s.ap, s.ap ? RADIO_TOWER : WIFI_OFF, "Access point", "Direct connection to the device", s.ap ? "Active" : "Off",
       [["Name", "esp32-garden-setup"], ["IP address", "192.168.4.1"]],
       "The access point is off. Turn it on in <a href='settings'>Settings</a>.") +
-    statusCard(s.sta, "Wi-Fi network", "Connection to your router", s.sta ? "Connected" : "Not connected",
+    statusCard(s.sta, s.sta ? WIFI_ON : WIFI_OFF, "Wi-Fi network", "Connection to your router", s.sta ? "Connected" : "Not connected",
       [["Network", s.ssid], ["IP address", "192.168.1.42"]],
-      "Not connected to any network. <a href='scan'>Pick one on Scan</a>.");
+      "Not connected to any network. <a href='networks'>Pick one on Networks</a>.") +
+    deviceCard();
 }
 
-/* ---------- Scan ---------- */
+/* ---------- Networks ---------- */
 
 function level(rssi) {
   return rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : 1;
@@ -155,10 +182,12 @@ function scanResults() {
   let joinedHidden = s.sta && !NETWORKS.some(function (n) {
     return !n.hidden && n.ssid === s.ssid;
   });
-  return NETWORKS.map(function (n) {
+  let list = NETWORKS.map(function (n) {
     let connected = s.sta && (n.hidden ? joinedHidden : n.ssid === s.ssid);
     return Object.assign({}, n, { connected: connected, ssid: n.hidden && connected ? s.ssid : n.ssid });
   });
+  // Like networks.js: the connected network on top, the rest strongest first
+  return list.filter(function (n) { return n.connected; }).concat(list.filter(function (n) { return !n.connected; }));
 }
 
 function scan() {
@@ -339,7 +368,7 @@ function renderCheck(state) {
   if (available) {
     $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + V_NEXT + " is available";
     $("fw-notes").textContent =
-      "## Added\n- Light and dark themes\n- Signal bars on the Scan page\n\n## Fixed\n- Hidden networks with an empty name";
+      "## Added\n- Light and dark themes\n- Signal bars on the Networks page\n\n## Fixed\n- Hidden networks with an empty name";
   }
 }
 

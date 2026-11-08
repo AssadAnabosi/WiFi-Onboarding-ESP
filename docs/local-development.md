@@ -61,7 +61,7 @@ python utils/ui_preview.py                            # real device at config.lo
 python utils/ui_preview.py --device 192.168.1.26      # real device by name or IP
 ```
 
-Open http://localhost:8766 (`--port` to change it; run both side by side on different ports). Pages are served without `.html` (`/home`, `/scan`, `/settings`), as on the device, with `{{VERSION}}` filled in. Edit a file and reload.
+Open http://localhost:8766 (`--port` to change it; run both side by side on different ports). Pages are served without `.html` (`/home`, `/networks`, `/settings`), as on the device, with `{{VERSION}}` filled in. Edit a file and reload.
 
 ### Mock: a fake device
 
@@ -70,7 +70,7 @@ Open http://localhost:8766 (`--port` to change it; run both side by side on diff
 | Switch | What changes |
 | --- | --- |
 | Access point on | Home: access point card active or off |
-| Wi-Fi connected | Home: Wi-Fi card; Scan: the connected network highlighted |
+| Wi-Fi connected | Home: Wi-Fi card; Networks: the connected network highlighted |
 | Update available | Home: "Update vX.Y.Z available" note; Firmware: badge, release notes and Install. Off shows "Up to date" |
 | Update is a dev build | With Update available: "Dev update available" badge and note in the warning colour |
 | Running a dev build | "(dev)" after the version; "Dev build" badge when no update is offered |

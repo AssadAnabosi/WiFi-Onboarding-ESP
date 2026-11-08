@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Home has a Device card under the status cards: chip and revision, CPU cores and speed, flash size and free heap.
+
+### Changed
+
+- The Scan page is now Networks, at `/networks`.
+- The tabs show icons (house, radar, settings), the header logo is a Wi-Fi cog, and the access point card shows a radio tower while the access point is on.
+- The connected network is listed first on Networks, whatever its signal strength.
+- The "Connected" pill pings.
+
 ## [0.2.2] - 2026-11-08
 
 ### Changed

@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import ui_preview  # noqa: E402
 
-PAGES = ["index", "home", "scan", "settings"]
+PAGES = ["index", "home", "networks", "settings"]
 
 
 class UiPreviewTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class UiPreviewTest(unittest.TestCase):
             with self.subTest(page=name):
                 html = ui_preview.mock_page(self.page(name))
                 self.assertEqual(html.count(ui_preview.MOCK_URL), 1)
-                self.assertNotRegex(html, r'src="js/(api|home|scan|settings|firmware)\.js"')
+                self.assertNotRegex(html, r'src="js/(api|home|networks|settings|firmware)\.js"')
                 self.assertIn('src="js/app.js"', html)
 
     def test_mock_defines_what_the_pages_call(self):

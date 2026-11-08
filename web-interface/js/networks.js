@@ -1,4 +1,4 @@
-// Scan: network list from /api/scan, connect / disconnect
+// Networks: network list from /api/scan, connect / disconnect
 
 var networks = [];
 
@@ -23,10 +23,19 @@ function scan() {
       setTimeout(scan, 1000);
       return;
     }
-    networks = Array.isArray(r.body) ? r.body : [];
+    networks = connectedFirst(Array.isArray(r.body) ? r.body : []);
     setScanning(false);
     draw();
   });
+}
+
+// The connected network goes on top; the rest keep the device's order (strongest first)
+function connectedFirst(list) {
+  return list.filter(function (n) {
+    return n.connected;
+  }).concat(list.filter(function (n) {
+    return !n.connected;
+  }));
 }
 
 function level(rssi) {

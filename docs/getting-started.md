@@ -38,7 +38,7 @@ Build with Arduino IDE 2 or `arduino-cli` and upload over USB. See [local-develo
 
 1. On a phone or laptop, join the Wi-Fi network **`ESP-Access-Point`**, password **`12345678`**.
 2. Open **`http://config.local`** or **`http://192.168.4.1`**.
-3. On **Scan**, pick your network, enter its password and connect. The device saves the credentials once the connection works.
+3. On **Networks**, pick your network, enter its password and connect. The device saves the credentials once the connection works.
 4. On **Settings**, change the access point password. The default one is public.
 
 On every boot the device tries the saved network three times. If that fails, or if the access point is enabled in Settings, it also runs its own access point at `192.168.4.1`. Once it is on your network, open it at the IP address your router gave it (shown on the Home page while you are connected to the access point). The hostname setting (`ESP-IoT` by default) is the name the device gives your router.

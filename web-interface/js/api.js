@@ -51,6 +51,9 @@ function api(endpoint, opts) {
   });
 }
 
+// The /api/health data (board info, firmware), kept for the pages
+var deviceInfo = {};
+
 // Waits for /api/health, fills in the version, then runs the page's load()
 function start() {
   api("/api/health", { quiet: true }).then(function (r) {
@@ -59,7 +62,8 @@ function start() {
       setTimeout(start, 2000);
       return;
     }
-    let fw = r.body.data && r.body.data.firmware;
+    deviceInfo = r.body.data || {};
+    let fw = deviceInfo.firmware;
     if (fw) $("fw-version").textContent = "v" + fw.version + (fw.dev ? " (dev)" : "");
     if (typeof load !== "undefined") load();
     checkUpdateStatus();
