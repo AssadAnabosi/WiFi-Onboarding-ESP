@@ -46,9 +46,9 @@ function draw() {
       let locked = n.hidden && !n.connected;
       return (
         "<li><button class='net' onclick='pick(" + i + ")'" + (n.connected ? " data-on" : "") + (locked ? " disabled" : "") + ">" +
-        "<span class='bars' data-l='" + level(n.rssi) + "' title='" + n.rssi + " dBm'><i></i><i></i><i></i><i></i></span>" +
+        "<span class='bars l" + level(n.rssi) + "' title='" + n.rssi + " dBm'><i></i><i></i><i></i><i></i></span>" +
         "<span class='grow'><b>" + (locked ? "<i class='muted'>Hidden network</i>" : esc(n.ssid)) + "</b>" +
-        "<small>Ch " + n.channel + " · " + n.rssi + " dBm · <span class='mono'>" + esc(n.mac) + "</span></small></span>" +
+        "<small>Ch " + n.channel + " · <span class='mono'>" + esc(n.mac) + "</span></small></span>" +
         (n.connected
           ? "<span class='chip ok'>Connected</span>"
           : "<span class='chip'>" + (n.enc === "OPEN" ? "Open" : esc(n.enc.replace(/-PSK$/, ""))) + "</span>") +
