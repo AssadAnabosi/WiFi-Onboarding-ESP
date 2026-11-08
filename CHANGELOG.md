@@ -7,15 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
+First release of the ESP32-only boilerplate with signed over-the-air updates.
+
 ### Added
 
+- Signed OTA updates (ECDSA P-256): upload a `.ota.bin` from Settings → Firmware, with checks in the browser before anything is sent.
+- Update checks against the project's GitHub Releases 30 s after boot, every 24 h and on request; the user confirms the install. Home shows an "Update available" badge.
+- Automatic rollback when new firmware crashes, hangs or doesn't stay up, and a manual "Roll back" button for the previous version.
+- A "Finishing update" countdown while new firmware confirms itself; reboot, save, reset and new updates wait for it.
+- Protection against wrong files: other chip, flash layout, project or configuration, factory images and unsigned files.
+- A warning when the device runs another configuration than the one it was set up with.
+- Version in the footer of every page, and a Firmware card with version, build date and target.
+- Protection against cross-site requests on every POST route.
+- Release pipeline: signed `.ota.bin` and `.factory.bin` per target, `manifest.json` and `SHA256SUMS`, published from a protected GitHub Environment.
+- Tools in `utils/`: `build_assets.py`, `keygen.py`, `sign.py`, `targets.py`, `release.py`, with tests.
 - Project documentation in `docs/`, plus `LICENSE` (MIT), `CONTRIBUTING.md`, `SECURITY.md` and `THIRD_PARTY_LICENSES.md`.
 
 ### Changed
 
 - The sketch is ESP32-only and lives in `esp32/` (`esp32/esp32.ino`).
-- WPA2-Enterprise uses the ESP32 core 3.x `esp_eap_client` API.
+- Settings are stored in NVS instead of `config.json` on LittleFS, and survive every update and rollback. Flashing v0.1.0 starts from empty settings.
+- The web interface is embedded in the firmware, minified and gzipped, and revalidated by the browser after each update.
+- Wi-Fi scan and connect run in the background; the API answers `202` and the UI polls for the result.
+- WPA2-Enterprise uses the ESP32 core 3.x `esp_eap_client` API (not verified on a real network).
+- `GET /api/health` replaces `GET /api`.
+- Requires ESP32 Arduino core 3.3.8 or newer (pinned to 3.3.12).
 
 ### Removed
 
 - ESP8266 support. The last ESP8266-compatible version is on the `legacy/esp8266` branch.
+- LittleFS and the separate filesystem image.
