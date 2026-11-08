@@ -105,10 +105,11 @@ jobs:
       - name: Firmware size
         run: python utils/targets.py size ${{ matrix.target }} build/esp32.ino.bin
 
+      # out/<target>/ so the release job gets builds/<target>/ however many targets there are
       - name: Collect build output
         run: |
-          mkdir out
-          cp build/esp32.ino.bin build/esp32.ino.partitions.bin build/esp32.ino.merged.bin out/
+          mkdir -p out/${{ matrix.target }}
+          cp build/esp32.ino.bin build/esp32.ino.partitions.bin build/esp32.ino.merged.bin out/${{ matrix.target }}/
 
       - uses: actions/upload-artifact@v7.0.2
         with:
@@ -142,6 +143,7 @@ jobs:
       - uses: actions/download-artifact@v8.0.2
         with:
           pattern: build-*
+          merge-multiple: true
           path: builds
 
       - name: Write signing key
@@ -163,9 +165,17 @@ jobs:
 
       - name: Sign
         run: |
+          ls -lR builds
+          shopt -s nullglob
+          targets=(builds/*/)
+          if [ ${#targets[@]} -eq 0 ]; then
+            echo "::error::No build output found in builds/"
+            exit 1
+          fi
           mkdir dist
-          for dir in builds/build-*; do
-            target="${dir#builds/build-}"
+          for dir in "${targets[@]}"; do
+            dir="${dir%/}"
+            target="${dir#builds/}"
             base="dist/$SLUG-$VERSION-$target"
             python utils/sign.py --key "$RUNNER_TEMP/ota-signing.pem" --target "$target" \
               --firmware "$dir/esp32.ino.bin" --partitions "$dir/esp32.ino.partitions.bin" \
