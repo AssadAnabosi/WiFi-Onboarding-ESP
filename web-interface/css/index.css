@@ -125,15 +125,19 @@ hr {
   margin: 0 0.5rem;
 }
 
-#status-banner {
+/* The status and "Finishing update" banners stay at the top together while scrolling */
+#banners {
   position: sticky;
+  top: 0;
+  z-index: 99;
+}
+
+#status-banner {
   text-align: center;
   color: #fff;
   text-transform: capitalize;
   padding: 5px;
   font-weight: 500;
-  top: 0;
-  z-index: 99;
 }
 
 #finishing-banner {
