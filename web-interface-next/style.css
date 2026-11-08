@@ -123,6 +123,19 @@ main.wrap {
 }
 /* Status cards side by side: each card spans two shared rows (head, details),
    so the details start at the same height even when one subtitle wraps */
+/* Card header: icon, title and badge on the top line in every card, so a
+   wrapped subtitle only adds height below the title */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.head h2 {
+  line-height: 1.6rem;
+}
+.head .chip {
+  margin-top: 0.2rem;
+}
 .cards > .card {
   display: grid;
   grid-row: span 2;

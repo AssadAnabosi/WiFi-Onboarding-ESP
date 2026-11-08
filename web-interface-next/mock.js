@@ -106,7 +106,7 @@ function fakeCheck(state) {
 
 function statusCard(on, title, subtitle, chip, rows, offText) {
   return (
-    "<article class='card'><div class='row'><span class='ico" + (on ? " on" : "") + "'>" +
+    "<article class='card'><div class='head'><span class='ico" + (on ? " on" : "") + "'>" +
     svg(on ? WIFI_ON : WIFI_OFF) +
     "</span><div class='grow'><h2>" + title + "</h2><p class='sm muted'>" + subtitle +
     "</p></div><span class='chip " + (on ? "ok" : "bad") + "'>" + chip + "</span></div>" +
