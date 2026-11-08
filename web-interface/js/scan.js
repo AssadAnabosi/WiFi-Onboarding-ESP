@@ -75,7 +75,17 @@ function pick(i) {
     });
     return;
   }
-  if (n.enc === "OPEN") return join(n.ssid, "");
+  if (n.enc === "OPEN") {
+    ask({
+      title: "Connect to " + n.ssid + "?",
+      text: "This network is open: traffic to and from the device is not encrypted.",
+      ok: "Connect",
+      onOk: function () {
+        join(n.ssid, "");
+      },
+    });
+    return;
+  }
   let enterprise = n.enc === "WPA2-ENTERPRISE";
   ask({
     title: "Connect to " + n.ssid,

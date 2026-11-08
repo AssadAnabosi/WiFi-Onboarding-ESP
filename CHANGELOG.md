@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-08
+
 ### Changed
 
+- Picking an open network on the Scan page now asks for confirmation before connecting, and notes that the network is not encrypted.
 - Firmware code reorganised into `esp32/src/` (`storage`, `wifi`, `web`, `ota`, `system`), with the two largest files split into focused modules and the modules wired together in `esp32.ino` instead of through globals. The API, settings and update behaviour are unchanged.
 - New firmware arms its rollback deadline at the start of `setup()`, before connecting to Wi-Fi, so a hang while connecting also rolls back.
 - Serial log lines start with a module tag (`[wifi]`, `[ota]`, ...).
