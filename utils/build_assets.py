@@ -2,7 +2,9 @@
 
 Reads web-interface/ and VERSION, and writes:
   esp32/WebAssets.h  each file minified, gzipped and embedded as a byte array,
-                     with its URL, MIME type, length and an ETag from its content hash
+                     with its URL, MIME type, length and an ETag from its content hash.
+                     Pages link their CSS/JS as "file?v=<hash>", so the browser can keep
+                     those forever and only revalidate the page itself.
   esp32/Version.h    FIRMWARE_VERSION and its parts
 
 Output is deterministic (zopfli gzip with timestamp 0 and no file name, pinned
@@ -26,6 +28,8 @@ VERSION_FILE = ROOT / "VERSION"
 OUT_DIR = ROOT / "esp32"
 
 VERSION_PLACEHOLDER = "{{VERSION}}"
+# Local stylesheet and script links in a page: href="css/x.css", src="js/x.js"
+ASSET_LINK = re.compile(r'(href|src)="((?:css|js)/[^"?#]+)"')
 VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 MIME_TYPES = {
@@ -56,14 +60,27 @@ def url_for(relative_path):
     return "/" + relative_path
 
 
-def minify(path, version):
-    """Return the minified bytes of one web file."""
+def add_asset_hashes(html, hashes, page):
+    """Append ?v=<content hash> to every local CSS/JS link in a page."""
+
+    def link(match):
+        attr, target = match.groups()
+        if target not in hashes:
+            raise ValueError(f"{page}: links to {target}, which is not in web-interface/")
+        return f'{attr}="{target}?v={hashes[target]}"'
+
+    return ASSET_LINK.sub(link, html)
+
+
+def minify(path, version, hashes=None):
+    """Return the minified bytes of one web file (pages get their CSS/JS links hashed)."""
     suffix = path.suffix
     if suffix == ".ico":
         return path.read_bytes()
     text = path.read_text(encoding="utf-8")
     if suffix == ".html":
-        return html_minify(text.replace(VERSION_PLACEHOLDER, version)).encode("utf-8")
+        text = add_asset_hashes(text.replace(VERSION_PLACEHOLDER, version), hashes or {}, path.name)
+        return html_minify(text).encode("utf-8")
     if suffix == ".css":
         return css_minify(text).encode("utf-8")
     if suffix == ".js":
@@ -71,18 +88,34 @@ def minify(path, version):
     raise ValueError(f"Unsupported file type: {path}")
 
 
+def content_hash(data):
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
 def collect_assets(web_dir, version):
-    """Return (url, mime, gzipped bytes, etag) for every web file, in a stable order."""
-    assets = []
+    """Return (url, mime, gzipped bytes, etag) for every web file, in a stable order.
+
+    CSS/JS and other files are built first so each page can link them by hash;
+    a page's own ETag then changes whenever any file it links changes."""
     paths = sorted(
         (p for p in web_dir.rglob("*") if p.is_file() and p.suffix in MIME_TYPES),
         key=lambda p: p.relative_to(web_dir).as_posix(),
     )
+    built = {}
+    hashes = {}
+    for path in paths:
+        if path.suffix != ".html":
+            relative = path.relative_to(web_dir).as_posix()
+            built[path] = zopfli.gzip.compress(minify(path, version))
+            hashes[relative] = content_hash(built[path])
+    for path in paths:
+        if path.suffix == ".html":
+            built[path] = zopfli.gzip.compress(minify(path, version, hashes))
+    assets = []
     for path in paths:
         relative = path.relative_to(web_dir).as_posix()
-        data = zopfli.gzip.compress(minify(path, version))
-        etag = '"' + hashlib.sha256(data).hexdigest()[:16] + '"'
-        assets.append((url_for(relative), MIME_TYPES[path.suffix], data, etag))
+        data = built[path]
+        assets.append((url_for(relative), MIME_TYPES[path.suffix], data, '"' + content_hash(data) + '"'))
     return assets
 
 

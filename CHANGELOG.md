@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The tabs show icons (house, radar, settings), the header logo is a Wi-Fi cog, and the access point card shows a radio tower while the access point is on.
 - The connected network is listed first on Networks, whatever its signal strength.
 - The "Connected" pill pings.
+- Pages open faster: CSS and JS are linked by content hash and cached by the browser, so moving between pages asks the device only for the page itself. Pages are still checked on every visit, so an update never leaves old files behind.
+- Home asks for the device status at the same time as the start-up check instead of after it.
 
 ## [0.2.2] - 2026-11-08
 

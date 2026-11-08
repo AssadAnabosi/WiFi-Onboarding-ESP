@@ -48,10 +48,18 @@ function deviceCard(info) {
   );
 }
 
+// Asked for right away, alongside api.js's /api/health, instead of after it. Quiet: if the
+// device is away, load() (which runs once /api/health answers) asks again and shows the error.
+var statusRequest = api("/api/status", { quiet: true });
+
 function load() {
-  api("/api/status").then(function (r) {
-    if (r) drawCards(r.body);
-  });
+  statusRequest
+    .then(function (r) {
+      return r || api("/api/status");
+    })
+    .then(function (r) {
+      if (r) drawCards(r.body);
+    });
 }
 
 function drawCards(s) {

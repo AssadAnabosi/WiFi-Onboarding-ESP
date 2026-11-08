@@ -161,7 +161,7 @@ Committed, never edited by hand; CI fails when they are out of date.
 
 | File | Made by | From | Contains |
 | --- | --- | --- | --- |
-| `esp32/WebAssets.h` | `utils/build_assets.py` | `web-interface/` | Every page, script and style, minified and gzipped, with its URL, MIME type and content hash (the ETag) |
+| `esp32/WebAssets.h` | `utils/build_assets.py` | `web-interface/` | Every page, script and style, minified and gzipped, with its URL, MIME type and content hash (the ETag). Pages link their CSS/JS with `?v=<content hash>` |
 | `esp32/Version.h` | `utils/build_assets.py` | `VERSION` | `FIRMWARE_VERSION` and its parts |
 | `esp32/OtaPublicKey.h` | `utils/keygen.py` | Public keys | The trusted release keys |
 | `esp32/OtaPublicKey.local.h` (gitignored) | `utils/keygen.py --dev` | Dev key | Makes a build a dev build |
@@ -175,4 +175,4 @@ Committed, never edited by hand; CI fails when they are out of date.
 
 The commit hash is never in a committed file: release builds get it from CI's `build_opt.h`, and local builds show `dev`.
 
-The web server serves each file with `Content-Encoding: gzip`, its content hash as `ETag` and `Cache-Control: no-cache`. It answers `304 Not Modified` itself when `If-None-Match` matches, so browsers revalidate on each visit and never run stale JavaScript after an update.
+The web server serves each file with `Content-Encoding: gzip` and its content hash as `ETag`, and answers `304 Not Modified` itself when `If-None-Match` matches. Pages get `Cache-Control: no-cache`, so the browser revalidates them on every visit. Pages link their CSS/JS as `file?v=<content hash>`; a request whose `v` matches gets `Cache-Control: public, max-age=31536000, immutable`, so the browser reuses those files without asking. New content means a new hash, a new URL and a new page ETag, so a browser never runs stale JavaScript after an update. A request without `v`, or with an old one, falls back to `no-cache`.
