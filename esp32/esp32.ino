@@ -1,36 +1,34 @@
-#include "ProjectConfig.h"
-#include <ESPmDNS.h>
+// Wi-Fi onboarding with signed OTA updates. Module overview: docs/architecture.md.
+// This file creates the modules and wires them together; the code lives in src/.
 
-#include "WebServerManager.h"
-#include "ConfigStorage.h"
+#include "src/ota/FirmwareSlots.h"
+#include "src/ota/UpdateManager.h"
+#include "src/storage/ConfigStorage.h"
+#include "src/system/Restart.h"
+#include "src/web/WebServerManager.h"
+#include "src/wifi/WiFiManager.h"
 
-#include "WiFiManager.h"
-#include "UpdateManager.h"
-
+FirmwareSlots firmwareSlots;
+UpdateManager updateManager(firmwareSlots);
 WiFiManager wifiManager;
+WebServerManager webServer(wifiManager, updateManager, firmwareSlots);
 
-WebServerManager webServer;
-
-void setup() {
+void setup()
+{
   Serial.begin(115200);
-  // Flush serial buffer
-  Serial.println("");
-  ConfigStorage::begin();
-  // Initialize WiFiManager and attempt to connect to WiFi
-  wifiManager.autoConnect();
+  Serial.println();
+
+  firmwareSlots.begin(); // First, so the rollback deadline of new firmware is armed early
+  ConfigStorage::logSettings();
+  wifiManager.begin();
   updateManager.begin();
   webServer.begin();
-  if (MDNS.begin(MDNS_SETUP_NAME))  // "<name>.local" resolves to the SoftAP IP
-  {
-    Serial.println("mDNS responder started: " MDNS_SETUP_NAME ".local");
-    MDNS.addService("http", "tcp", 80);
-  } else {
-    Serial.println("Error starting mDNS responder");
-  }
-  updateManager.setupDone();
+  firmwareSlots.setupDone();
 }
 
-void loop() {
+void loop()
+{
+  firmwareSlots.loop();
   updateManager.loop();
-  webServer.loop();
+  Restart::loop();
 }
