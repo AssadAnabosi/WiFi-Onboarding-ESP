@@ -1,0 +1,193 @@
+name: Release
+
+# Runs when a vX.Y.Z tag is pushed (docs/releasing.md). Builds without secrets;
+# only the last job runs in the protected `release` Environment, where the
+# signing key lives, and it publishes a pre-release to check before making it public.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.13"
+  ARDUINO_CLI_VERSION: "1.5.1"
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+      version: ${{ steps.info.outputs.version }}
+      slug: ${{ steps.info.outputs.slug }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      - name: Python tests
+        run: python -m unittest discover -s utils/tests -v
+
+      - name: Generated files are up to date
+        run: |
+          python utils/build_assets.py
+          if ! git diff --exit-code -- esp32/WebAssets.h esp32/Version.h; then
+            echo "::error::Generated files are out of date: run build_assets.py and commit the result"
+            exit 1
+          fi
+
+      - name: Target names
+        run: python utils/targets.py check
+
+      - name: Version, tag and changelog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          released=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName')
+          python utils/release.py validate "$GITHUB_REF_NAME" $released
+
+      - name: Fork setup
+        run: python utils/release.py check-repo "$GITHUB_REPOSITORY"
+
+      - name: Release info
+        id: info
+        run: python utils/release.py info >> "$GITHUB_OUTPUT"
+
+      - name: List targets
+        id: targets
+        run: echo "targets=$(python utils/targets.py list)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: validate
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        target: ${{ fromJSON(needs.validate.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      # No cache: release builds install the pinned core and libraries fresh
+      - uses: arduino/setup-arduino-cli@v2.0.0
+        with:
+          version: ${{ env.ARDUINO_CLI_VERSION }}
+
+      - name: Prepare target
+        run: python utils/targets.py prepare ${{ matrix.target }} --commit "${GITHUB_SHA:0:7}"
+
+      - name: Compile
+        run: arduino-cli compile --profile ${{ matrix.target }} --warnings default --build-path build esp32
+
+      - name: Firmware size
+        run: python utils/targets.py size ${{ matrix.target }} build/esp32.ino.bin
+
+      - name: Collect build output
+        run: |
+          mkdir out
+          cp build/esp32.ino.bin build/esp32.ino.partitions.bin build/esp32.ino.merged.bin out/
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: build-${{ matrix.target }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Sign and publish
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+      SLUG: ${{ needs.validate.outputs.slug }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: build-*
+          path: builds
+
+      - name: Write signing key
+        env:
+          OTA_SIGNING_KEY: ${{ secrets.OTA_SIGNING_KEY }}
+        run: |
+          if [ -z "$OTA_SIGNING_KEY" ]; then
+            echo "::error::The release Environment has no OTA_SIGNING_KEY secret (see docs/make-it-yours.md)"
+            exit 1
+          fi
+          (umask 077 && printf '%s\n' "$OTA_SIGNING_KEY" > "$RUNNER_TEMP/ota-signing.pem")
+
+      - name: Signing key is trusted by the firmware
+        run: |
+          if ! python utils/keygen.py --check "$RUNNER_TEMP/ota-signing.pem"; then
+            echo "::error::OTA_SIGNING_KEY is not in esp32/OtaPublicKey.h: add its public key with keygen.py --add-public (see docs/make-it-yours.md)"
+            exit 1
+          fi
+
+      - name: Sign
+        run: |
+          mkdir dist
+          for dir in builds/build-*; do
+            target="${dir#builds/build-}"
+            base="dist/$SLUG-$VERSION-$target"
+            python utils/sign.py --key "$RUNNER_TEMP/ota-signing.pem" --target "$target" \
+              --firmware "$dir/esp32.ino.bin" --partitions "$dir/esp32.ino.partitions.bin" \
+              --out "$base.ota.bin"
+            python utils/sign.py --verify "$base.ota.bin" --pubkey esp32/OtaPublicKey.h
+            cp "$dir/esp32.ino.merged.bin" "$base.factory.bin"
+          done
+
+      - name: Delete signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ota-signing.pem"
+
+      - name: Manifest and checksums
+        run: |
+          cp THIRD_PARTY_LICENSES.md dist/
+          python utils/release.py manifest dist --repo "$GITHUB_REPOSITORY" --tag "$GITHUB_REF_NAME"
+          cat dist/manifest.json dist/SHA256SUMS
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python utils/release.py notes "$VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --prerelease --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
