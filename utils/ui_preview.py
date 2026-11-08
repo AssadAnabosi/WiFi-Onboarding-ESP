@@ -7,7 +7,7 @@ Live:  python utils/ui_preview.py [--device config.local]
        The real pages talking to a real device.
 
 Open http://localhost:8766 (--port to change it). Pages come straight from
-web-interface/, served without ".html" (/home, /scan, /settings) as on the
+web-interface/, served without ".html" (/home, /networks, /settings) as on the
 device, with {{VERSION}} filled in from VERSION. Edit and reload; there is no
 build step.
 
@@ -36,7 +36,7 @@ API_TIMEOUT_S = 15
 UPLOAD_TIMEOUT_S = 120
 
 # Scripts that talk to the device; the mock stands in for all of them
-DEVICE_SCRIPT = re.compile(r'[ \t]*<script src="js/(?:api|home|scan|settings|firmware)\.js" defer></script>\r?\n?')
+DEVICE_SCRIPT = re.compile(r'[ \t]*<script src="js/(?:api|home|networks|settings|firmware)\.js" defer></script>\r?\n?')
 
 
 def fill_version(html, version):
@@ -46,7 +46,7 @@ def fill_version(html, version):
 def mock_page(html):
     """Swap a page's device scripts for the mock."""
     if not DEVICE_SCRIPT.search(html):
-        raise ValueError("page loads none of js/api.js, home.js, scan.js, settings.js, firmware.js")
+        raise ValueError("page loads none of js/api.js, home.js, networks.js, settings.js, firmware.js")
     first = True
 
     def swap(match):

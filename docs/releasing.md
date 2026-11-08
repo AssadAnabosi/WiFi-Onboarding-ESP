@@ -133,5 +133,5 @@ CI covers the tools and builds. Device behaviour is checked by hand on a real ES
 - [ ] Dev build: shows "(dev)", accepts dev-signed and release-signed files
 - [ ] Factory reset: settings and driver Wi-Fi credentials cleared; firmware, home target and slot records kept
 - [ ] Cross-site request from another page (plain form POST): rejected
-- [ ] Browser after an update: no stale UI (ETag and 304 work)
-- [ ] Web UI on a phone and a desktop, light and dark theme: Home, Scan (connect, hidden network, enterprise), Settings (save, password eye)
+- [ ] Browser after an update: no stale UI (page ETag and 304 work, CSS/JS load with the new `?v=` hash)
+- [ ] Web UI on a phone and a desktop, light and dark theme: Home, Networks (connect, hidden network, enterprise), Settings (save, password eye)

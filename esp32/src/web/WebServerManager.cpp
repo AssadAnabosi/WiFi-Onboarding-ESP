@@ -6,6 +6,14 @@
 #include "../system/Log.h"
 #include "RequestGuard.h"
 
+namespace
+{
+// Pages and unversioned requests: ask the device before every use (it answers 304 while unchanged)
+constexpr const char *CACHE_REVALIDATE = "no-cache";
+// CSS/JS requested with their current "?v=<content hash>": new content gets a new URL
+constexpr const char *CACHE_FOREVER = "public, max-age=31536000, immutable";
+} // namespace
+
 WebServerManager::WebServerManager(WiFiManager &wifi, UpdateManager &updates, FirmwareSlots &slots)
     : _server(80), _wifi(wifi), _updates(updates), _slots(slots)
 {
@@ -78,8 +86,16 @@ void WebServerManager::sendFailure(AsyncWebServerRequest *request, const UpdateR
 
 void WebServerManager::serveAsset(AsyncWebServerRequest *request, const WebAsset *asset)
 {
-  // The browser revalidates on every visit, so new firmware never runs with stale files.
+  // Pages link their CSS/JS as "file?v=<content hash>" (build_assets.py). A request with
+  // the current hash can be kept forever: new content gets a new URL. Everything else,
+  // pages included, is revalidated on every visit, so new firmware never runs with stale files.
   // The server's built-in 304 handling only covers filesystem files, so compare here.
+  bool versioned = false;
+  if (request->hasParam("v"))
+  {
+    String expected = String("\"") + request->getParam("v")->value() + "\"";
+    versioned = expected == asset->etag;
+  }
   const AsyncWebHeader *ifNoneMatch = request->getHeader("If-None-Match");
   bool notModified = ifNoneMatch && ifNoneMatch->value().indexOf(asset->etag) >= 0;
   AsyncWebServerResponse *response = notModified ? request->beginResponse(304)
@@ -87,7 +103,7 @@ void WebServerManager::serveAsset(AsyncWebServerRequest *request, const WebAsset
   if (!notModified)
     response->addHeader("Content-Encoding", "gzip");
   response->addHeader("ETag", asset->etag);
-  response->addHeader("Cache-Control", "no-cache");
+  response->addHeader("Cache-Control", versioned ? CACHE_FOREVER : CACHE_REVALIDATE);
   request->send(response);
 }
 
