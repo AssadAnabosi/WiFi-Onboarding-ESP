@@ -41,6 +41,7 @@ class SketchTest(unittest.TestCase):
         body = "profiles:\n" + "".join(f"  {p}:\n    fqbn: esp32:esp32:esp32\n" for p in profiles)
         (sketch / "sketch.yaml").write_text(body + f"default_profile: {default}\n", encoding="utf-8")
         (sketch / "partitions.csv").write_text(PARTITIONS, encoding="utf-8")
+        (sketch / "targets" / f"{default}.partitions.csv").write_text(PARTITIONS, encoding="utf-8")
         (sketch / "build_opt.h").write_text(targets.build_opt(default), encoding="utf-8")
         for p in profiles:
             (sketch / "targets" / f"{p}.h").write_text("#pragma once\n", encoding="utf-8")
@@ -66,6 +67,24 @@ class SketchTest(unittest.TestCase):
             opt = (sketch / "build_opt.h").read_text(encoding="utf-8")
             self.assertIn('-DOTA_TARGET_ID=\\"esp32-4mb-relay\\"', opt)
             self.assertIn('-DFIRMWARE_COMMIT=\\"abc123\\"', opt)
+
+    def test_prepare_default_target_restores_its_table(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sketch = self.make_sketch(tmp, ["esp32-4mb", "esp32-8mb"])
+            other = PARTITIONS.replace("0x1F0000", "0x3F0000")
+            (sketch / "targets" / "esp32-8mb.partitions.csv").write_text(other, encoding="utf-8")
+            targets.prepare("esp32-8mb", sketch_dir=sketch)
+            targets.prepare("esp32-4mb", sketch_dir=sketch)
+            self.assertEqual((sketch / "partitions.csv").read_text(encoding="utf-8"), PARTITIONS)
+            self.assertEqual(targets.check(sketch), [])
+
+    def test_partitions_copy_must_match_default_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sketch = self.make_sketch(tmp, ["esp32-4mb"])
+            (sketch / "partitions.csv").write_text(PARTITIONS.replace("0x1F0000", "0x180000"), encoding="utf-8")
+            problems = targets.check(sketch)
+            self.assertEqual(len(problems), 1)
+            self.assertIn("partitions.csv does not match", problems[0])
 
     def test_size_check(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -28,6 +28,8 @@ arduino-cli upload --profile esp32-4mb --build-path build -p <PORT> esp32
 
 **Arduino IDE** ignores `sketch.yaml`, so install the same versions by hand (Boards Manager and Library Manager), select an ESP32 board and the **"No FS 4MB (2MB APP x2)"** partition scheme. Both the IDE and arduino-cli pick up `esp32/partitions.csv` and `esp32/build_opt.h` from the sketch folder automatically. `build_opt.h` turns on signed updates (`-DUPDATE_SIGN`) and sets the build target; don't delete it.
 
+The commands above build `esp32-4mb`, the default target. For `esp32-8mb`, run `python utils/targets.py prepare esp32-8mb` first: it copies that target's partition table and `build_opt.h` into the sketch folder. Then use `--profile esp32-8mb`, or in the IDE pick **Flash Size: 8MB** and the **Custom** partition scheme. `python utils/targets.py prepare esp32-4mb` puts the default files back; don't commit the swapped ones.
+
 ## Edit loop
 
 1. Firmware: edit the files in `esp32/src/` (one folder per module, see [architecture.md](architecture.md#code-layout)) and `esp32/esp32.ino`. Format C++ with the sketch's `.clang-format`: Arduino IDE's **Tools → Auto Format** uses it, as do most editors. Leave the generated headers (`WebAssets.h`, `Version.h`, `OtaPublicKey*.h`) alone.

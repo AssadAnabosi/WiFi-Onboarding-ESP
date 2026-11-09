@@ -46,7 +46,7 @@ flowchart LR
 
 ## Flash layout
 
-`esp32-4mb` uses `esp32/partitions.csv`:
+`esp32-4mb` uses `esp32/targets/esp32-4mb.partitions.csv`:
 
 | Partition | Offset | Size | Holds |
 | --- | --- | --- | --- |
@@ -55,6 +55,16 @@ flowchart LR
 | `app0` | 0x10000 | 0x1F0000 (~1.9 MB) | Firmware slot A |
 | `app1` | 0x200000 | 0x1F0000 (~1.9 MB) | Firmware slot B |
 | `coredump` | 0x3F0000 | 64 KB | Crash information for debugging |
+
+`esp32-8mb` uses `esp32/targets/esp32-8mb.partitions.csv`: the same partitions at the same offsets up to `app0`, with each app slot doubled.
+
+| Partition | Offset | Size | Holds |
+| --- | --- | --- | --- |
+| `nvs` | 0x9000 | 20 KB | Settings and system records |
+| `otadata` | 0xE000 | 8 KB | Which app slot boots, and whether it is confirmed |
+| `app0` | 0x10000 | 0x3F0000 (~3.9 MB) | Firmware slot A |
+| `app1` | 0x400000 | 0x3F0000 (~3.9 MB) | Firmware slot B |
+| `coredump` | 0x7F0000 | 64 KB | Crash information for debugging |
 
 The bootloader sits at 0x1000 and the partition table at 0x8000. An update writes only the slot that isn't running, so settings survive every update and rollback.
 
@@ -90,11 +100,11 @@ Each target is made of:
 | Piece | File |
 | --- | --- |
 | Build profile (board, partition scheme, pinned core and libraries) | A profile named after the target in `esp32/sketch.yaml` |
-| Partition table | `esp32/partitions.csv` for the default target, `esp32/targets/<target>.partitions.csv` for the others |
+| Partition table | `esp32/targets/<target>.partitions.csv` |
 | Feature switches | `esp32/targets/<target>.h` |
 | Build flags (`-DUPDATE_SIGN`, `OTA_TARGET_ID`, `OTA_TARGET_HEADER`) | `esp32/build_opt.h`, committed for the default target |
 
-To add a target, add those three files; CI builds every profile without workflow changes. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder.
+To add a target, add those three files; CI builds every profile without workflow changes. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder. Both are committed for the default target, and `targets.py check` fails if either no longer matches it.
 
 The target ID is compiled in. The device never guesses it from the hardware, since two configurations can share the same chip.
 
