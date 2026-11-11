@@ -22,6 +22,7 @@ const DEMO_DEFAULTS = {
   mismatch: false,
   rollback: false,
   offline: false,
+  psram: true,
 };
 const DEMO_LABELS = {
   ap: "Access point on",
@@ -33,6 +34,7 @@ const DEMO_LABELS = {
   mismatch: "Config mismatch",
   rollback: "Rollback available",
   offline: "Device offline",
+  psram: "Board has PSRAM",
 };
 
 function demo() {
@@ -135,20 +137,29 @@ function kvList(rows, cls) {
 // What /api/health -> data reports about the board
 const BOARD = {
   chip_info: { chip_model: "ESP32-D0WD-V3", chip_revision: 301, cores: 2, cpu_freq_mhz: 240 },
-  memory: { flash_size_mb: 8, free_heap_kb: 182 },
+  memory: { flash_size_mb: 8, free_heap_kb: 182, psram_size_mb: 8, free_psram_kb: 4010 },
 };
+
+// Same text as home.js's memorySize() / memoryFree()
+function memorySize(mem) {
+  return mem.flash_size_mb + " MB flash" + (mem.psram_size_mb ? " · " + mem.psram_size_mb + " MB PSRAM" : "");
+}
+function memoryFree(mem) {
+  if (!mem.psram_size_mb) return mem.free_heap_kb + " KB";
+  return mem.free_heap_kb + " KB RAM · " + (mem.free_psram_kb / 1024).toFixed(1) + " MB PSRAM";
+}
 
 function deviceCard() {
   let chip = BOARD.chip_info;
-  let mem = BOARD.memory;
+  let mem = demo().psram ? BOARD.memory : { flash_size_mb: 4, free_heap_kb: 182, psram_size_mb: 0, free_psram_kb: 0 };
   return (
     "<article class='card wide'><div class='head'><span class='ico'>" + svg(CPU) +
     "</span><div class='grow'><h2>Device</h2></div></div>" +
     kvList([
       ["Chip", chip.chip_model + " v3.1"],
       ["CPU", chip.cores + " cores · " + chip.cpu_freq_mhz + " MHz"],
-      ["Flash", mem.flash_size_mb + " MB"],
-      ["Free heap", mem.free_heap_kb + " KB"],
+      ["Memory", memorySize(mem)],
+      ["Free memory", memoryFree(mem)],
     ], "cols2") +
     "</article>"
   );

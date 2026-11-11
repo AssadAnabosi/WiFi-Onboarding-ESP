@@ -28,7 +28,18 @@ function chipRevision(rev) {
   return rev >= 100 ? Math.floor(rev / 100) + "." + (rev % 100) : String(rev);
 }
 
-// Full-width card under the two status cards: chip, CPU, flash and free heap from /api/health
+// "8 MB flash · 4 MB PSRAM" / "4 MB flash" (no PSRAM)
+function memorySize(mem) {
+  return mem.flash_size_mb + " MB flash" + (mem.psram_size_mb ? " · " + mem.psram_size_mb + " MB PSRAM" : "");
+}
+
+// "182 KB RAM · 3.9 MB PSRAM" / "182 KB" (no PSRAM)
+function memoryFree(mem) {
+  if (!mem.psram_size_mb) return mem.free_heap_kb + " KB";
+  return mem.free_heap_kb + " KB RAM · " + (mem.free_psram_kb / 1024).toFixed(1) + " MB PSRAM";
+}
+
+// Full-width card under the two status cards: chip, CPU, memory and free memory from /api/health
 function deviceCard(info) {
   let chip = info.chip_info || {};
   let mem = info.memory || {};
@@ -39,8 +50,8 @@ function deviceCard(info) {
       [
         ["Chip", (chip.chip_model || "?") + (chip.chip_revision != null ? " v" + chipRevision(chip.chip_revision) : "")],
         ["CPU", chip.cores + (chip.cores === 1 ? " core" : " cores") + " · " + chip.cpu_freq_mhz + " MHz"],
-        ["Flash", mem.flash_size_mb + " MB"],
-        ["Free heap", mem.free_heap_kb + " KB"],
+        ["Memory", memorySize(mem)],
+        ["Free memory", memoryFree(mem)],
       ],
       "cols2"
     ) +
