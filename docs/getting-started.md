@@ -4,19 +4,20 @@ How to get the firmware onto a board for the first time. After this first USB fl
 
 ## Supported hardware
 
-There are two build targets, both for classic ESP32 modules:
+There are three build targets, all for classic ESP32 modules:
 
 | Target | Flash | App slots |
 | --- | --- | --- |
 | `esp32-4mb` | 4 MB or more | 2 × ~1.9 MB |
 | `esp32-8mb` | 8 MB or more | 2 × ~3.9 MB |
+| `esp32-8mb-psram` | 8 MB or more, with PSRAM (WROVER, WROVER-E) | 2 × ~3.9 MB |
 
-Pick the one that matches your board's flash size; `esptool.py flash_id` prints it. An `esp32-4mb` build also runs on an 8 MB board but leaves half the flash unused. Moving a board from one target to the other takes a USB flash, because the flash layout differs.
+Pick the one that matches your board's flash size; `esptool.py flash_id` prints it. An `esp32-4mb` build also runs on an 8 MB board but leaves half the flash unused. Moving a board between `esp32-4mb` and an 8 MB target takes a USB flash, because the flash layout differs. `esp32-8mb` and `esp32-8mb-psram` share one layout, so a board can switch between them with an update (the page warns that the file is for another target first).
 
 | Module | Notes |
 | --- | --- |
 | ESP32-WROOM-32, -32D, -32E, -32UE | Supported |
-| ESP32-WROVER, -WROVER-E (e.g. on an ESP32-WROVER-DevKitC) | Supported. The extra RAM (PSRAM) is not used, and GPIO16/GPIO17 are wired to it, so your own hardware must not use those pins |
+| ESP32-WROVER, -WROVER-E (e.g. on an ESP32-WROVER-DevKitC) | Supported. The extra RAM (PSRAM) is used only by `esp32-8mb-psram`; the other targets leave it off. GPIO16/GPIO17 are wired to it either way, so your own hardware must not use those pins |
 | ESP32-PICO-D4 | Supported |
 | ESP32-SOLO-1 (single core) | Not supported for now: it needs a special core build |
 | ESP32-H2, ESP32-P4 and other chips without Wi-Fi | Never supported. Wi-Fi onboarding and OTA are the whole project, so the firmware refuses to compile for them |

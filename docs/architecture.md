@@ -56,7 +56,7 @@ flowchart LR
 | `app1` | 0x200000 | 0x1F0000 (~1.9 MB) | Firmware slot B |
 | `coredump` | 0x3F0000 | 64 KB | Crash information for debugging |
 
-`esp32-8mb` uses `esp32/targets/esp32-8mb.partitions.csv`: the same partitions at the same offsets up to `app0`, with each app slot doubled.
+`esp32-8mb` uses `esp32/targets/esp32-8mb.partitions.csv`: the same partitions at the same offsets up to `app0`, with each app slot doubled. `esp32-8mb-psram` uses an identical copy; it differs from `esp32-8mb` only in turning PSRAM on (`PSRAM=enabled` in its `sketch.yaml` profile).
 
 | Partition | Offset | Size | Holds |
 | --- | --- | --- | --- |

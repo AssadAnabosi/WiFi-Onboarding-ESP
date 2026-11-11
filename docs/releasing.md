@@ -107,7 +107,7 @@ Done once per repository (forks too; see [make-it-yours.md](make-it-yours.md)):
 
   Keep no repository-level copy of the key, and keep an offline backup.
 - **Tag ruleset** (Settings → Rules → Rulesets): target tags matching `v[0-9]*.[0-9]*.[0-9]*`; restrict creation, update and deletion, with only you able to bypass. Only you can start a release.
-- **`main` ruleset** (Settings → Rules → Rulesets): target the default branch; block deletion and force pushes; require a pull request; require these status checks from GitHub Actions: `Tools and generated files` and one `Build <target>` per target in `esp32/sketch.yaml` (today `Build esp32-4mb` and `Build esp32-8mb`); only you can bypass. This makes the generated-file check (which guards the unreadable `esp32/WebAssets.h`) and every build pass before anything is merged.
+- **`main` ruleset** (Settings → Rules → Rulesets): target the default branch; block deletion and force pushes; require a pull request; require these status checks from GitHub Actions: `Tools and generated files` and one `Build <target>` per target in `esp32/sketch.yaml` (today `Build esp32-4mb`, `Build esp32-8mb` and `Build esp32-8mb-psram`); only you can bypass. This makes the generated-file check (which guards the unreadable `esp32/WebAssets.h`) and every build pass before anything is merged.
 
   Required checks are listed by name. **When you add, rename or remove a target, update this list too**, or the new target's build isn't required (and a removed one blocks every merge, since it never reports).
 - **Private vulnerability reporting** (Settings → Security): enabled, as `SECURITY.md` asks reporters to use it.
