@@ -21,6 +21,8 @@ WebServerManager::WebServerManager(WiFiManager &wifi, UpdateManager &updates, Fi
 
 void WebServerManager::begin()
 {
+  // Browsers must use each response's declared type, never guess one from its bytes
+  DefaultHeaders::Instance().addHeader("X-Content-Type-Options", "nosniff");
   _server.addMiddleware(guardPost);
 
   // Pages and static files, embedded in the firmware

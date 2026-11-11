@@ -63,6 +63,19 @@ Without protection, any web page open in a browser on the same network could sen
 
 A failed check answers `403` with the reason. Tools such as `curl` send no `Origin` and pass, which is expected: see the risks below. Release notes from the manifest are shown as plain text (never HTML), capped at 4 KB.
 
+## Response headers
+
+Every response carries `X-Content-Type-Options: nosniff`, so browsers use the declared type (`image/x-icon`, `application/json`, ...) and never guess one from the bytes. A file that isn't a script or a page, such as `favicon.ico`, can't be run as one.
+
+## Generated and binary files
+
+`esp32/WebAssets.h` is the web interface as gzipped bytes, which no reviewer can read. CI rebuilds it from `web-interface/` and fails if one byte differs (see [releasing.md](releasing.md#the-pipeline)), so its content can only change through the readable sources. Two things keep that check meaningful:
+
+- The `main` ruleset requires the check to pass before merging (see [releasing.md](releasing.md#github-setup)).
+- A pull request runs its own copy of the workflows and of `utils/build_assets.py`, so review changes to `.github/workflows/` and `utils/` as carefully as the firmware.
+
+`web-interface/favicon.ico` is the one binary source file. It is embedded as is and served as `image/x-icon` with `nosniff`, so it can only ever be shown as an icon.
+
 ## Secure Boot
 
 This project verifies OTA images in software. For production devices, use ESP32 **Secure Boot V2** plus **flash encryption**. This requires an ESP-IDF or PlatformIO build (Arduino as a component) and permanently configures the chip. The code doesn't need to change; the build system does.
