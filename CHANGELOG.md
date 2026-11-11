@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Every response from the device sends `X-Content-Type-Options: nosniff`, so browsers never treat a file as a different type than the one declared (for example the embedded `favicon.ico` as a script).
+- The docs describe the `main` ruleset that makes the generated-file check (which guards `esp32/WebAssets.h`) and every target build required before merging, and that a new target's build check must be added to it.
 
 ## [0.4.0] - 2026-11-09
 
