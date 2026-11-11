@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Release notes on the Settings page are shown formatted (headings, lists, `code`, **bold**, *italic* and links) instead of as raw markdown. The notes are still never parsed as HTML.
+
 ## [0.4.0] - 2026-11-09
 
 ### Added

@@ -337,8 +337,14 @@ function renderCheck(check) {
   renderBadge();
   if (available) {
     $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + check.version + " is available";
-    // Release notes are plain text: never parsed as HTML
-    $("fw-notes").textContent = check.notes || "No release notes.";
+    // Markdown rendered as DOM nodes (js/markdown.js), never parsed as HTML;
+    // plain text if that file didn't load
+    let notes = check.notes || "No release notes.";
+    if (typeof renderMarkdown === "function") renderMarkdown($("fw-notes"), notes);
+    else {
+      $("fw-notes").textContent = notes;
+      $("fw-notes").style.whiteSpace = "pre-wrap";
+    }
   }
 }
 
