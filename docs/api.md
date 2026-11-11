@@ -31,12 +31,14 @@ Liveness check, used by the UI to wait for a reboot. Returns board information:
     "platform": "ESP32",
     "mac": "AA:BB:CC:DD:EE:FF",
     "chip_info": { "chip_model": "ESP32-D0WD-V3", "chip_revision": 301, "cores": 2, "cpu_freq_mhz": 240 },
-    "memory": { "flash_size_mb": 4, "free_heap_kb": 180 },
+    "memory": { "flash_size_mb": 8, "free_heap_kb": 180, "psram_size_mb": 8, "free_psram_kb": 4010 },
     "software": { "sdk_version": "...", "arduino_core": "3.3.12" },
     "firmware": { "version": "0.1.0", "dev": false }
   }
 }
 ```
+
+`free_heap_kb` counts internal RAM only. `psram_size_mb` is the PSRAM chip's size and `free_psram_kb` what is free of the part the heap uses (4 MB at most on the classic ESP32); both are 0 when the board has no PSRAM or the target doesn't turn it on (only `esp32-8mb-psram` does).
 
 ### `GET /api/status`
 

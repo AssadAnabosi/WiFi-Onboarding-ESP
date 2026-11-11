@@ -4,6 +4,7 @@
 
 #include <AsyncJson.h> // Must come after ESPAsyncWebServer.h
 #include <WiFi.h>
+#include <esp_psram.h>
 
 #include "../../ProjectConfig.h"
 #include "../ota/FirmwareSlots.h"
@@ -30,7 +31,11 @@ void fillBoardInfo(JsonObject out)
 
   JsonObject memory = out["memory"].to<JsonObject>();
   memory["flash_size_mb"] = ESP.getFlashChipSize() / (1024 * 1024);
-  memory["free_heap_kb"] = ESP.getFreeHeap() / 1024;
+  memory["free_heap_kb"] = ESP.getFreeHeap() / 1024; // Internal RAM only
+  // 0 when the board has no PSRAM or the target doesn't turn it on (see targets/<target>.h).
+  // The chip's own size: the heap only maps part of it (4 MB at most on the classic ESP32).
+  memory["psram_size_mb"] = psramFound() ? esp_psram_get_size() / (1024 * 1024) : 0;
+  memory["free_psram_kb"] = ESP.getFreePsram() / 1024;
 
   JsonObject software = out["software"].to<JsonObject>();
   software["sdk_version"] = ESP.getSdkVersion();
