@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-12
+
+### Added
+
+- `esp32-8mb-psram` build target for classic ESP32 modules with 8 MB flash and PSRAM (e.g. ESP32-WROVER-E). It is `esp32-8mb` with PSRAM turned on, using the same flash layout, so a board can move between the two with an update instead of a USB flash.
+- The device reports its PSRAM: `/api/health` has `memory.psram_size_mb` and `memory.free_psram_kb` (0 without PSRAM, and on targets that don't turn it on).
+
 ### Changed
+
+- The Home Device card shows a Memory row ("8 MB flash · 8 MB PSRAM") and a Free memory row ("182 KB RAM · 3.9 MB PSRAM") instead of Flash and Free heap. Boards without PSRAM show only the flash size and free RAM.
 
 - Release notes on the Settings page are shown formatted (headings, lists, `code`, **bold**, *italic* and links) instead of as raw markdown. The notes are still never parsed as HTML.
 
