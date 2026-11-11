@@ -367,8 +367,15 @@ function renderCheck(state) {
   $("fw-badge").className = "chip " + badge[1];
   if (available) {
     $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + V_NEXT + " is available";
-    $("fw-notes").textContent =
-      "## Added\n- Light and dark themes\n- Signal bars on the Networks page\n\n## Fixed\n- Hidden networks with an empty name";
+    // Same shape as a CHANGELOG section, plus the edge cases: nesting, long code, an unclosed marker
+    renderMarkdown(
+      $("fw-notes"),
+      "### Added\n\n- Light and dark themes, see [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)\n" +
+        "- `esp32-8mb` build target with **two ~3.9 MB app slots**\n" +
+        "  - Moving a board to it needs *one* USB flash\n\n" +
+        "### Fixed\n\n- Hidden networks with an empty name, in\n  `esp32/src/wifi/a_very_long_file_name_that_would_otherwise_widen_the_card.cpp`\n" +
+        "- An unclosed **marker stays plain text"
+    );
   }
 }
 
