@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-12
+
 ### Added
 
 - Browser installer: a page on GitHub Pages (https://assadanabosi.github.io/WiFi-Onboarding-ESP/) that flashes the firmware over USB from Chrome or Edge with ESP Web Tools, no esptool needed. Pick any public release (the latest is selected) and read its release notes, then your board; or flash a full image of your own. It looks like the device's web interface, theme switch included, and ESP Web Tools' dialogs use the same colours. A new workflow publishes it when a release is made public.
