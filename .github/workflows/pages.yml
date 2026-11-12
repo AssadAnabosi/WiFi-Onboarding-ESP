@@ -67,12 +67,11 @@ jobs:
       # The device's stylesheet and app.js give the page the same look, header and theme switch
       - name: Page
         run: |
-          cp installer/installer.css installer/installer.js site/
+          cp installer/installer.css installer/installer.js installer/favicon.ico site/
           sed "s|{{REPO}}|$GITHUB_REPOSITORY|g" installer/index.html > site/index.html
           mkdir -p site/css site/js
           cp web-interface/css/style.css site/css/
           cp web-interface/js/app.js web-interface/js/markdown.js site/js/
-          cp web-interface/favicon.ico site/
 
       - uses: actions/upload-pages-artifact@v5.0.0
         with:

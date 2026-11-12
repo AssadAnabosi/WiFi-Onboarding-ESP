@@ -65,7 +65,7 @@ A failed check answers `403` with the reason. Tools such as `curl` send no `Orig
 
 ## Response headers
 
-Every response carries `X-Content-Type-Options: nosniff`, so browsers use the declared type (`image/x-icon`, `application/json`, ...) and never guess one from the bytes. A file that isn't a script or a page, such as `favicon.ico`, can't be run as one.
+Every response carries `X-Content-Type-Options: nosniff`, so browsers use the declared type (`text/css`, `application/json`, ...) and never guess one from the bytes. A file that isn't a script or a page can't be run as one.
 
 ## Generated and binary files
 
@@ -73,8 +73,6 @@ Every response carries `X-Content-Type-Options: nosniff`, so browsers use the de
 
 - The `main` ruleset requires the check to pass before merging (see [releasing.md](releasing.md#github-setup)).
 - A pull request runs its own copy of the workflows and of `utils/build_assets.py`, so review changes to `.github/workflows/` and `utils/` as carefully as the firmware.
-
-`web-interface/favicon.ico` is the one binary source file. It is embedded as is and served as `image/x-icon` with `nosniff`, so it can only ever be shown as an icon.
 
 ## Secure Boot
 
