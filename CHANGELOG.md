@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-12
+
 ### Changed
 
 - The device's web interface no longer embeds `favicon.ico` (about 3 KB of flash), and its pages declare an empty icon so browsers don't ask the device for one. The icon now ships only with the browser installer (`installer/favicon.ico`).
