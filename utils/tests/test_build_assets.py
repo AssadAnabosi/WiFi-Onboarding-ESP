@@ -29,7 +29,7 @@ class BuildAssetsTest(unittest.TestCase):
         self.assertEqual(build_assets.url_for("index.html"), "/")
         self.assertEqual(build_assets.url_for("settings.html"), "/settings")
         self.assertEqual(build_assets.url_for("css/index.css"), "/css/index.css")
-        self.assertEqual(build_assets.url_for("favicon.ico"), "/favicon.ico")
+        self.assertEqual(build_assets.url_for("css/style.css"), "/css/style.css")
 
     def test_version_is_validated(self):
         with tempfile.TemporaryDirectory() as tmp:
