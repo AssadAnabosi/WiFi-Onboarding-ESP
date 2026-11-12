@@ -6,12 +6,14 @@
 #include "src/storage/ConfigStorage.h"
 #include "src/system/Restart.h"
 #include "src/web/WebServerManager.h"
+#include "src/wifi/ImprovSerial.h"
 #include "src/wifi/WiFiManager.h"
 
 FirmwareSlots firmwareSlots;
 UpdateManager updateManager(firmwareSlots);
 WiFiManager wifiManager;
 WebServerManager webServer(wifiManager, updateManager, firmwareSlots);
+ImprovSerial improvSerial(wifiManager, updateManager);
 
 void setup()
 {
@@ -20,6 +22,7 @@ void setup()
 
   firmwareSlots.begin(); // First, so the rollback deadline of new firmware is armed early
   ConfigStorage::logSettings();
+  improvSerial.begin(); // Before Wi-Fi, so the browser installer gets answers while the saved network is tried
   wifiManager.begin();
   updateManager.begin();
   webServer.begin();

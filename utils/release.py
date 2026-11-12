@@ -10,6 +10,10 @@
   python utils/release.py manifest DIR --repo OWNER/REPO --tag TAG
                                         write DIR/manifest.json from the signed .ota.bin files in DIR,
                                         then DIR/SHA256SUMS over every file in DIR
+  python utils/release.py install DIR --tag TAG
+                                        write an ESP Web Tools manifest (install-<target>.json) for each
+                                        .factory.bin in DIR, and install-targets.json listing them
+                                        (the browser installer, .github/workflows/pages.yml)
 """
 
 import argparse
@@ -21,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sign import PROJECT_CONFIG, VERSION_FILE, read_project_slug, read_version, split  # noqa: E402
+from targets import validate_name  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = ROOT / "CHANGELOG.md"
@@ -143,6 +148,51 @@ def write_manifest(directory, repository, tag, slug, notes):
     return manifest
 
 
+def chip_family(target):
+    """ESP Web Tools chip family of a target: esp32-4mb -> ESP32, esp32s3-8mb -> ESP32-S3."""
+    chip = target.split("-")[0].upper()
+    return chip if len(chip) <= 5 else f"{chip[:5]}-{chip[5:]}"
+
+
+def build_install_manifests(directory, tag, slug):
+    """{file name: ESP Web Tools manifest} for the .factory.bin files in DIRECTORY, plus install-targets.json."""
+    version = parse_tag(tag)
+    if version is None:
+        raise ValueError(f"tag {tag}: expected vMAJOR.MINOR.PATCH")
+    version_text = ".".join(map(str, version))
+    pattern = re.compile(re.escape(f"{slug}-{version_text}-") + r"(.+)\.factory\.bin$")
+    manifests = {}
+    targets = []
+    for path in sorted(Path(directory).glob("*.factory.bin"), key=lambda p: p.name):
+        match = pattern.match(path.name)
+        if not match:
+            raise ValueError(f"{path.name}: expected {slug}-{version_text}-<target>.factory.bin")
+        target = match.group(1)
+        problems = validate_name(target)
+        if problems:
+            raise ValueError("; ".join(problems))
+        name = f"install-{target}.json"
+        manifests[name] = {
+            "name": slug,
+            "version": version_text,
+            # The factory image covers the whole flash, settings included, so erasing first adds nothing
+            "new_install_prompt_erase": False,
+            "builds": [{"chipFamily": chip_family(target), "parts": [{"path": path.name, "offset": 0}]}],
+        }
+        targets.append({"target": target, "manifest": name})
+    if not targets:
+        raise ValueError(f"{directory}: no .factory.bin files")
+    manifests["install-targets.json"] = {"project": slug, "version": version_text, "targets": targets}
+    return manifests
+
+
+def write_install_manifests(directory, tag, slug):
+    manifests = build_install_manifests(directory, tag, slug)
+    for name, manifest in manifests.items():
+        (Path(directory) / name).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
+    return manifests
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -158,6 +208,9 @@ def main(argv=None):
     manifest_parser.add_argument("directory")
     manifest_parser.add_argument("--repo", required=True)
     manifest_parser.add_argument("--tag", required=True)
+    install_parser = commands.add_parser("install")
+    install_parser.add_argument("directory")
+    install_parser.add_argument("--tag", required=True)
     args = parser.parse_args(argv)
 
     try:
@@ -180,6 +233,9 @@ def main(argv=None):
             version = ".".join(map(str, read_version()))
             manifest = write_manifest(args.directory, args.repo, args.tag, read_project_slug(), changelog_section(version) or "")
             print(f"Manifest v{manifest['version']}: {', '.join(manifest['targets'])}")
+        elif args.command == "install":
+            manifests = write_install_manifests(args.directory, args.tag, read_project_slug())
+            print(f"Install manifests: {', '.join(t['target'] for t in manifests['install-targets.json']['targets'])}")
     except (ValueError, OSError) as error:
         print(f"::error::{error}")
         return 1

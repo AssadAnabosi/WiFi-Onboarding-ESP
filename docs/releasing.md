@@ -87,11 +87,22 @@ The workflow publishes a **pre-release**. Devices never see it, because "latest"
 3. Optionally verify the signature: `python utils/sign.py --verify <file>.ota.bin`.
 4. Edit the release, untick **Set as a pre-release**, tick **Set as the latest release**, and save. Devices see it at their next check.
 
+## Browser installer
+
+`.github/workflows/pages.yml` publishes the [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) to GitHub Pages when a release is made public (the `released` event; pre-releases never reach it), and on demand (Actions → Installer → Run workflow, which takes the latest public release). It:
+
+1. downloads the release's `.factory.bin` files and checks them against its `SHA256SUMS`;
+2. writes one [ESP Web Tools](https://esphome.github.io/esp-web-tools/) manifest per target (`install-<target>.json`) and the list the page reads (`install-targets.json`) with `python utils/release.py install DIR --tag TAG`;
+3. adds ESP Web Tools itself from npm (`npm pack`, version pinned in `ESP_WEB_TOOLS_VERSION`; npm checks the package integrity);
+4. adds the page (`installer/`) with the device's `css/style.css`, `js/app.js` and `favicon.ico` from `web-interface/`, so it has the same look, header and theme switch as the device.
+
+The firmware files are served from Pages, next to the page, because a browser can't fetch GitHub release downloads cross-origin. To try the page locally, lay out a folder the same way (`index.html`, `installer.css`, `installer.js`, `css/`, `js/`, `esp-web-tools/` from `npm pack`, and `firmware/` with `.factory.bin` files plus the output of `release.py install`) and run `python -m http.server` in it (`localhost` counts as secure for Web Serial).
+
 ## Bad releases
 
 Devices only ever move forward through update checks. If a release is broken:
 
-1. Edit it and mark it as a **pre-release** again. "Latest" falls back to the previous release, so no more devices pick it up.
+1. Edit it and mark it as a **pre-release** again. "Latest" falls back to the previous release, so no more devices pick it up. Then run the Installer workflow by hand so the browser installer serves the previous release too.
 2. Fix the problem and release it as a **higher** version.
 
 Devices that already installed the broken version stay on it until the fixed version arrives; an update check never downgrades. If the broken firmware can't stay up, devices roll back on their own (see [ota-updates.md](ota-updates.md#rollback)).
@@ -106,6 +117,7 @@ Done once per repository (forks too; see [make-it-yours.md](make-it-yours.md)):
   - deployments restricted to tags matching `v[0-9]*.[0-9]*.[0-9]*`.
 
   Keep no repository-level copy of the key, and keep an offline backup.
+- **GitHub Pages** (Settings → Pages): source **GitHub Actions**. Then in Settings → Environments → `github-pages`, add the deployment tag rule `v[0-9]*.[0-9]*.[0-9]*`: a run started by a release runs on its tag, which that environment refuses by default.
 - **Tag ruleset** (Settings → Rules → Rulesets): target tags matching `v[0-9]*.[0-9]*.[0-9]*`; restrict creation, update and deletion, with only you able to bypass. Only you can start a release.
 - **`main` ruleset** (Settings → Rules → Rulesets): target the default branch; block deletion and force pushes; require a pull request; require these status checks from GitHub Actions: `Tools and generated files` and one `Build <target>` per target in `esp32/sketch.yaml` (today `Build esp32-4mb`, `Build esp32-8mb` and `Build esp32-8mb-psram`); only you can bypass. This makes the generated-file check (which guards the unreadable `esp32/WebAssets.h`) and every build pass before anything is merged.
 
@@ -117,6 +129,8 @@ Done once per repository (forks too; see [make-it-yours.md](make-it-yours.md)):
 CI covers the tools and builds. Device behaviour is checked by hand on a real ESP32 before every release:
 
 - [ ] Fresh USB flash of `.factory.bin`: everything wiped, onboarding works, home target set
+- [ ] Browser installer (after making the release public): installs, sends the Wi-Fi network over Improv, **Visit device** opens the web interface
+- [ ] Installer on a device that is already connected: detected over Improv, **Change Wi-Fi** works
 - [ ] Manual upload of a newer signed file: installs, settings kept, footer shows the new version
 - [ ] Power pulled mid-upload: old firmware boots, settings kept
 - [ ] Browser closed mid-upload: upload cancelled, a new upload can start

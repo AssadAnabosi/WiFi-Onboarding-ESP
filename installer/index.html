@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Published to GitHub Pages by .github/workflows/pages.yml, which adds next to this page:
+         css/style.css and js/app.js from web-interface/ (same look, header and theme switch as the
+         device), ESP Web Tools in esp-web-tools/, and the factory images with their manifests in
+         firmware/ (utils/release.py install). {{REPO}} is replaced with the repository.
+         Local preview: docs/releasing.md#browser-installer -->
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="installer.css" />
+    <script src="js/app.js"></script>
+    <script src="installer.js" defer></script>
+    <script type="module" src="esp-web-tools/install-button.js"></script>
+    <title>Install · Wi-Fi On-Boarding</title>
+  </head>
+  <body>
+    <main class="wrap">
+      <div>
+        <h1>Install the firmware</h1>
+        <p class="muted" id="release">Flash your ESP32 over USB, right from this page.</p>
+      </div>
+
+      <p class="note" id="no-serial">
+        This browser can't talk to USB devices. Open this page in Chrome or Edge on a computer, or
+        <a href="https://github.com/{{REPO}}/blob/main/docs/getting-started.md">flash with esptool</a>.
+      </p>
+
+      <section class="card">
+        <div class="head"><span class="step">1</span><h2 class="grow">Connect your board</h2></div>
+        <p>Plug the ESP32 into <strong>this computer</strong> (the one running this browser) with a USB cable that carries data. Some cables only charge.</p>
+      </section>
+
+      <section class="card">
+        <div class="head"><span class="step">2</span><h2 class="grow">Choose your board's flash size</h2></div>
+        <ul class="list" id="targets" aria-label="Flash size">
+          <li><span class="net"><span class="sk"></span></span></li>
+        </ul>
+        <p class="sm muted">Not sure? Pick <strong>4 MB</strong>: it also runs on an 8 MB board, it just leaves half the flash unused.</p>
+      </section>
+
+      <section class="card">
+        <div class="head"><span class="step">3</span><h2 class="grow">Install</h2></div>
+        <ol class="steps">
+          <li>Click <strong>Connect</strong> below.</li>
+          <li>Your browser lists the serial ports it can see. Pick your board and click <strong>Connect</strong>. Nothing listed? See <a href="#no-port">No port selected</a>.</li>
+          <li>Click <strong>Install</strong> and wait until it says the installation is complete (about a minute). Keep the board plugged in.</li>
+        </ol>
+        <p class="note show">Installing erases everything on the board, its saved Wi-Fi and settings included. To update a device that already runs this firmware, use <strong>Check for updates</strong> on its Settings page instead.</p>
+        <esp-web-install-button id="install">
+          <button slot="activate" class="btn primary">Connect</button>
+          <span slot="unsupported" class="err">This browser can't talk to USB devices: use Chrome or Edge on a computer.</span>
+          <span slot="not-allowed" class="err">The installer only works on a page opened over HTTPS.</span>
+        </esp-web-install-button>
+      </section>
+
+      <section class="card">
+        <div class="head"><span class="step">4</span><h2 class="grow">Connect it to Wi-Fi</h2></div>
+        <p>After installing, the installer asks for your Wi-Fi network and sends it to the board over USB. Once the board has joined, click <strong>Visit device</strong> to open its web page.</p>
+        <p class="sm muted">Prefer to do it later? Skip this step and join the board's own network instead (by default <span class="mono">ESP-Access-Point</span>, password <span class="mono">12345678</span>), then open <span class="mono">http://config.local</span> or <span class="mono">http://192.168.4.1</span>.</p>
+      </section>
+
+      <section class="card" id="no-port">
+        <h2>No port selected</h2>
+        <p>If you didn't select a port because you didn't see your device listed, try the following steps:</p>
+        <ol class="steps">
+          <li>Make sure that the device is connected to this computer (the one that runs the browser that shows this website).</li>
+          <li>Most devices have a tiny light when it is powered on. If yours has one, make sure it is on.</li>
+          <li>Make sure that the USB cable you use can be used for data and is not a power-only cable.</li>
+          <li>
+            Make sure you have the right drivers installed. Below are the drivers for common chips used in ESP devices:
+            <ul>
+              <li>CP2102 drivers: <a href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers">Windows &amp; Mac</a></li>
+              <li>CH342, CH343, CH9102 drivers: <a href="https://www.wch.cn/downloads/CH343SER_ZIP.html">Windows</a>, <a href="https://www.wch.cn/downloads/CH34XSER_MAC_ZIP.html">Mac</a></li>
+              <li>CH340, CH341 drivers: <a href="https://www.wch.cn/downloads/CH341SER_ZIP.html">Windows</a>, <a href="https://www.wch.cn/downloads/CH341SER_MAC_ZIP.html">Mac</a></li>
+            </ul>
+            <p class="sm muted">On the WCH pages, download with the blue button with the download icon.</p>
+          </li>
+        </ol>
+      </section>
+
+      <p class="sm muted">
+        Files from the <a href="https://github.com/{{REPO}}/releases/latest">latest release</a> ·
+        Source on <a href="https://github.com/{{REPO}}">GitHub</a> ·
+        Flashing by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>
+      </p>
+    </main>
+  </body>
+</html>

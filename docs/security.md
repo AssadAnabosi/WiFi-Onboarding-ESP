@@ -86,6 +86,7 @@ This project verifies OTA images in software. For production devices, use ESP32 
 - **The update endpoints have no password.** Anyone on the same network can use a tool such as `curl` to start an update, roll back, or downgrade to an older **signed** version, which may bring back fixed bugs.
 - **The default access point password (`12345678`) is public.** Change it after setup. Forcing a change is planned (see [roadmap.md](roadmap.md)).
 - **Forks that keep the upstream key** only accept upstream firmware and can't sign their own releases (see [make-it-yours.md](make-it-yours.md)).
+- **Wi-Fi over USB:** the serial port accepts a new Wi-Fi network at any time (Improv, for the browser installer). That takes the same physical access as reflashing, and the network is only saved once the device has joined it.
 - **No Secure Boot:** someone with physical access can flash any firmware over USB.
 
 ## Reporting a vulnerability

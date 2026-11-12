@@ -67,6 +67,12 @@ public:
   void begin();
 
   /**
+   * @brief True once begin() has finished. Until then, connecting and scanning would disturb
+   * the connection to the saved network.
+   */
+  bool isReady() const { return _ready; }
+
+  /**
    * @brief Starts connecting to a network in a background task, so the web server keeps running.
    * The network is saved once the connection succeeds. If it fails, the device goes back to the
    * saved network, or starts the access point when that fails too.
@@ -101,10 +107,12 @@ public:
   bool isScanning() const;
 
 private:
+  std::atomic<bool> _ready{false};
   std::atomic<AttemptState> _attemptState{AttemptState::None};
   mutable std::mutex _attemptLock; // Guards _attemptSsid and _attemptPassword
   String _attemptSsid;
   String _attemptPassword;
+  std::mutex _scanLock; // scan() is called by the web server and by Improv serial
   uint32_t _scanStartedAt = 0;
 
   /**

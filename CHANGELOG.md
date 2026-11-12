@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Browser installer: a page on GitHub Pages (https://assadanabosi.github.io/WiFi-Onboarding-ESP/) that flashes the latest release over USB from Chrome or Edge with ESP Web Tools, no esptool needed. A new workflow publishes it when a release is made public.
+- Wi-Fi setup over USB ([Improv serial](https://www.improv-wifi.com/serial/)): right after a browser install, the installer sends your Wi-Fi network to the device and links to its web interface. It also offers **Change Wi-Fi** for a device that is already connected. The network is saved only once the device has joined it.
+
 ## [0.5.0] - 2026-11-12
 
 ### Added

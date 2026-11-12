@@ -22,13 +22,13 @@ Checklist for turning a fork into your own project, with its own releases and it
 
    The first command writes the private key to `keys/ota-release.pem` (gitignored) and adds its public key to `esp32/OtaPublicKey.h`. The second stops trusting the upstream key. Commit `OtaPublicKey.h`, **never** the `.pem`. Back the private key up offline: losing it means devices can only be updated over USB.
 
-4. **Set up GitHub** as in [releasing.md](releasing.md#github-setup): an Environment `release` with the private key as secret `OTA_SIGNING_KEY` and you as required reviewer, and a tag ruleset for `v*` tags.
+4. **Set up GitHub** as in [releasing.md](releasing.md#github-setup): an Environment `release` with the private key as secret `OTA_SIGNING_KEY` and you as required reviewer, a tag ruleset for `v*` tags, and GitHub Pages for the browser installer. Your installer lives at `https://<owner>.github.io/<repo>/`; update its links in `README.md`, `docs/getting-started.md` and `docs/releasing.md`.
 
 5. **Set device defaults** in `ProjectConfig.h`: access point SSID and password (`DEFAULT_AP_SSID`, `DEFAULT_AP_PASSWORD`), channel, hostname (`DEFAULT_HOSTNAME`), the setup address (`MDNS_SETUP_NAME`, giving `<name>.local`) and the update check timing (`OTA_CHECK_*`).
 
 6. **Start your own history:** set `VERSION` to `0.1.0`, empty `CHANGELOG.md` down to its header and an `[Unreleased]` section, then run `python utils/build_assets.py`.
 
-7. **Branding:** page titles in `web-interface/*.html`; the header name, footer and colours in `web-interface/js/app.js` and `web-interface/css/style.css` (colour tokens at the top, light and dark); `web-interface/favicon.ico`; and the README. Keep the MIT license notice and `THIRD_PARTY_LICENSES.md`.
+7. **Branding:** page titles in `web-interface/*.html`; the header name, footer and colours in `web-interface/js/app.js` and `web-interface/css/style.css` (colour tokens at the top, light and dark); `web-interface/favicon.ico`; the browser installer's text in `installer/index.html` (it shares the device's stylesheet, header and footer); and the README. Keep the MIT license notice and `THIRD_PARTY_LICENSES.md`.
 
 8. **Confirm the board and flash layout** before your first release. The partition table (`esp32/targets/<target>.partitions.csv`) and bootloader are never changed by an update, so a layout change after release means every device needs a USB flash. To support other boards, add build targets (see [architecture.md](architecture.md#build-targets)).
 

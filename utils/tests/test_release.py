@@ -157,5 +157,60 @@ class ManifestTest(unittest.TestCase):
             release.build_manifest(self.dir, "owner/repo", "v0.2.0", "wifi-onboarding", "")
 
 
+class InstallManifestTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def add_factory(self, name):
+        (self.dir / name).write_bytes(b"\xff" * 64)
+
+    def test_chip_family(self):
+        self.assertEqual(release.chip_family("esp32-4mb"), "ESP32")
+        self.assertEqual(release.chip_family("esp32s3-8mb-psram"), "ESP32-S3")
+        self.assertEqual(release.chip_family("esp32c61-4mb"), "ESP32-C61")
+
+    def test_manifests_per_target(self):
+        self.add_factory("wifi-onboarding-0.2.0-esp32-4mb.factory.bin")
+        self.add_factory("wifi-onboarding-0.2.0-esp32-8mb.factory.bin")
+        self.add_factory("wifi-onboarding-0.2.0-esp32-4mb.ota.bin")  # Ignored
+        release.write_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+
+        manifest = json.loads((self.dir / "install-esp32-8mb.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["name"], "wifi-onboarding")
+        self.assertEqual(manifest["version"], "0.2.0")
+        self.assertFalse(manifest["new_install_prompt_erase"])
+        self.assertEqual(
+            manifest["builds"],
+            [{"chipFamily": "ESP32", "parts": [{"path": "wifi-onboarding-0.2.0-esp32-8mb.factory.bin", "offset": 0}]}],
+        )
+        index = json.loads((self.dir / "install-targets.json").read_text(encoding="utf-8"))
+        self.assertEqual(index["version"], "0.2.0")
+        self.assertEqual(
+            index["targets"],
+            [
+                {"target": "esp32-4mb", "manifest": "install-esp32-4mb.json"},
+                {"target": "esp32-8mb", "manifest": "install-esp32-8mb.json"},
+            ],
+        )
+
+    def test_rejects_other_version(self):
+        self.add_factory("wifi-onboarding-0.1.9-esp32-4mb.factory.bin")
+        with self.assertRaisesRegex(ValueError, "expected wifi-onboarding-0.2.0-<target>"):
+            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+
+    def test_rejects_bad_target(self):
+        self.add_factory("wifi-onboarding-0.2.0-esp32h2-4mb.factory.bin")
+        with self.assertRaisesRegex(ValueError, "no Wi-Fi"):
+            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+
+    def test_needs_a_factory_image(self):
+        with self.assertRaisesRegex(ValueError, "no .factory.bin"):
+            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+
+
 if __name__ == "__main__":
     unittest.main()

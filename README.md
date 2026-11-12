@@ -8,6 +8,7 @@ A boilerplate for ESP32 IoT projects: a small web interface for connecting the d
 
 - **Scan and connect**: find nearby Wi-Fi networks and connect the ESP32 to one, hidden networks included.
 - **Access point mode**: the ESP32 runs its own access point for direct setup at `192.168.4.1` or `config.local`.
+- **Browser install**: first flash from a web page ([ESP Web Tools](https://esphome.github.io/esp-web-tools/)), then send the Wi-Fi network over USB ([Improv](https://www.improv-wifi.com/serial/)).
 - **Auto-reconnect**: Wi-Fi credentials and settings are saved and survive reboots, power loss and updates.
 - **Signed OTA updates**: upload a signed firmware file from the Settings page, or install a new release from GitHub after the device finds one.
 - **Automatic rollback**: a failed update returns to the previous firmware; a manual rollback button is also available.
@@ -16,15 +17,12 @@ A boilerplate for ESP32 IoT projects: a small web interface for connecting the d
 
 ## Quick start
 
-1. Download the `.factory.bin` file for your board from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest).
-2. Flash it over USB (this wipes everything on the board):
+1. Open the [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) in Chrome or Edge, connect the board over USB and click **Connect**, then **Install** (this wipes everything on the board). Afterwards it can send your Wi-Fi network to the device over USB, and you're done.
 
-   ```sh
-   esptool.py write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin
-   ```
+   Other browsers: download the `.factory.bin` file for your board from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest) and flash it with `esptool.py write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin` (see [getting-started.md](docs/getting-started.md)).
 
-3. Join the `ESP-Access-Point` Wi-Fi network (password `12345678`).
-4. Open `http://config.local` or `http://192.168.4.1` and connect the device to your network.
+2. Otherwise, join the `ESP-Access-Point` Wi-Fi network (password `12345678`).
+3. Open `http://config.local` or `http://192.168.4.1` and connect the device to your network.
 
 To build it yourself instead, see [docs/local-development.md](docs/local-development.md).
 
