@@ -8,7 +8,7 @@ The firmware built from this repository includes the following third-party softw
 | ArduinoJson | Benoît Blanchon | MIT | https://github.com/bblanchon/ArduinoJson |
 | ESPAsyncWebServer | ESP32Async | LGPL-3.0 | https://github.com/ESP32Async/ESPAsyncWebServer |
 | AsyncTCP | ESP32Async | LGPL-3.0 | https://github.com/ESP32Async/AsyncTCP |
-| Lucide icons (Wi-Fi, Wi-Fi off, Wi-Fi cog, radio tower, radar, house, settings, CPU, eye, eye off; in the web interface) | Lucide Contributors | ISC | https://github.com/lucide-icons/lucide |
+| Lucide icons (Wi-Fi, Wi-Fi off, Wi-Fi cog, radio tower, radar, house, settings, CPU, eye, eye off; in the web interface. Chevron down; in the browser installer) | Lucide Contributors | ISC | https://github.com/lucide-icons/lucide |
 
 The browser installer page (`installer/`, published to GitHub Pages) also serves:
 

@@ -157,59 +157,133 @@ class ManifestTest(unittest.TestCase):
             release.build_manifest(self.dir, "owner/repo", "v0.2.0", "wifi-onboarding", "")
 
 
-class InstallManifestTest(unittest.TestCase):
+class InstallIndexTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.dir = Path(self.tmp.name)
+        self.dir = Path(self.tmp.name) / "firmware"
+        self.dir.mkdir()
+        # A sketch whose profile order differs from the alphabetical file order
+        self.sketch = Path(self.tmp.name) / "esp32"
+        (self.sketch / "targets").mkdir(parents=True)
+        (self.sketch / "sketch.yaml").write_text(
+            "profiles:\n  esp32-8mb:\n    fqbn: x\n  esp32-4mb:\n    fqbn: x\n  esp32-4mb-relay:\n    fqbn: x\n"
+            "default_profile: esp32-4mb\n",
+            encoding="utf-8",
+        )
+        for target, title in (("esp32-8mb", "8 MB flash"), ("esp32-4mb", "4 MB flash")):
+            (self.sketch / "targets" / f"{target}.h").write_text(
+                f'#pragma once\n#define TARGET_TITLE "{title}"\n#define TARGET_DESCRIPTION "{title} boards."\n',
+                encoding="utf-8",
+            )
+        (self.sketch / "targets" / "esp32-4mb-relay.h").write_text("#pragma once\n", encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def add_factory(self, name):
-        (self.dir / name).write_bytes(b"\xff" * 64)
+    def add_factory(self, version, target, data=b"\xe9" + b"\xff" * 9000):
+        folder = self.dir / version
+        folder.mkdir(exist_ok=True)
+        (folder / f"wifi-onboarding-{version}-{target}.factory.bin").write_bytes(data)
+
+    def add_notes(self, version, text):
+        (self.dir / version / "NOTES.md").write_text(text, encoding="utf-8")
+
+    def build(self):
+        return release.build_install_index(self.dir, "wifi-onboarding", self.sketch)
 
     def test_chip_family(self):
         self.assertEqual(release.chip_family("esp32-4mb"), "ESP32")
         self.assertEqual(release.chip_family("esp32s3-8mb-psram"), "ESP32-S3")
         self.assertEqual(release.chip_family("esp32c61-4mb"), "ESP32-C61")
 
-    def test_manifests_per_target(self):
-        self.add_factory("wifi-onboarding-0.2.0-esp32-4mb.factory.bin")
-        self.add_factory("wifi-onboarding-0.2.0-esp32-8mb.factory.bin")
-        self.add_factory("wifi-onboarding-0.2.0-esp32-4mb.ota.bin")  # Ignored
-        release.write_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+    def test_trim_image(self):
+        self.assertEqual(release.trim_image(b"\xe9\x01" + b"\xff" * 10000), b"\xe9\x01" + b"\xff" * 4094)
+        self.assertEqual(len(release.trim_image(b"\x00" * 4096 + b"\xff" * 4096)), 4096)
 
-        manifest = json.loads((self.dir / "install-esp32-8mb.json").read_text(encoding="utf-8"))
+    def test_index_and_manifests(self):
+        self.add_factory("0.10.0", "esp32-4mb")
+        self.add_factory("0.10.0", "esp32-8mb")
+        self.add_notes("0.10.0", "### Added\n\n- Something.\n")
+        self.add_factory("0.9.0", "esp32-4mb")
+        (self.dir / "0.10.0" / "wifi-onboarding-0.10.0-esp32-4mb.ota.bin").write_bytes(b"x")  # Ignored
+        index = release.write_install_index(self.dir, "wifi-onboarding", self.sketch)
+
+        # Newest first (by version, not by name), notes from NOTES.md, which is then removed
+        self.assertEqual([v["version"] for v in index["versions"]], ["0.10.0", "0.9.0"])
+        self.assertEqual(index["versions"][0]["notes"], "### Added\n\n- Something.")
+        self.assertEqual(index["versions"][1]["notes"], "")
+        self.assertFalse((self.dir / "0.10.0" / "NOTES.md").exists())
+        self.assertEqual(json.loads((self.dir / "install-index.json").read_text(encoding="utf-8")), index)
+        # sketch.yaml order, text from the headers, the default profile recommended
+        self.assertEqual(
+            index["versions"][0]["targets"],
+            [
+                {
+                    "target": "esp32-8mb",
+                    "manifest": "0.10.0/install-esp32-8mb.json",
+                    "title": "8 MB flash",
+                    "description": "8 MB flash boards.",
+                    "recommended": False,
+                },
+                {
+                    "target": "esp32-4mb",
+                    "manifest": "0.10.0/install-esp32-4mb.json",
+                    "title": "4 MB flash",
+                    "description": "4 MB flash boards.",
+                    "recommended": True,
+                },
+            ],
+        )
+        manifest = json.loads((self.dir / "0.10.0" / "install-esp32-8mb.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["name"], "wifi-onboarding")
-        self.assertEqual(manifest["version"], "0.2.0")
+        self.assertEqual(manifest["version"], "0.10.0")
         self.assertFalse(manifest["new_install_prompt_erase"])
         self.assertEqual(
             manifest["builds"],
-            [{"chipFamily": "ESP32", "parts": [{"path": "wifi-onboarding-0.2.0-esp32-8mb.factory.bin", "offset": 0}]}],
+            [{"chipFamily": "ESP32", "parts": [{"path": "wifi-onboarding-0.10.0-esp32-8mb.factory.bin", "offset": 0}]}],
         )
-        index = json.loads((self.dir / "install-targets.json").read_text(encoding="utf-8"))
-        self.assertEqual(index["version"], "0.2.0")
-        self.assertEqual(
-            index["targets"],
-            [
-                {"target": "esp32-4mb", "manifest": "install-esp32-4mb.json"},
-                {"target": "esp32-8mb", "manifest": "install-esp32-8mb.json"},
-            ],
-        )
+        # Images lose their blank tail
+        self.assertEqual((self.dir / "0.9.0" / "wifi-onboarding-0.9.0-esp32-4mb.factory.bin").stat().st_size, 4096)
 
-    def test_rejects_other_version(self):
-        self.add_factory("wifi-onboarding-0.1.9-esp32-4mb.factory.bin")
+    def test_old_target_listed_by_id(self):
+        self.add_factory("0.1.0", "esp32-2mb")
+        target = self.build()[1]["versions"][0]["targets"][0]
+        self.assertEqual((target["title"], target["description"], target["recommended"]), ("esp32-2mb", "", False))
+
+    def test_repository_targets_have_text(self):
+        self.add_factory("0.2.0", "esp32-4mb")
+        index = release.build_install_index(self.dir, "wifi-onboarding")[1]
+        self.assertTrue(index["versions"][0]["targets"][0]["title"])
+
+    def test_rejects_mismatched_file(self):
+        self.add_factory("0.2.0", "esp32-4mb")
+        (self.dir / "0.2.0" / "wifi-onboarding-0.1.9-esp32-4mb.factory.bin").write_bytes(b"\xe9")
         with self.assertRaisesRegex(ValueError, "expected wifi-onboarding-0.2.0-<target>"):
-            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+            self.build()
 
     def test_rejects_bad_target(self):
-        self.add_factory("wifi-onboarding-0.2.0-esp32h2-4mb.factory.bin")
+        self.add_factory("0.2.0", "esp32h2-4mb")
         with self.assertRaisesRegex(ValueError, "no Wi-Fi"):
-            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+            self.build()
+
+    def test_needs_installer_text(self):
+        self.add_factory("0.2.0", "esp32-4mb-relay")
+        with self.assertRaisesRegex(ValueError, "TARGET_TITLE"):
+            self.build()
+
+    def test_rejects_other_folders(self):
+        (self.dir / "latest").mkdir()
+        with self.assertRaisesRegex(ValueError, "version folder"):
+            self.build()
 
     def test_needs_a_factory_image(self):
+        (self.dir / "0.2.0").mkdir()
         with self.assertRaisesRegex(ValueError, "no .factory.bin"):
-            release.build_install_manifests(self.dir, "v0.2.0", "wifi-onboarding")
+            self.build()
+
+    def test_needs_a_version(self):
+        with self.assertRaisesRegex(ValueError, "no version folders"):
+            self.build()
 
 
 if __name__ == "__main__":

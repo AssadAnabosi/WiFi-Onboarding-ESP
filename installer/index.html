@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Published to GitHub Pages by .github/workflows/pages.yml, which adds next to this page:
          css/style.css and js/app.js from web-interface/ (same look, header and theme switch as the
-         device), ESP Web Tools in esp-web-tools/, and the factory images with their manifests in
-         firmware/ (utils/release.py install). {{REPO}} is replaced with the repository.
+         device) and js/markdown.js (release notes), ESP Web Tools in esp-web-tools/, and every public
+         release's factory images, manifests and install-index.json in firmware/ (utils/release.py install). {{REPO}} is replaced with the repository.
          Local preview: docs/releasing.md#browser-installer -->
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="installer.css" />
     <script src="js/app.js"></script>
+    <script src="js/markdown.js" defer></script>
     <script src="installer.js" defer></script>
     <script type="module" src="esp-web-tools/install-button.js"></script>
     <title>Install · Wi-Fi On-Boarding</title>
@@ -19,7 +20,7 @@
     <main class="wrap">
       <div>
         <h1>Install the firmware</h1>
-        <p class="muted" id="release">Flash your ESP32 over USB, right from this page.</p>
+        <p class="muted">Flash your ESP32 over USB, right from this page.</p>
       </div>
 
       <p class="note" id="no-serial">
@@ -28,20 +29,41 @@
       </p>
 
       <section class="card">
-        <div class="head"><span class="step">1</span><h2 class="grow">Connect your board</h2></div>
+        <div class="head"><span class="step"></span><h2 class="grow">Connect your board</h2></div>
         <p>Plug the ESP32 into <strong>this computer</strong> (the one running this browser) with a USB cable that carries data. Some cables only charge.</p>
       </section>
 
       <section class="card">
-        <div class="head"><span class="step">2</span><h2 class="grow">Choose your board's flash size</h2></div>
-        <ul class="list" id="targets" aria-label="Flash size">
+        <div class="head"><span class="step"></span><h2 class="grow">Choose the firmware</h2></div>
+        <div class="field">
+          <label for="version">Version</label>
+          <select id="version" disabled><option>Loading…</option></select>
+        </div>
+        <div id="release-notes">
+          <p class="label" id="notes-title">Release notes</p>
+          <div id="notes" class="notes"></div>
+        </div>
+        <div id="own" style="display: none">
+          <label class="drop" id="drop">
+            <input type="file" id="own-file" accept=".bin" />
+            <strong>Pick a firmware file</strong>
+            <span class="sm muted">Drop a full flash image (e.g. a <span class="mono">.factory.bin</span> or <span class="mono">merged.bin</span>, written at offset 0) here or click to pick one.</span>
+          </label>
+          <p id="own-message" class="sm"></p>
+          <p class="note show">Your own file isn't checked or signed: it is written to the board exactly as it is. Only use files you trust.</p>
+        </div>
+      </section>
+
+      <section class="card" id="board-card">
+        <div class="head"><span class="step"></span><h2 class="grow">Choose your board</h2></div>
+        <ul class="list" id="targets" aria-label="Board">
           <li><span class="net"><span class="sk"></span></span></li>
         </ul>
-        <p class="sm muted">Not sure? Pick <strong>4 MB</strong>: it also runs on an 8 MB board, it just leaves half the flash unused.</p>
+        <p class="sm muted" id="pick-hint" style="display: none">Not sure? Pick the one marked <strong>Recommended</strong>.</p>
       </section>
 
       <section class="card">
-        <div class="head"><span class="step">3</span><h2 class="grow">Install</h2></div>
+        <div class="head"><span class="step"></span><h2 class="grow">Install</h2></div>
         <ol class="steps">
           <li>Click <strong>Connect</strong> below.</li>
           <li>Your browser lists the serial ports it can see. Pick your board and click <strong>Connect</strong>. Nothing listed? See <a href="#no-port">No port selected</a>.</li>
@@ -49,20 +71,22 @@
         </ol>
         <p class="note show">Installing erases everything on the board, its saved Wi-Fi and settings included. To update a device that already runs this firmware, use <strong>Check for updates</strong> on its Settings page instead.</p>
         <esp-web-install-button id="install">
-          <button slot="activate" class="btn primary">Connect</button>
+          <button slot="activate" class="btn primary" id="connect">Connect</button>
           <span slot="unsupported" class="err">This browser can't talk to USB devices: use Chrome or Edge on a computer.</span>
           <span slot="not-allowed" class="err">The installer only works on a page opened over HTTPS.</span>
         </esp-web-install-button>
       </section>
 
       <section class="card">
-        <div class="head"><span class="step">4</span><h2 class="grow">Connect it to Wi-Fi</h2></div>
+        <div class="head"><span class="step"></span><h2 class="grow">Connect it to Wi-Fi</h2></div>
         <p>After installing, the installer asks for your Wi-Fi network and sends it to the board over USB. Once the board has joined, click <strong>Visit device</strong> to open its web page.</p>
+        <p class="sm muted">Older versions (and other firmware) may not support this; the installer then just finishes.</p>
         <p class="sm muted">Prefer to do it later? Skip this step and join the board's own network instead (by default <span class="mono">ESP-Access-Point</span>, password <span class="mono">12345678</span>), then open <span class="mono">http://config.local</span> or <span class="mono">http://192.168.4.1</span>.</p>
       </section>
 
-      <section class="card" id="no-port">
-        <h2>No port selected</h2>
+      <details class="card expand" id="no-port">
+        <summary><h2 class="grow">No port selected</h2><svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></summary>
+        <div class="expand-body">
         <p>If you didn't select a port because you didn't see your device listed, try the following steps:</p>
         <ol class="steps">
           <li>Make sure that the device is connected to this computer (the one that runs the browser that shows this website).</li>
@@ -78,7 +102,8 @@
             <p class="sm muted">On the WCH pages, download with the blue button with the download icon.</p>
           </li>
         </ol>
-      </section>
+        </div>
+      </details>
 
       <p class="sm muted">
         Files from the <a href="https://github.com/{{REPO}}/releases/latest">latest release</a> ·

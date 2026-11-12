@@ -89,20 +89,24 @@ The workflow publishes a **pre-release**. Devices never see it, because "latest"
 
 ## Browser installer
 
-`.github/workflows/pages.yml` publishes the [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) to GitHub Pages when a release is made public (the `released` event; pre-releases never reach it), and on demand (Actions → Installer → Run workflow, which takes the latest public release). It:
+`.github/workflows/pages.yml` publishes the [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) to GitHub Pages when a release is made public (the `released` event; pre-releases never reach it), and on demand (Actions → Installer → Run workflow). The page offers every public release, newest first and selected by default, with its release notes, plus a file of the user's own. The workflow:
 
-1. downloads the release's `.factory.bin` files and checks them against its `SHA256SUMS`;
-2. writes one [ESP Web Tools](https://esphome.github.io/esp-web-tools/) manifest per target (`install-<target>.json`) and the list the page reads (`install-targets.json`) with `python utils/release.py install DIR --tag TAG`;
+1. downloads each public release's `.factory.bin` files into `firmware/<version>/`, checks them against that release's `SHA256SUMS`, and saves the release body (its CHANGELOG section) as the version's notes;
+2. runs `python utils/release.py install site/firmware`, which trims each image's blank (0xFF) tail, writes one [ESP Web Tools](https://esphome.github.io/esp-web-tools/) manifest per image (`<version>/install-<target>.json`) and the index the page reads (`install-index.json`: versions newest first, their notes, and their targets in `sketch.yaml` order with each target's `TARGET_TITLE` and `TARGET_DESCRIPTION` and the default profile marked recommended; a target that is no longer in `sketch.yaml` is listed by its ID);
 3. adds ESP Web Tools itself from npm (`npm pack`, version pinned in `ESP_WEB_TOOLS_VERSION`; npm checks the package integrity);
-4. adds the page (`installer/`) with the device's `css/style.css`, `js/app.js` and `favicon.ico` from `web-interface/`, so it has the same look, header and theme switch as the device.
+4. adds the page (`installer/`) with the device's `css/style.css`, `js/app.js`, `js/markdown.js` and `favicon.ico` from `web-interface/`, so it has the same look, header, theme switch and release-notes rendering as the device.
 
-The firmware files are served from Pages, next to the page, because a browser can't fetch GitHub release downloads cross-origin. To try the page locally, lay out a folder the same way (`index.html`, `installer.css`, `installer.js`, `css/`, `js/`, `esp-web-tools/` from `npm pack`, and `firmware/` with `.factory.bin` files plus the output of `release.py install`) and run `python -m http.server` in it (`localhost` counts as secure for Web Serial).
+The firmware files are served from Pages, next to the page, because a browser can't fetch GitHub release downloads cross-origin. Trimming takes each image from the full flash size (4 or 8 MB) to about 1.4 MB, so every release adds only a few MB to the site (GitHub Pages allows about 1 GB). It is safe because the page always installs from scratch, and ESP Web Tools then erases the whole chip before writing. The release assets themselves are not changed.
+
+A file of the user's own is checked in the browser only for being a full flash image (bootloader and partition table present; the chip is read from the bootloader header); `.ota.bin` and app-only files are refused with a hint. It is not signed or checked otherwise, and the page says so.
+
+To try the page locally, lay out a folder the same way (`index.html`, `installer.css`, `installer.js`, `css/`, `js/`, `esp-web-tools/` from `npm pack`, and `firmware/<version>/` folders with `.factory.bin` files and an optional `NOTES.md`, then `release.py install` on `firmware/`) and run `python -m http.server` in it (`localhost` counts as secure for Web Serial).
 
 ## Bad releases
 
 Devices only ever move forward through update checks. If a release is broken:
 
-1. Edit it and mark it as a **pre-release** again. "Latest" falls back to the previous release, so no more devices pick it up. Then run the Installer workflow by hand so the browser installer serves the previous release too.
+1. Edit it and mark it as a **pre-release** again. "Latest" falls back to the previous release, so no more devices pick it up. Then run the Installer workflow by hand so the browser installer drops it too.
 2. Fix the problem and release it as a **higher** version.
 
 Devices that already installed the broken version stay on it until the fixed version arrives; an update check never downgrades. If the broken firmware can't stay up, devices roll back on their own (see [ota-updates.md](ota-updates.md#rollback)).

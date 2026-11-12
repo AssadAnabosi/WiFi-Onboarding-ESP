@@ -26,10 +26,10 @@ Other chips with Wi-Fi (ESP32-S3, -C3, -C6 and so on) can be added as new build 
 
 ## Option 1: install from your browser
 
-The [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) flashes the latest release straight from the page, in Chrome or Edge on a computer. Firefox, Safari and phones can't talk to USB devices; use option 2 there.
+The [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) flashes a release straight from the page, in Chrome or Edge on a computer. It selects the latest release and shows its release notes; pick an older version from the list if you need one, or **Your own file…** to flash a full image you built yourself (e.g. the build's `merged.bin`). Firefox, Safari and phones can't talk to USB devices; use option 2 there.
 
 1. Connect the board with a USB data cable.
-2. Open the [installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/), pick your target's flash size and click **Connect**, choose the board's serial port, then **Install**.
+2. Open the [installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/), pick your board and click **Connect**, choose the board's serial port, then **Install**.
 3. When flashing is done, the installer asks for your Wi-Fi network and sends it to the device over USB ([Improv](https://www.improv-wifi.com/serial/)). Once the device has joined, **Visit device** opens its web interface. You can skip this and use the access point instead (see [First setup](#first-setup)).
 
 Like option 2, this writes the whole factory image and **wipes everything on the board, settings included**. If the port isn't listed, try another cable, install the CP210x or CH340 driver for your board's USB chip, and close anything else using the port (e.g. a serial monitor).

@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Browser installer: a page on GitHub Pages (https://assadanabosi.github.io/WiFi-Onboarding-ESP/) that flashes the latest release over USB from Chrome or Edge with ESP Web Tools, no esptool needed. A new workflow publishes it when a release is made public.
+- Browser installer: a page on GitHub Pages (https://assadanabosi.github.io/WiFi-Onboarding-ESP/) that flashes the firmware over USB from Chrome or Edge with ESP Web Tools, no esptool needed. Pick any public release (the latest is selected) and read its release notes, then your board; or flash a full image of your own. It looks like the device's web interface, theme switch included, and ESP Web Tools' dialogs use the same colours. A new workflow publishes it when a release is made public.
+- Each build target describes itself for the installer: `TARGET_TITLE` and `TARGET_DESCRIPTION` in `esp32/targets/<target>.h`, required by `utils/targets.py check`. The default profile is shown as the recommended choice.
 - Wi-Fi setup over USB ([Improv serial](https://www.improv-wifi.com/serial/)): right after a browser install, the installer sends your Wi-Fi network to the device and links to its web interface. It also offers **Change Wi-Fi** for a device that is already connected. The network is saved only once the device has joined it.
 
 ## [0.5.0] - 2026-11-12
