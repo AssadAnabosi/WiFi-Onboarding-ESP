@@ -10,6 +10,10 @@
   python utils/release.py manifest DIR --repo OWNER/REPO --tag TAG
                                         write DIR/manifest.json from the signed .ota.bin files in DIR,
                                         then DIR/SHA256SUMS over every file in DIR
+  python utils/release.py install DIR  for the browser installer (.github/workflows/pages.yml): DIR has one
+                                        X.Y.Z/ folder per release with its .factory.bin files and NOTES.md;
+                                        trims the images, writes an ESP Web Tools manifest per image
+                                        (X.Y.Z/install-<target>.json) and DIR/install-index.json
 """
 
 import argparse
@@ -21,11 +25,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sign import PROJECT_CONFIG, VERSION_FILE, read_project_slug, read_version, split  # noqa: E402
+from targets import SKETCH_DIR, installer_text, load_sketch, validate_name  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CHANGELOG = ROOT / "CHANGELOG.md"
 
 MANIFEST_SCHEMA = 1
+
+# Browser installer (release.py install)
+INSTALL_INDEX = "install-index.json"
+INSTALL_NOTES = "NOTES.md"
+INSTALL_SECTOR = 4096
 FORK_HELP = "see docs/make-it-yours.md"
 TAG_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 
@@ -143,6 +153,113 @@ def write_manifest(directory, repository, tag, slug, notes):
     return manifest
 
 
+def chip_family(target):
+    """ESP Web Tools chip family of a target: esp32-4mb -> ESP32, esp32s3-8mb -> ESP32-S3."""
+    chip = target.split("-")[0].upper()
+    return chip if len(chip) <= 5 else f"{chip[:5]}-{chip[5:]}"
+
+
+def trim_image(data):
+    """A factory image without its blank (0xFF) tail, padded to a whole flash sector.
+
+    The installer erases the whole chip before writing, so the blank tail only costs download time."""
+    trimmed = data.rstrip(b"\xff")
+    padding = -len(trimmed) % INSTALL_SECTOR
+    return trimmed + b"\xff" * padding
+
+
+def target_text(target, profiles, sketch_dir):
+    """Installer title and description of a target. A target that is no longer a profile (only in old
+    releases) is listed by its ID."""
+    if target not in profiles:
+        return {"title": target, "description": ""}
+    text, problems = installer_text(target, sketch_dir)
+    if problems:
+        raise ValueError("; ".join(problems))
+    return text
+
+
+def build_install_version(directory, version_text, slug, profiles, default_target, sketch_dir):
+    """({file name: ESP Web Tools manifest}, [target entries]) for one version's .factory.bin files."""
+    pattern = re.compile(re.escape(f"{slug}-{version_text}-") + r"(.+)\.factory\.bin$")
+    manifests = {}
+    targets = []
+    for path in sorted(Path(directory).glob("*.factory.bin"), key=lambda p: p.name):
+        match = pattern.match(path.name)
+        if not match:
+            raise ValueError(f"{path.name}: expected {slug}-{version_text}-<target>.factory.bin")
+        target = match.group(1)
+        problems = validate_name(target)
+        if problems:
+            raise ValueError("; ".join(problems))
+        name = f"install-{target}.json"
+        manifests[name] = {
+            "name": slug,
+            "version": version_text,
+            # The page always installs from scratch: ESP Web Tools then erases the whole chip first
+            "new_install_prompt_erase": False,
+            "builds": [{"chipFamily": chip_family(target), "parts": [{"path": path.name, "offset": 0}]}],
+        }
+        targets.append(
+            {
+                "target": target,
+                "manifest": f"{version_text}/{name}",
+                **target_text(target, profiles, sketch_dir),
+                "recommended": target == default_target,
+            }
+        )
+    if not targets:
+        raise ValueError(f"{directory}: no .factory.bin files")
+    order = list(profiles)
+    targets.sort(key=lambda entry: (order.index(entry["target"]) if entry["target"] in order else len(order), entry["target"]))
+    return manifests, targets
+
+
+def build_install_index(firmware_dir, slug, sketch_dir=SKETCH_DIR):
+    """({relative path: manifest}, install-index.json) for FIRMWARE_DIR/<X.Y.Z>/ folders, newest first.
+
+    Each folder holds one release's .factory.bin files and its notes in NOTES.md (optional)."""
+    profiles, default_target = load_sketch(sketch_dir / "sketch.yaml")
+    folders = []
+    for folder in Path(firmware_dir).iterdir():
+        if not folder.is_dir():
+            continue
+        version = parse_tag(f"v{folder.name}")
+        if version is None:
+            raise ValueError(f"{folder.name}: expected a version folder named MAJOR.MINOR.PATCH")
+        folders.append((version, folder))
+    if not folders:
+        raise ValueError(f"{firmware_dir}: no version folders")
+    files = {}
+    versions = []
+    for _version, folder in sorted(folders, reverse=True):
+        manifests, targets = build_install_version(folder, folder.name, slug, profiles, default_target, sketch_dir)
+        files.update({f"{folder.name}/{name}": manifest for name, manifest in manifests.items()})
+        notes = folder / INSTALL_NOTES
+        versions.append(
+            {
+                "version": folder.name,
+                "notes": notes.read_text(encoding="utf-8").strip() if notes.exists() else "",
+                "targets": targets,
+            }
+        )
+    return files, {"project": slug, "versions": versions}
+
+
+def write_install_index(firmware_dir, slug, sketch_dir=SKETCH_DIR):
+    """Trims the factory images, writes each version's manifests and install-index.json, removes NOTES.md."""
+    firmware_dir = Path(firmware_dir)
+    files, index = build_install_index(firmware_dir, slug, sketch_dir)
+    for image in firmware_dir.glob("*/*.factory.bin"):
+        image.write_bytes(trim_image(image.read_bytes()))
+    for name, manifest in files.items():
+        (firmware_dir / name).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
+    (firmware_dir / INSTALL_INDEX).write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n")
+    for notes in firmware_dir.glob(f"*/{INSTALL_NOTES}"):
+        notes.unlink()
+    return index
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -158,6 +275,8 @@ def main(argv=None):
     manifest_parser.add_argument("directory")
     manifest_parser.add_argument("--repo", required=True)
     manifest_parser.add_argument("--tag", required=True)
+    install_parser = commands.add_parser("install")
+    install_parser.add_argument("directory")
     args = parser.parse_args(argv)
 
     try:
@@ -180,6 +299,9 @@ def main(argv=None):
             version = ".".join(map(str, read_version()))
             manifest = write_manifest(args.directory, args.repo, args.tag, read_project_slug(), changelog_section(version) or "")
             print(f"Manifest v{manifest['version']}: {', '.join(manifest['targets'])}")
+        elif args.command == "install":
+            index = write_install_index(args.directory, read_project_slug())
+            print(f"Installer versions: {', '.join(v['version'] for v in index['versions'])}")
     except (ValueError, OSError) as error:
         print(f"::error::{error}")
         return 1

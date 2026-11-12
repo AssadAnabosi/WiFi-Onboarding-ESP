@@ -1,0 +1,93 @@
+name: Installer
+
+# Publishes the browser installer (installer/ + ESP Web Tools) to GitHub Pages with the factory
+# images and notes of every public release (docs/releasing.md#browser-installer).
+# Runs when a pre-release is made public, or by hand (Actions → Installer → Run workflow).
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.13"
+  # Bump deliberately; the npm registry checks the package's integrity
+  ESP_WEB_TOOLS_VERSION: "10.4.0"
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements.txt
+
+      - name: Install Python tools
+        run: pip install -r utils/requirements.txt
+
+      # Every public release (never a pre-release or draft), each in firmware/<version>/ with its
+      # notes (the release body: its CHANGELOG section). release.py install trims the images and
+      # writes the manifests and firmware/install-index.json.
+      - name: Firmware and release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/firmware
+          tags=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-pre-releases --exclude-drafts --limit 1000 --json tagName --jq '.[].tagName')
+          for tag in $tags; do
+            dir="site/firmware/${tag#v}"
+            mkdir "$dir"
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern '*.factory.bin' --pattern SHA256SUMS --dir "$dir"
+            (cd "$dir" && grep '\.factory\.bin$' SHA256SUMS | sha256sum --check --strict --quiet)
+            rm "$dir/SHA256SUMS"
+            gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$dir/NOTES.md"
+          done
+          python utils/release.py install site/firmware
+          du -sh site/firmware
+
+      - name: ESP Web Tools
+        run: |
+          npm pack "esp-web-tools@$ESP_WEB_TOOLS_VERSION" --ignore-scripts --pack-destination "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/esp-web-tools-$ESP_WEB_TOOLS_VERSION.tgz" -C "$RUNNER_TEMP"
+          cp -r "$RUNNER_TEMP/package/dist/web" site/esp-web-tools
+          cp "$RUNNER_TEMP/package/LICENSE" site/esp-web-tools/LICENSE
+
+      # The device's stylesheet and app.js give the page the same look, header and theme switch
+      - name: Page
+        run: |
+          cp installer/installer.css installer/installer.js site/
+          sed "s|{{REPO}}|$GITHUB_REPOSITORY|g" installer/index.html > site/index.html
+          mkdir -p site/css site/js
+          cp web-interface/css/style.css site/css/
+          cp web-interface/js/app.js web-interface/js/markdown.js site/js/
+          cp web-interface/favicon.ico site/
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1

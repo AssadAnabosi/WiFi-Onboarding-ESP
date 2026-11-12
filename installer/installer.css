@@ -1,0 +1,139 @@
+/* Installer-only additions on top of the device's css/style.css (copied in by pages.yml) */
+
+/* No device to talk to: no connection pill */
+#conn {
+  display: none;
+}
+
+/* Step number, in the place of a card icon */
+.step {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.steps ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+/* Flash size choices: rows of the network list, with a radio button */
+.list label.net {
+  font-weight: inherit;
+}
+.net input[type="radio"] {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+  box-shadow: none;
+}
+.net:has(input:checked) {
+  background: var(--accent-soft);
+}
+
+/* Version picker: styled like the device's text inputs */
+select {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+#release-notes,
+#own {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* ESP Web Tools' dialogs (Material components): their colours and font are CSS variables
+   with defaults on :host, which page styles override. Mapped to the device UI's tokens, so
+   they follow the theme switch too. */
+ewt-install-dialog,
+ewt-no-port-picked-dialog {
+  --roboto-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-color: var(--muted);
+  --danger-color: var(--danger);
+  --md-sys-color-primary: var(--accent);
+  --md-sys-color-on-primary: var(--accent-fg);
+  --md-sys-color-primary-container: var(--accent-soft);
+  --md-sys-color-secondary: var(--accent);
+  --md-sys-color-secondary-container: var(--surface-2);
+  --md-sys-color-on-secondary-container: var(--text);
+  --md-sys-color-tertiary: var(--accent);
+  --md-sys-color-tertiary-container: var(--accent-soft);
+  --md-sys-color-surface: var(--surface);
+  --md-sys-color-surface-container: var(--surface);
+  --md-sys-color-surface-container-high: var(--surface);
+  --md-sys-color-surface-container-highest: var(--surface-2);
+  --md-sys-color-on-surface: var(--text);
+  --md-sys-color-on-surface-variant: var(--muted);
+  --md-sys-color-outline-variant: var(--border);
+  --md-sys-color-error: var(--danger);
+  --md-sys-color-on-error-container: var(--danger);
+  --md-sys-color-shadow: #000;
+  --md-sys-color-scrim: #000;
+  --md-dialog-container-shape: var(--r);
+}
+
+/* Collapsible card (No port selected): the summary is the card's title row */
+details.card {
+  display: block;
+}
+details.card > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  list-style: none;
+  cursor: pointer;
+  color: var(--text);
+  font-size: inherit;
+}
+details.card > summary::-webkit-details-marker {
+  display: none;
+}
+details.card > summary:hover h2 {
+  color: var(--accent);
+}
+/* Lucide chevron-down (ISC), like the UI's other icons */
+.chevron {
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+details[open] .chevron {
+  transform: rotate(180deg);
+}
+.expand-body {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.expand-body ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+  color: inherit;
+  font-size: inherit;
+}

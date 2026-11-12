@@ -15,6 +15,7 @@ The sketch root holds only what forks and tools touch; the code lives in `esp32/
 | `.clang-format` | C++ formatting, used by Arduino IDE's Auto Format and most editors |
 | `src/storage/ConfigStorage` | Settings (`DeviceSettings`, the saved network) and system records in NVS |
 | `src/wifi/WiFiManager` | Saved network, access point, mDNS, scans, background connection attempts |
+| `src/wifi/ImprovSerial` | Wi-Fi setup over the USB serial port for the browser installer ([Improv](https://www.improv-wifi.com/serial/)) |
 | `src/web/WebServerManager` | Embedded pages and response helpers; routes by area in `SystemRoutes.cpp`, `WifiRoutes.cpp` and `UpdateRoutes.cpp` ([api.md](api.md)) |
 | `src/web/RequestGuard` | Cross-site protection for every POST |
 | `src/ota/UpdateManager` | The update state machine: uploads, update checks, downloads, rollback requests |
@@ -37,10 +38,13 @@ flowchart LR
     wifi --> storage["ConfigStorage"]
     slots --> storage
     web --> storage
+    ino --> improv["ImprovSerial"]
+    improv --> wifi
+    improv --> updates
 ```
 
 - Modules are created once in `esp32.ino` and receive the modules they use as constructor references; there are no globals to reach for.
-- `setup()` starts `FirmwareSlots` first (so the rollback deadline of new firmware is armed before anything can hang), then logs the settings and starts `WiFiManager`, `UpdateManager` and `WebServerManager`, and calls `firmwareSlots.setupDone()` last. `loop()` runs `FirmwareSlots`, `UpdateManager` and `Restart`.
+- `setup()` starts `FirmwareSlots` first (so the rollback deadline of new firmware is armed before anything can hang), then logs the settings, starts `ImprovSerial` (its own task, so the browser installer gets answers while the saved network is tried) and starts `WiFiManager`, `UpdateManager` and `WebServerManager`, and calls `firmwareSlots.setupDone()` last. `loop()` runs `FirmwareSlots`, `UpdateManager` and `Restart`.
 - `WiFiManager`, `FirmwareSlots` and `UpdateFile` know nothing about HTTP; the web layer turns their results into API responses.
 - Files in `src/` include root files by relative path (`#include "../../ProjectConfig.h"`).
 
@@ -101,10 +105,10 @@ Each target is made of:
 | --- | --- |
 | Build profile (board, partition scheme, pinned core and libraries) | A profile named after the target in `esp32/sketch.yaml` |
 | Partition table | `esp32/targets/<target>.partitions.csv` |
-| Feature switches | `esp32/targets/<target>.h` |
+| Feature switches, and the browser installer's `TARGET_TITLE` and `TARGET_DESCRIPTION` | `esp32/targets/<target>.h` |
 | Build flags (`-DUPDATE_SIGN`, `OTA_TARGET_ID`, `OTA_TARGET_HEADER`) | `esp32/build_opt.h`, committed for the default target |
 
-To add a target, add those three files; CI builds every profile without workflow changes. Then add its `Build <target>` check to the `main` ruleset's required checks (see [releasing.md](releasing.md#github-setup)); GitHub doesn't add it by itself. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder. Both are committed for the default target, and `targets.py check` fails if either no longer matches it.
+To add a target, add those three files; CI builds every profile without workflow changes, and the browser installer lists it from the next public release with the title and description from its header (`targets.py check` fails without them). Profiles are listed in `sketch.yaml` order, with the default profile marked as the pick when unsure. Then add its `Build <target>` check to the `main` ruleset's required checks (see [releasing.md](releasing.md#github-setup)); GitHub doesn't add it by itself. Before each build, `python utils/targets.py prepare <target>` copies that target's partition table to `esp32/partitions.csv` and writes its `build_opt.h`, because the Arduino tools only read those from the sketch folder. Both are committed for the default target, and `targets.py check` fails if either no longer matches it.
 
 The target ID is compiled in. The device never guesses it from the hardware, since two configurations can share the same chip.
 

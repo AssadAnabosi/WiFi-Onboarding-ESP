@@ -24,7 +24,17 @@ Pick the one that matches your board's flash size; `esptool.py flash_id` prints 
 
 Other chips with Wi-Fi (ESP32-S3, -C3, -C6 and so on) can be added as new build targets; see [architecture.md](architecture.md#build-targets).
 
-## Option 1: flash a release
+## Option 1: install from your browser
+
+The [browser installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/) flashes a release straight from the page, in Chrome or Edge on a computer. It selects the latest release and shows its release notes; pick an older version from the list if you need one, or **Your own file…** to flash a full image you built yourself (e.g. the build's `merged.bin`). Firefox, Safari and phones can't talk to USB devices; use option 2 there.
+
+1. Connect the board with a USB data cable.
+2. Open the [installer](https://assadanabosi.github.io/WiFi-Onboarding-ESP/), pick your board and click **Connect**, choose the board's serial port, then **Install**.
+3. When flashing is done, the installer asks for your Wi-Fi network and sends it to the device over USB ([Improv](https://www.improv-wifi.com/serial/)). Once the device has joined, **Visit device** opens its web interface. You can skip this and use the access point instead (see [First setup](#first-setup)).
+
+Like option 2, this writes the whole factory image and **wipes everything on the board, settings included**. If the port isn't listed, try another cable, install the CP210x or CH340 driver for your board's USB chip, and close anything else using the port (e.g. a serial monitor).
+
+## Option 2: flash a release with esptool
 
 1. Download `wifi-onboarding-<version>-<target>.factory.bin` for your target (e.g. `esp32-4mb`) from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest). Optionally check it against `SHA256SUMS` from the same release.
 2. Install [esptool](https://docs.espressif.com/projects/esptool/) (`pip install esptool`) and connect the board over USB.
@@ -38,7 +48,7 @@ Other chips with Wi-Fi (ESP32-S3, -C3, -C6 and so on) can be added as new build 
 
 The factory image is a full 4 MB image: bootloader, partition table and firmware. **Flashing it wipes everything on the board, settings included.** It is only for USB flashing; the device's update page refuses it. Later versions are installed with the `.ota.bin` file instead.
 
-## Option 2: build it yourself
+## Option 3: build it yourself
 
 Build with Arduino IDE 2 or `arduino-cli` and upload over USB. See [local-development.md](local-development.md).
 

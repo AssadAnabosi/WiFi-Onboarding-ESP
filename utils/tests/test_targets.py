@@ -15,6 +15,15 @@ app1,     app,  ota_1,   0x200000,0x1F0000,
 """
 
 
+def header(target, title=None, description="A board."):
+    text = "#pragma once\n"
+    if title is not False:
+        text += f'#define TARGET_TITLE "{title or target}"\n'
+    if description is not False:
+        text += f'#define TARGET_DESCRIPTION "{description}"\n'
+    return text
+
+
 class TargetNameTest(unittest.TestCase):
     def test_good_names(self):
         for name in ("esp32-4mb", "esp32s3-8mb", "esp32-4mb-psram", "esp32c6-16mb-relay-v2"):
@@ -44,7 +53,7 @@ class SketchTest(unittest.TestCase):
         (sketch / "targets" / f"{default}.partitions.csv").write_text(PARTITIONS, encoding="utf-8")
         (sketch / "build_opt.h").write_text(targets.build_opt(default), encoding="utf-8")
         for p in profiles:
-            (sketch / "targets" / f"{p}.h").write_text("#pragma once\n", encoding="utf-8")
+            (sketch / "targets" / f"{p}.h").write_text(header(p), encoding="utf-8")
         return sketch
 
     def test_repository_targets_are_valid(self):
@@ -56,6 +65,30 @@ class SketchTest(unittest.TestCase):
             problems = targets.check(sketch)
             self.assertEqual(len(problems), 1)
             self.assertIn("esp32-4mb-relay.partitions.csv", problems[0])
+
+    def test_installer_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sketch = self.make_sketch(tmp, ["esp32-4mb"])
+            (sketch / "targets" / "esp32-4mb.h").write_text(header("esp32-4mb", "4 MB flash", "Any ESP32."), encoding="utf-8")
+            self.assertEqual(
+                targets.installer_text("esp32-4mb", sketch), ({"title": "4 MB flash", "description": "Any ESP32."}, [])
+            )
+
+    def test_installer_text_is_required(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sketch = self.make_sketch(tmp, ["esp32-4mb"])
+            (sketch / "targets" / "esp32-4mb.h").write_text(header("esp32-4mb", description=False), encoding="utf-8")
+            problems = targets.check(sketch)
+            self.assertEqual(len(problems), 1)
+            self.assertIn("TARGET_DESCRIPTION", problems[0])
+
+    def test_installer_text_length(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sketch = self.make_sketch(tmp, ["esp32-4mb"])
+            (sketch / "targets" / "esp32-4mb.h").write_text(header("esp32-4mb", "x" * 33), encoding="utf-8")
+            problems = targets.check(sketch)
+            self.assertEqual(len(problems), 1)
+            self.assertIn("longer than 32", problems[0])
 
     def test_prepare_other_target(self):
         with tempfile.TemporaryDirectory() as tmp:

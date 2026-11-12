@@ -95,6 +95,7 @@ void WiFiManager::begin()
     startAccessPoint(settings);
 
   startMdns();
+  _ready = true;
 }
 
 void WiFiManager::startAccessPoint(const DeviceSettings &settings)
@@ -218,6 +219,7 @@ bool WiFiManager::isScanning() const
 
 WiFiManager::ScanState WiFiManager::scan(std::vector<Network> &networks)
 {
+  std::lock_guard<std::mutex> guard(_scanLock);
   int16_t count = WiFi.scanComplete();
   if (count == WIFI_SCAN_RUNNING)
     return ScanState::Scanning;

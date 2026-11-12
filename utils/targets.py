@@ -32,6 +32,9 @@ NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 SIZE_WARN_RATIO = 0.90
 
+# Installer text in each target header (#define NAME "text"), shown by the browser installer
+INSTALLER_TEXT = {"TARGET_TITLE": ("title", 32), "TARGET_DESCRIPTION": ("description", 200)}
+
 
 def validate_name(name):
     """Return a list of problems with a target name (empty when valid)."""
@@ -97,6 +100,22 @@ def app_slot_size(partitions_csv):
     raise ValueError(f"{partitions_csv}: no ota_0 app partition")
 
 
+def installer_text(target, sketch_dir=SKETCH_DIR):
+    """({"title": ..., "description": ...}, problems) from the target's header."""
+    header = sketch_dir / "targets" / f"{target}.h"
+    text = header.read_text(encoding="utf-8") if header.exists() else ""
+    values, problems = {}, []
+    for name, (key, limit) in INSTALLER_TEXT.items():
+        match = re.search(r'^#define\s+' + name + r'\s+"([^"\\]*)"\s*$', text, re.M)
+        if not match or not match.group(1).strip():
+            problems.append(f'{target}: {header.name} needs #define {name} "..." for the browser installer')
+            continue
+        if len(match.group(1)) > limit:
+            problems.append(f"{target}: {name} is longer than {limit} characters")
+        values[key] = match.group(1)
+    return values, problems
+
+
 def check(sketch_dir=SKETCH_DIR):
     profiles, default_target = load_sketch(sketch_dir / "sketch.yaml")
     problems = []
@@ -109,6 +128,8 @@ def check(sketch_dir=SKETCH_DIR):
         header = sketch_dir / "targets" / f"{target}.h"
         if not header.exists():
             problems.append(f"{target}: missing {header.relative_to(sketch_dir.parent).as_posix()}")
+        else:
+            problems += installer_text(target, sketch_dir)[1]
         partitions = partitions_file(target, sketch_dir)
         if not partitions.exists():
             problems.append(f"{target}: missing {partitions.relative_to(sketch_dir.parent).as_posix()}")
