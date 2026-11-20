@@ -11,6 +11,11 @@ web-interface/, served without ".html" (/home, /networks, /settings) as on the
 device, with {{VERSION}} filled in from VERSION. Edit and reload; there is no
 build step.
 
+Export: python utils/ui_preview.py --export DIR [--back URL]
+       Writes the mock as a static site (the browser installer's demo, published
+       by .github/workflows/pages.yml in demo/). It needs a server that maps
+       /home to home.html, as GitHub Pages does.
+
 Mock mode swaps each page's js/api.js and page scripts for utils/ui_mock.js.
 Live mode forwards /api/* to the device: it only accepts POSTs whose Host and
 Origin are its own name and sends no CORS headers, so a page on localhost
@@ -31,6 +36,8 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web-interface"
 MOCK_JS = Path(__file__).resolve().parent / "ui_mock.js"
 MOCK_URL = "/ui_mock.js"
+# The web-interface files the mock pages load (js/api.js and the page scripts are swapped out)
+EXPORT_FILES = ["css/style.css", "js/app.js", "js/markdown.js"]
 VERSION_FILE = ROOT / "VERSION"
 API_TIMEOUT_S = 15
 UPLOAD_TIMEOUT_S = 120
@@ -54,10 +61,38 @@ def mock_page(html):
         if first:
             first = False
             indent = re.match(r"[ \t]*", match.group(0)).group(0)
-            return f'{indent}<script src="{MOCK_URL}" defer></script>\n'
+            # Relative, so the exported demo also works below a path (e.g. <site>/demo/)
+            return f'{indent}<script src="{MOCK_URL.lstrip("/")}" defer></script>\n'
         return ""
 
     return DEVICE_SCRIPT.sub(swap, html)
+
+
+def set_back_link(html, url):
+    """Adds data-demo-back to <body>: the mock's Demo states panel then links back there."""
+    if url is None:
+        return html
+    attr = ' data-demo-back="' + url.replace("&", "&amp;").replace('"', "&quot;") + '"'
+    html, n = re.subn(r"<body\b", "<body" + attr, html, count=1)
+    if n != 1:
+        raise ValueError("page has no <body>")
+    return html
+
+
+def export(out_dir, version, back=None):
+    """Writes every page with the mock in place of the device scripts, plus what they load."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pages = sorted(WEB_DIR.glob("*.html"))
+    for page in pages:
+        html = mock_page(fill_version(page.read_text(encoding="utf-8"), version))
+        (out_dir / page.name).write_text(set_back_link(html, back), encoding="utf-8", newline="\n")
+    for rel in EXPORT_FILES:
+        dest = out_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes((WEB_DIR / rel).read_bytes())
+    (out_dir / MOCK_URL.lstrip("/")).write_bytes(MOCK_JS.read_bytes())
+    return [p.name for p in pages]
 
 
 def find_file(url_path, mock):
@@ -175,9 +210,15 @@ def main():
     parser.add_argument("--mock", action="store_true", help="use a fake device instead of a real one")
     parser.add_argument("--device", default="config.local", help="device host name or IP (default: config.local)")
     parser.add_argument("--port", type=int, default=8766, help="local port (default: 8766)")
+    parser.add_argument("--export", metavar="DIR", help="write the mock as a static site to DIR and exit")
+    parser.add_argument("--back", metavar="URL", help="with --export: link the Demo states panel back to URL")
     args = parser.parse_args()
 
     Handler.version = VERSION_FILE.read_text(encoding="utf-8").strip()
+    if args.export:
+        pages = export(args.export, Handler.version, args.back)
+        print(f"Mock demo ({len(pages)} pages) written to {args.export}")
+        return
     if args.mock:
         print("Mock mode: fake device; the Demo states button switches its state")
     else:

@@ -6,7 +6,8 @@
     <!-- Published to GitHub Pages by .github/workflows/pages.yml, which adds next to this page:
          css/style.css and js/app.js from web-interface/ (same look, header and theme switch as the
          device) and js/markdown.js (release notes), ESP Web Tools in esp-web-tools/, and every public
-         release's factory images, manifests and install-index.json in firmware/ (utils/release.py install). {{REPO}} is replaced with the repository.
+         release's factory images, manifests and install-index.json in firmware/ (utils/release.py install),
+         and the device's web interface on a fake device in demo/ (utils/ui_preview.py --export). {{REPO}} is replaced with the repository.
          Local preview: docs/releasing.md#browser-installer -->
     <link rel="icon" href="favicon.ico" />
     <link rel="stylesheet" href="css/style.css" />
@@ -23,6 +24,16 @@
         <h1>Install the firmware</h1>
         <p class="muted">Flash your ESP32 over USB, right from this page.</p>
       </div>
+
+      <section class="card">
+        <div class="row between demo-cta">
+          <div class="grow">
+            <h2>See it first</h2>
+            <p class="sm muted">Try the device's web page in your browser, on a fake device. Use <strong>Demo states</strong> (bottom left) to see each case.</p>
+          </div>
+          <a class="btn" id="demo-link" href="demo/">Try the demo</a>
+        </div>
+      </section>
 
       <p class="note" id="no-serial">
         This browser can't talk to USB devices. Open this page in Chrome or Edge on a computer, or

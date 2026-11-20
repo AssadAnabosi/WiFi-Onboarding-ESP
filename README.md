@@ -2,6 +2,10 @@
 
 A boilerplate for ESP32 IoT projects: a small web interface for connecting the device to Wi-Fi, plus signed over-the-air (OTA) updates that never lose your settings.
 
+**[▶ Try the live demo](https://assadanabosi.github.io/WiFi-Onboarding-ESP/demo/)**: the device's web interface running in your browser on a fake device. No hardware needed; use **Demo states** (bottom left) to see each case, such as an update being available, a rollback or the device going offline.
+
+[![The web interface: Home in the light theme, Networks on a phone in the dark theme](docs/images/showcase.png)](https://assadanabosi.github.io/WiFi-Onboarding-ESP/demo/)
+
 > ESP8266 support has been removed. The last ESP8266-compatible version lives on the [`legacy/esp8266`](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/tree/legacy/esp8266) branch.
 
 ## Features
@@ -13,7 +17,7 @@ A boilerplate for ESP32 IoT projects: a small web interface for connecting the d
 - **Signed OTA updates**: upload a signed firmware file from the Settings page, or install a new release from GitHub after the device finds one.
 - **Automatic rollback**: a failed update returns to the previous firmware; a manual rollback button is also available.
 - **WPA2-Enterprise** (not verified): enter `username|password` as the password to join PEAP/MSCHAPv2 networks.
-- **Responsive web interface**: light and dark themes, plain HTML, CSS and JavaScript, embedded in the firmware. Preview it on your PC against a fake or real device with `utils/ui_preview.py`.
+- **Responsive web interface**: light and dark themes, plain HTML, CSS and JavaScript, embedded in the firmware. Try it in the [live demo](https://assadanabosi.github.io/WiFi-Onboarding-ESP/demo/), or preview it on your PC against a fake or real device with `utils/ui_preview.py`.
 
 ## Quick start
 

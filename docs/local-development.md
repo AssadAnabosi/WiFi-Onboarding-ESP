@@ -81,7 +81,7 @@ Open http://localhost:8766 (`--port` to change it; run both side by side on diff
 | Rollback available | Firmware: "Previous version" and Roll back |
 | Device offline | Every request fails: "Disconnected" and an error toast |
 
-**Test toast** shows sample messages, short and long. When page behaviour changes, update `ui_mock.js` too: `utils/tests/test_ui_preview.py` fails if a page calls a function the mock doesn't define.
+**Test toast** shows sample messages, short and long. The browser installer publishes the same mock as its demo: `python utils/ui_preview.py --export DIR [--back URL]` writes it as static files (see [releasing.md](releasing.md#browser-installer)); `--back` adds a **Back to the installer** button next to **Demo states**. When page behaviour changes, update `ui_mock.js` too: `utils/tests/test_ui_preview.py` fails if a page calls a function the mock doesn't define.
 
 ### Live: a real device
 

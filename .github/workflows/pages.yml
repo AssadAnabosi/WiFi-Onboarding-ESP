@@ -73,6 +73,11 @@ jobs:
           cp web-interface/css/style.css site/css/
           cp web-interface/js/app.js web-interface/js/markdown.js site/js/
 
+      # The device's web interface on a fake device (utils/ui_mock.js), linked from the page.
+      # GitHub Pages serves demo/home as demo/home.html, as the device does.
+      - name: Demo
+        run: python utils/ui_preview.py --export site/demo --back ../
+
       - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: site

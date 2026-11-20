@@ -1,5 +1,6 @@
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,7 +19,7 @@ class UiPreviewTest(unittest.TestCase):
         for name in PAGES:
             with self.subTest(page=name):
                 html = ui_preview.mock_page(self.page(name))
-                self.assertEqual(html.count(ui_preview.MOCK_URL), 1)
+                self.assertEqual(html.count('src="ui_mock.js"'), 1)
                 self.assertNotRegex(html, r'src="js/(api|home|networks|settings|firmware)\.js"')
                 self.assertIn('src="js/app.js"', html)
 
@@ -51,6 +52,26 @@ class UiPreviewTest(unittest.TestCase):
     def test_files_outside_the_web_folder_are_not_served(self):
         self.assertIsNone(ui_preview.find_file("/../VERSION", False))
         self.assertIsNone(ui_preview.find_file("/../utils/ui_preview.py", True))
+
+    def test_export_writes_a_static_demo(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pages = ui_preview.export(tmp, "1.2.3", back="../")
+            out = Path(tmp)
+            self.assertEqual(sorted(pages), sorted(f"{name}.html" for name in PAGES))
+            for name in PAGES:
+                with self.subTest(page=name):
+                    html = (out / f"{name}.html").read_text(encoding="utf-8")
+                    self.assertIn('src="ui_mock.js"', html)
+                    self.assertIn('data-version="1.2.3"', html)
+                    self.assertIn('<body data-demo-back="../"', html)
+                    # Every local file a page loads is in the export
+                    for ref in re.findall(r'(?:src|href)="((?:css|js)/[^"?#]+|ui_mock\.js)"', html):
+                        self.assertTrue((out / ref).is_file(), ref)
+            self.assertEqual((out / "ui_mock.js").read_bytes(), ui_preview.MOCK_JS.read_bytes())
+
+    def test_back_link_is_optional_and_escaped(self):
+        self.assertEqual(ui_preview.set_back_link("<body>", None), "<body>")
+        self.assertEqual(ui_preview.set_back_link('<body class="x">', 'a"b'), '<body data-demo-back="a&quot;b" class="x">')
 
 
 if __name__ == "__main__":

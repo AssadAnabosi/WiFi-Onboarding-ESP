@@ -137,3 +137,13 @@ details[open] .chevron {
   color: inherit;
   font-size: inherit;
 }
+
+/* "See it first": text and the demo button, the button wrapping under the text when narrow */
+.demo-cta {
+  flex-wrap: wrap;
+}
+.demo-cta .grow {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 14rem;
+}

@@ -509,7 +509,12 @@ function buildDemoPanel() {
     }).join("") +
     "<div class='row'><button class='btn grow' onclick='location.reload()'>Apply</button>" +
     "<button class='btn grow' onclick='demoToast()'>Test toast</button></div></div>" +
-    "<button class='btn' style='box-shadow:var(--shadow)' onclick=\"let d=$('demo');d.style.display=d.style.display?'':'none'\">Demo states</button>";
+    "<div class='row'><button class='btn' style='box-shadow:var(--shadow)' onclick=\"let d=$('demo');d.style.display=d.style.display?'':'none'\">Demo states</button>" +
+    // The published demo (ui_preview.py --export --back) links back to the installer
+    (document.body.dataset.demoBack
+      ? "<a class='btn' style='box-shadow:var(--shadow)' href='" + esc(document.body.dataset.demoBack) + "'>Back to the installer</a>"
+      : "") +
+    "</div>";
   document.body.appendChild(box);
   document.body.style.paddingBottom = "3.5rem";
   box.querySelectorAll("[data-k]").forEach(function (el) {
