@@ -92,7 +92,7 @@ jobs:
         run: pip install -r utils/requirements.txt
 
       # No cache: release builds install the pinned core and libraries fresh
-      - uses: arduino/setup-arduino-cli@v2.0.0
+      - uses: arduino/setup-arduino-cli@v2.1.0
         with:
           version: ${{ env.ARDUINO_CLI_VERSION }}
 
