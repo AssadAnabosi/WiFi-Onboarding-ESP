@@ -6,9 +6,15 @@
 
 // Fake versions around the one the pages were built with (VERSION)
 const V_NOW = document.body.dataset.version || "1.0.0";
-const V_PARTS = V_NOW.split(".").map(Number);
-const V_NEXT = V_PARTS[0] + "." + (V_PARTS[1] + 1) + ".0";
-const V_PREV = V_PARTS[0] + "." + Math.max(V_PARTS[1] - 1, 0) + ".0";
+// The next minor release after v
+function nextMinor(v) {
+  let p = v.split(".").map(Number);
+  return p[0] + "." + (p[1] + 1) + ".0";
+}
+function prevMinor(v) {
+  let p = v.split(".").map(Number);
+  return p[0] + "." + Math.max(p[1] - 1, 0) + ".0";
+}
 
 const DEMO_KEY = "mock-state";
 const DEMO_DEFAULTS = {
@@ -19,10 +25,17 @@ const DEMO_DEFAULTS = {
   devUpdate: false,
   dev: false,
   finishing: false,
-  mismatch: false,
   rollback: false,
   offline: false,
-  psram: true,
+  // The running build target and the one the device was set up with (/api/status
+  // target / home_target). The "psram" and "mismatch" toggles are read from these.
+  target: "esp32-8mb-psram",
+  home: "esp32-8mb-psram",
+  // Not on the panel: changed by the pages' own actions
+  installed: null, // running version (null = VERSION)
+  previous: null, // other slot {version, target} (null = the release before, same target)
+  finishingAt: null, // when the confirmation window ends (ms timestamp)
+  settings: null, // saved Settings-page values over SETTINGS
 };
 const DEMO_LABELS = {
   ap: "Access point on",
@@ -34,20 +47,77 @@ const DEMO_LABELS = {
   mismatch: "Config mismatch",
   rollback: "Rollback available",
   offline: "Device offline",
-  psram: "Board has PSRAM",
+  psram: "Running with PSRAM",
 };
 
+// Only esp32-8mb-psram turns PSRAM on, and the device only changes target over the
+// air within one flash layout (a USB flash resets the home target), so a mismatch is
+// always between the two 8 MB targets.
+const LAYOUT = { "esp32-4mb": "4mb", "esp32-8mb": "8mb", "esp32-8mb-psram": "8mb" };
+const PSRAM_TARGET = "esp32-8mb-psram";
+
+// The target/home pair for the panel's "psram" and "mismatch" toggles
+function toggleTargets(s, psram, mismatch) {
+  if (psram) return { target: PSRAM_TARGET, home: mismatch ? "esp32-8mb" : PSRAM_TARGET };
+  if (mismatch) return { target: "esp32-8mb", home: PSRAM_TARGET };
+  let t = s.target === "esp32-8mb" ? "esp32-8mb" : "esp32-4mb";
+  return { target: t, home: t };
+}
+
 function demo() {
+  let s;
   try {
-    return Object.assign({}, DEMO_DEFAULTS, JSON.parse(localStorage.getItem(DEMO_KEY)));
+    s = Object.assign({}, DEMO_DEFAULTS, JSON.parse(localStorage.getItem(DEMO_KEY)));
   } catch (e) {
-    return Object.assign({}, DEMO_DEFAULTS);
+    s = Object.assign({}, DEMO_DEFAULTS);
   }
+  if (!LAYOUT[s.target] || !LAYOUT[s.home]) Object.assign(s, { target: DEMO_DEFAULTS.target, home: DEMO_DEFAULTS.home });
+  s.psram = s.target === PSRAM_TARGET;
+  s.mismatch = s.target !== s.home;
+  return s;
 }
 function setDemo(patch) {
+  let s = demo();
+  if ("psram" in patch || "mismatch" in patch) {
+    let p = "psram" in patch ? patch.psram : s.psram;
+    let m = "mismatch" in patch ? patch.mismatch : s.mismatch;
+    patch = Object.assign({}, patch, toggleTargets(s, p, m));
+  }
+  s = Object.assign(s, patch);
+  delete s.psram;
+  delete s.mismatch;
   try {
-    localStorage.setItem(DEMO_KEY, JSON.stringify(Object.assign(demo(), patch)));
+    localStorage.setItem(DEMO_KEY, JSON.stringify(s));
   } catch (e) {}
+}
+
+function target() {
+  return demo().target;
+}
+function homeTarget() {
+  return demo().home;
+}
+function installed() {
+  return demo().installed || V_NOW;
+}
+function previous() {
+  return demo().previous || { version: prevMinor(installed()), target: target() };
+}
+// Like firmware.js
+function describeTarget(t) {
+  let parts = t.split("-");
+  let flash = parts[1] ? parts[1].replace(/mb$/, " MB") : "";
+  return flash ? parts[0] + ", " + flash : parts[0];
+}
+function compareVersions(a, b) {
+  a = a.split(".").map(Number);
+  b = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+  return 0;
+}
+// Saved Settings-page values
+function settings() {
+  return Object.assign({}, SETTINGS, demo().settings);
 }
 
 const NETWORKS = [
@@ -78,18 +148,23 @@ document.addEventListener("DOMContentLoaded", function () {
   buildDemoPanel();
   fake(450, function () {
     let s = demo();
-    if (s.dev) $("fw-version").textContent += " (dev)";
+    $("fw-version").textContent = "v" + installed() + (s.dev ? " (dev)" : "");
     if (s.finishing) {
-      let n = 48;
-      setFinishing(n);
-      let t = setInterval(function () {
-        setFinishing(--n);
-        if (n <= 0) {
-          clearInterval(t);
-          setDemo({ finishing: false });
-          toast("Update confirmed");
-        }
-      }, 1000);
+      // Like confirm_in_s, counted from the (fake) boot, not from this page load
+      let end = s.finishingAt || Date.now() + 48000;
+      if (!s.finishingAt) setDemo({ finishingAt: end });
+      let tick = function () {
+        let n = Math.ceil((end - Date.now()) / 1000);
+        if (n > 0) return setFinishing(n);
+        clearInterval(t);
+        setDemo({ finishing: false, finishingAt: null });
+        setFinishing(0);
+        if (document.body.dataset.page === "settings") loadFirmware();
+      };
+      let t = setInterval(tick, 1000);
+      tick();
+    } else if (s.finishingAt) {
+      setDemo({ finishingAt: null });
     }
     let page = document.body.dataset.page;
     if (page === "home") drawHome();
@@ -101,14 +176,18 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
+// Same text as api.js's mismatchText()
 function mismatchText() {
-  return demo().mismatch
-    ? "This device was set up as esp32-4mb but is running esp32-4mb-relay. To fix this, upload a file ending in -esp32-4mb.ota.bin from Settings."
-    : "";
+  if (target() === homeTarget()) return "";
+  return (
+    "This device was set up as " + homeTarget() + " but is running " + target() +
+    ". To fix this, upload a file ending in -" + homeTarget() + ".ota.bin from Settings."
+  );
 }
-// What /api/update/status -> check would say
+// What /api/update/status -> check would say. Only a dev build checks the dev manifest.
 function fakeCheck(state) {
-  return { state: state, version: V_NEXT, dev: demo().devUpdate };
+  let s = demo();
+  return { state: state, version: nextMinor(installed()), dev: state === "available" && s.dev && s.devUpdate };
 }
 
 /* ---------- Home ---------- */
@@ -151,7 +230,11 @@ function memoryFree(mem) {
 
 function deviceCard() {
   let chip = BOARD.chip_info;
-  let mem = demo().psram ? BOARD.memory : { flash_size_mb: 4, free_heap_kb: 182, psram_size_mb: 0, free_psram_kb: 0 };
+  // Flash size comes from the image header and only esp32-8mb-psram turns PSRAM on
+  let t = target();
+  let mem = t === "esp32-8mb-psram"
+    ? BOARD.memory
+    : { flash_size_mb: LAYOUT[t] === "8mb" ? 8 : 4, free_heap_kb: 182, psram_size_mb: 0, free_psram_kb: 0 };
   return (
     "<article class='card wide'><div class='head'><span class='ico'>" + svg(CPU) +
     "</span><div class='grow'><h2>Device</h2></div></div>" +
@@ -167,11 +250,13 @@ function deviceCard() {
 
 function drawHome() {
   let s = demo();
+  // WiFiManager::begin() starts the access point when the saved network fails, whatever ap_status says
+  let ap = s.ap || !s.sta;
   showNote("mismatch", mismatchText());
   showUpdateNote(s.update ? fakeCheck("available") : null);
   $("cards").innerHTML =
-    statusCard(s.ap, s.ap ? RADIO_TOWER : WIFI_OFF, "Access point", "Direct connection to the device", s.ap ? "Active" : "Off",
-      [["Name", "esp32-garden-setup"], ["IP address", "192.168.4.1"]],
+    statusCard(ap, ap ? RADIO_TOWER : WIFI_OFF, "Access point", "Direct connection to the device", ap ? "Active" : "Off",
+      [["Name", settings().ap_ssid], ["IP address", "192.168.4.1"]],
       "The access point is off. Turn it on in <a href='settings'>Settings</a>.") +
     statusCard(s.sta, s.sta ? WIFI_ON : WIFI_OFF, "Wi-Fi network", "Connection to your router", s.sta ? "Connected" : "Not connected",
       [["Network", s.ssid], ["IP address", "192.168.1.42"]],
@@ -231,7 +316,7 @@ function pick(i) {
   if (n.connected) {
     ask({
       title: "Disconnect from " + n.ssid + "?",
-      text: "The device stays reachable through its access point.",
+      text: "The saved password is forgotten. The device stays reachable through its access point if it is on.",
       ok: "Disconnect",
       danger: true,
       onOk: function () {
@@ -302,7 +387,7 @@ const SETTINGS = {
 
 function loadSettings() {
   fake(350, function () {
-    let all = Object.assign({ ap_status: demo().ap }, SETTINGS);
+    let all = Object.assign({ ap_status: demo().ap }, settings());
     for (let k in all) {
       if (typeof all[k] === "boolean") $(k).checked = all[k];
       else $(k).value = all[k];
@@ -316,7 +401,12 @@ function save() {
     text: "The device reboots to apply them. The page reloads in about 30 s.",
     ok: "Save and reboot",
     onOk: function () {
-      setDemo({ ap: $("ap_status").checked });
+      let saved = {};
+      for (let k in SETTINGS) {
+        let v = SETTINGS[k];
+        saved[k] = typeof v === "boolean" ? $(k).checked : typeof v === "number" ? Number($(k).value) : $(k).value;
+      }
+      setDemo({ ap: $("ap_status").checked, settings: saved });
       fakeReboot("Settings saved");
     },
   });
@@ -329,10 +419,13 @@ function reboot() {
 function reset() {
   ask({
     title: "Reset settings?",
-    text: "Wi-Fi and access point settings go back to defaults. Installed firmware (v" + V_NOW + ") is not changed.",
+    text: "Wi-Fi and access point settings go back to defaults. Installed firmware (" +
+      $("fw-installed").textContent + ") is not changed.",
     ok: "Reset",
     danger: true,
     onOk: function () {
+      // The saved network is forgotten and the access point is back on (DEFAULT_AP_ENABLED)
+      setDemo({ sta: false, ap: true, settings: null });
       fakeReboot("Settings reset");
     },
   });
@@ -351,12 +444,14 @@ function fakeReboot(message) {
 
 function loadFirmware() {
   let s = demo();
-  $("fw-installed").textContent = "v" + V_NOW + (s.dev ? " (dev)" : "");
-  $("fw-build").textContent = "2026-11-02 (a7f2fb1)";
-  $("fw-target").textContent = s.mismatch ? "esp32-4mb-relay" : "esp32-4mb";
+  $("fw-installed").textContent = "v" + installed() + (s.dev ? " (dev)" : "");
+  // FIRMWARE_BUILD_DATE is __DATE__ " " __TIME__; local builds have commit "dev", which firmware.js hides
+  $("fw-build").textContent = "Nov 12 2026 14:03:11" + (s.dev ? "" : " (a7f2fb1)");
+  $("fw-target").textContent = target();
   showNote("fw-mismatch", mismatchText());
-  $("fw-rollback").style.display = s.rollback ? "" : "none";
-  $("fw-previous").textContent = "Previous version: v" + V_PREV;
+  // rollback_available is false while the update is unconfirmed
+  $("fw-rollback").style.display = s.rollback && !s.finishing ? "" : "none";
+  $("fw-previous").textContent = "Previous version: v" + previous().version;
   // The device checks on its own 30 s after boot, so the mock starts from a finished check
   renderCheck(s.update ? "available" : "up_to_date");
 }
@@ -377,7 +472,7 @@ function renderCheck(state) {
   $("fw-badge").textContent = badge[0];
   $("fw-badge").className = "chip " + badge[1];
   if (available) {
-    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + V_NEXT + " is available";
+    $("fw-available-title").textContent = (check.dev ? "Dev build v" : "v") + check.version + " is available";
     // Same shape as a CHANGELOG section, plus the edge cases: nesting, long code, an unclosed marker
     renderMarkdown(
       $("fw-notes"),
@@ -420,43 +515,96 @@ function setMessage(text, kind) {
   $("fw-message").className = "grow sm " + (kind || "muted");
 }
 
+// The new firmware boots unconfirmed in the other slot; the running one becomes the previous slot
+function bootNewFirmware(version, t) {
+  let patch = { target: t }; // the home target stays
+  patch.previous = { version: installed(), target: target() };
+  patch.installed = version;
+  patch.finishing = true;
+  patch.finishingAt = null;
+  patch.rollback = true;
+  setDemo(patch);
+}
+
 function installUpdate() {
+  let version = nextMinor(installed());
   ask({
-    title: "Install v" + V_NEXT + "?",
+    title: "Install v" + version + "?",
     text: "The device downloads the update, installs it and reboots. Settings are kept.",
     ok: "Install",
     onOk: function () {
       progress("Downloading…", function () {
-        setDemo({ update: false, finishing: true, rollback: true });
+        setDemo({ update: false });
+        bootNewFirmware(version, target());
         fakeReboot("Update installed");
       });
     },
   });
 }
 
+// The real page reads the file's info block (analyzeFile in firmware.js); the mock reads
+// <slug>-<version>-<target>.ota.bin from the name and applies the same rules.
+function analyzeName(name) {
+  let home = homeTarget();
+  let running = target();
+  let expected = "Use a file ending in -" + home + ".ota.bin.";
+  if (/\.factory\.bin$/.test(name)) {
+    return { error: "This is a factory image for USB flashing, not an update. Use the file ending in -" + home + ".ota.bin." };
+  }
+  if (!/\.ota\.bin$/.test(name)) return { error: "This file is not a firmware update. " + expected };
+  let m = /-(\d+\.\d+\.\d+)-(esp32-[a-z0-9-]+)\.ota\.bin$/.exec(name);
+  let version = m ? m[1] : nextMinor(installed());
+  let t = m ? m[2] : running;
+  if (LAYOUT[t] !== LAYOUT[running]) {
+    return {
+      error: "This file is for " + t + " with another flash layout and cannot run on this device (" +
+        describeTarget(running) + "). " + expected,
+    };
+  }
+  let warnings = [];
+  if (t !== running) {
+    warnings.push(t === home
+      ? "This restores the device's original configuration (" + t + ")."
+      : "This file is for " + t + ". This device runs " + running + ". The correct file for this device ends in -" +
+        running + ".ota.bin. If you continue, future updates will follow " + t + ".");
+  }
+  let order = compareVersions(version, installed());
+  if (order < 0) {
+    warnings.push("This file is v" + version + ". Installed: v" + installed() + ". This is a downgrade, continue?");
+  } else if (order === 0) {
+    warnings.push("This file is v" + version + ", the version already installed. Install it again?");
+  }
+  return { version: version, target: t, warnings: warnings };
+}
+
 let picked = null;
 function pickFirmware(file) {
   if (!file) return;
-  picked = file;
   $("fw-picked").style.display = "";
   $("fw-upload").style.display = "";
-  // The real page reads the info block here (analyzeFile in firmware.js)
-  if (!/\.ota\.bin$/.test(file.name)) {
-    setMessage(file.name + ": this file is not a firmware update. Use a file ending in -esp32-4mb.ota.bin.", "err");
+  let result = analyzeName(file.name);
+  if (result.error) {
+    picked = null;
+    setMessage(file.name + ": " + result.error, "err");
     $("fw-upload").disabled = true;
     return;
   }
-  setMessage(file.name + ": v" + V_NEXT + " for esp32-4mb.");
+  picked = result;
+  let summary = file.name + ": v" + result.version + " for " + result.target + ".";
+  setMessage(result.warnings.length ? summary + " " + result.warnings.join(" ") : summary, result.warnings.length ? "warn" : "");
   $("fw-upload").disabled = updateFinishing;
 }
 
 function uploadFirmware() {
+  if (!picked) return;
+  let result = picked;
   ask({
-    title: "Install v" + V_NEXT + " (esp32-4mb)?",
+    title: "Install v" + result.version + " (" + result.target + ")?",
+    text: result.warnings.join("\n\n"),
     ok: "Install",
     onOk: function () {
       progress("Uploading…", function () {
-        setDemo({ finishing: true, rollback: true });
+        bootNewFirmware(result.version, result.target);
         fakeReboot("Update installed");
       });
     },
@@ -464,13 +612,18 @@ function uploadFirmware() {
 }
 
 function rollBack() {
+  let prev = previous();
   ask({
-    title: "Roll back to v" + V_PREV + "?",
+    title: "Roll back to v" + prev.version + "?",
     text: "The device reboots into the version it ran before the last update. Settings are kept.",
     ok: "Roll back",
     danger: true,
     onOk: function () {
-      setDemo({ rollback: false });
+      let patch = { target: prev.target };
+      patch.previous = { version: installed(), target: target() };
+      patch.installed = prev.version;
+      patch.rollback = false;
+      setDemo(patch);
       fakeReboot("Rolling back");
     },
   });
@@ -531,7 +684,7 @@ var demoToasts = [
   "Settings saved",
   "Connecting to HomeNet…",
   "Request failed: the device did not answer",
-  "This file is for esp32-4mb-relay. This device runs esp32-4mb. The correct file for this device ends in -esp32-4mb.ota.bin.",
+  "This file is for esp32-8mb. This device runs esp32-8mb-psram. The correct file for this device ends in -esp32-8mb-psram.ota.bin.",
 ];
 var demoToastIndex = 0;
 function demoToast() {
