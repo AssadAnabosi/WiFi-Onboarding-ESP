@@ -94,8 +94,19 @@ A change isn't complete until the docs match it, and they land in the same commi
 | Any workflow in `.github/workflows/` or its triggers | [docs/ci.md](docs/ci.md) |
 | Build, flash, tooling, CI or the preview server | [docs/local-development.md](docs/local-development.md) and `CLAUDE.md` |
 | Supported hardware, install options or first-run steps | [docs/getting-started.md](docs/getting-started.md) and `README.md` |
-| Anything a user of the firmware or installer would notice | `CHANGELOG.md`, under `## [Unreleased]` |
+| Anything a user of the firmware or its web interface would notice | `CHANGELOG.md`, under `## [Unreleased]` (see [Changelog](#changelog)) |
 | These contribution rules | `CLAUDE.md` working conventions |
+
+### Changelog
+
+[`CHANGELOG.md`](CHANGELOG.md) follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). It is the source of the GitHub release notes, so it is written for people who use the device, not for contributors.
+
+- **Every PR that changes what a user of the firmware or its web interface sees or gets adds an entry under `## [Unreleased]`**, in the same PR as the change.
+- File it under `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed` or `### Security`, creating the heading if `[Unreleased]` doesn't have it yet.
+- Write one plain sentence in user terms, in the style of the existing entries: what changed and, where it matters, what the user has to do.
+- Start the entry with **Breaking:** when it breaks something for existing users or devices, such as a changed API route, a changed setting, or a change that stops an update or rollback working. Breaking changes also use `!` or a `BREAKING CHANGE:` footer in the commit message.
+- Don't log changes that only affect contributors: CI, docs, tests, refactors and dependency bumps with no visible effect. Installer (browser installer page) changes are not logged either.
+- Don't touch the version sections. A maintainer moves the `[Unreleased]` entries into a new `## [X.Y.Z] - YYYY-MM-DD` section when cutting a release ([docs/releasing.md](docs/releasing.md)).
 
 Markdown is formatted with [mdformat](https://mdformat.readthedocs.io/) (pinned in `utils/requirements-docs.txt`, settings in `.mdformat.toml`); CI fails on unformatted files. Fix them with:
 
