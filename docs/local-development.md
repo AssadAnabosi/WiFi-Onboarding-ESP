@@ -54,7 +54,7 @@ Run the Python tests before pushing:
 python -m unittest discover -s utils/tests
 ```
 
-CI runs the same tests, the generated-files check, `python utils/targets.py check` and a build of every target.
+CI runs the same tests, the generated-files check, `python utils/targets.py check` and a build of every target; [ci.md](ci.md) lists every workflow and what triggers it.
 
 ## Preview the web interface
 

@@ -31,7 +31,7 @@ A release is a pushed `vX.Y.Z` tag. CI builds and signs it and publishes a pre-r
 
 ## The pipeline
 
-Two GitHub Actions workflows in `.github/workflows/`:
+Two GitHub Actions workflows in `.github/workflows/` do the release work (all four, and what triggers them, are in [ci.md](ci.md)):
 
 **`checks.yml`**: every push and pull request, no secrets.
 

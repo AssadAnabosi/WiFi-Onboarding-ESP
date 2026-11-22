@@ -50,6 +50,7 @@ Change the default AP password after setup: it is public.
 - [Make it yours](docs/make-it-yours.md): checklist for forks
 - [Local development](docs/local-development.md): building, flashing and testing
 - [Releasing](docs/releasing.md): versioning and the release pipeline
+- [CI workflows](docs/ci.md): what each workflow does and what triggers it
 - [Security](docs/security.md): signing, trusted keys and known risks
 - [Architecture](docs/architecture.md): code layout, flash layout, settings storage and rollback
 - [API](docs/api.md): REST endpoints

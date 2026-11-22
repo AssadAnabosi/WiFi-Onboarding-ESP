@@ -91,6 +91,7 @@ A change isn't complete until the docs match it, and they land in the same commi
 | Defaults, GitHub owner/repo or `PROJECT_SLUG` (`ProjectConfig.h`) | [docs/make-it-yours.md](docs/make-it-yours.md) |
 | Updates, rollback, signing, keys or the manifest | [docs/ota-updates.md](docs/ota-updates.md) and [docs/security.md](docs/security.md) |
 | Release or installer workflows, versioning | [docs/releasing.md](docs/releasing.md) |
+| Any workflow in `.github/workflows/` or its triggers | [docs/ci.md](docs/ci.md) |
 | Build, flash, tooling, CI or the preview server | [docs/local-development.md](docs/local-development.md) and `CLAUDE.md` |
 | Supported hardware, install options or first-run steps | [docs/getting-started.md](docs/getting-started.md) and `README.md` |
 | Anything a user of the firmware or installer would notice | `CHANGELOG.md`, under `## [Unreleased]` |
