@@ -87,15 +87,15 @@ A change isn't complete until the docs match it, and they land in the same commi
 | -- | -- |
 | An HTTP route, request or response field (`esp32/src/web/`, `/api/status`) | [docs/api.md](docs/api.md) and the fake device `utils/ui_mock.js` |
 | A setting (`ConfigStorage`, `/api/settings`, `settings.html`) | [docs/api.md](docs/api.md), `SETTING_KEYS` in `web-interface/js/settings.js`, `SETTINGS` in `utils/ui_mock.js` |
-| Modules, folders or how they depend on each other | [docs/architecture.md](docs/architecture.md#code-layout) and `CLAUDE.md` |
+| Modules, folders or how they depend on each other | [docs/architecture.md](docs/architecture.md#code-layout) and `AGENTS.md` |
 | Defaults, GitHub owner/repo or `PROJECT_SLUG` (`ProjectConfig.h`) | [docs/make-it-yours.md](docs/make-it-yours.md) |
 | Updates, rollback, signing, keys or the manifest | [docs/ota-updates.md](docs/ota-updates.md) and [docs/security.md](docs/security.md) |
 | Release or installer workflows, versioning | [docs/releasing.md](docs/releasing.md) |
 | Any workflow in `.github/workflows/` or its triggers | [docs/ci.md](docs/ci.md) |
-| Build, flash, tooling, CI or the preview server | [docs/local-development.md](docs/local-development.md) and `CLAUDE.md` |
+| Build, flash, tooling, CI or the preview server | [docs/local-development.md](docs/local-development.md) and `AGENTS.md` |
 | Supported hardware, install options or first-run steps | [docs/getting-started.md](docs/getting-started.md) and `README.md` |
 | Anything a user of the firmware or its web interface would notice | `CHANGELOG.md`, under `## [Unreleased]` (see [Changelog](#changelog)) |
-| These contribution rules | `CLAUDE.md` working conventions |
+| These contribution rules | `AGENTS.md` working conventions and `.github/pull_request_template.md` |
 
 ### Changelog
 
@@ -112,7 +112,7 @@ Markdown is formatted with [mdformat](https://mdformat.readthedocs.io/) (pinned 
 
 ```sh
 pip install -r utils/requirements-docs.txt
-mdformat --compact-tables CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs
+mdformat --compact-tables AGENTS.md CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs
 ```
 
 `THIRD_PARTY_LICENSES.md` is generated and not formatted.

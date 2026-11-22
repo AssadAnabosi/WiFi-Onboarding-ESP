@@ -48,4 +48,4 @@ jobs:
 
       # THIRD_PARTY_LICENSES.md is generated, so it is left out
       - name: Check formatting
-        run: mdformat --check --compact-tables CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs
+        run: mdformat --check --compact-tables AGENTS.md CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs
