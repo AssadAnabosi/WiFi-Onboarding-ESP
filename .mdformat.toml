@@ -1,0 +1,4 @@
+# Markdown formatting for docs/ and the root *.md files (docs.yml). THIRD_PARTY_LICENSES.md is generated and left out.
+wrap = "keep"
+number = true
+end_of_line = "lf"

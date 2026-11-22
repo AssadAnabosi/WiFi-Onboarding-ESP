@@ -26,6 +26,7 @@ A boilerplate for ESP32 IoT projects: a small web interface for connecting the d
    Other browsers: download the `.factory.bin` file for your board from the [latest release](https://github.com/AssadAnabosi/WiFi-Onboarding-ESP/releases/latest) and flash it with `esptool.py write_flash 0x0 wifi-onboarding-<version>-esp32-4mb.factory.bin` (see [getting-started.md](docs/getting-started.md)).
 
 2. Otherwise, join the `ESP-Access-Point` Wi-Fi network (password `12345678`).
+
 3. Open `http://config.local` or `http://192.168.4.1` and connect the device to your network.
 
 To build it yourself instead, see [docs/local-development.md](docs/local-development.md).
@@ -33,7 +34,7 @@ To build it yourself instead, see [docs/local-development.md](docs/local-develop
 ## Default settings
 
 | Setting | Value |
-| --- | --- |
+| -- | -- |
 | IP address | `192.168.4.1` |
 | AP SSID | `ESP-Access-Point` |
 | AP password | `12345678` |
@@ -49,6 +50,7 @@ Change the default AP password after setup: it is public.
 - [Make it yours](docs/make-it-yours.md): checklist for forks
 - [Local development](docs/local-development.md): building, flashing and testing
 - [Releasing](docs/releasing.md): versioning and the release pipeline
+- [CI workflows](docs/ci.md): what each workflow does and what triggers it
 - [Security](docs/security.md): signing, trusted keys and known risks
 - [Architecture](docs/architecture.md): code layout, flash layout, settings storage and rollback
 - [API](docs/api.md): REST endpoints

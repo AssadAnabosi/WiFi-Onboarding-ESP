@@ -41,7 +41,7 @@ A check never offers an older version or the version already installed. Pre-rele
 The browser applies these rules before sending a file, and the device applies them again before installing.
 
 | Case | Manual upload | Update check |
-| --- | --- | --- |
+| -- | -- | -- |
 | Newer version, same build target | Installs | Offered |
 | Same or older version | Installs after a confirmation | Never offered |
 | Same chip and flash layout, other configuration (e.g. `esp32-4mb-relay` on an `esp32-4mb` device) | Installs after a warning | Never offered |
@@ -56,7 +56,7 @@ After installing another configuration's file, the device keeps warning on the H
 Warnings you can confirm:
 
 | Message | Meaning |
-| --- | --- |
+| -- | -- |
 | "This file is vX. Installed: vY. This is a downgrade, continue?" | Installing an older version. Allowed by manual upload only |
 | "This file is vX, the version already installed. Install it again?" | Reinstalling the same version |
 | "This file is for `<target>`. This device runs `<target>`. … If you continue, future updates will follow `<target>`." | Another configuration of the same chip; future update checks follow the new one |
@@ -65,7 +65,7 @@ Warnings you can confirm:
 Blocks:
 
 | Message | Meaning |
-| --- | --- |
+| -- | -- |
 | "This is a factory image for USB flashing, not an update. Use the file ending in `-<target>.ota.bin`." | You picked the `.factory.bin`. Use the `.ota.bin` from the same release |
 | "This file is for `<target>` and cannot run on this device …" | Built for another chip or flash layout |
 | "This file is for another project (`<slug>`)." | Signed update for a different project |
@@ -76,7 +76,7 @@ Blocks:
 Update check results:
 
 | Message | Meaning |
-| --- | --- |
+| -- | -- |
 | "No internet: the device is not connected to a Wi-Fi network (access point only)" | Connect the device to a network first |
 | "Not enough free memory for a secure download" | Free memory is below 60 KB; a reboot usually helps |
 | "Could not reach the update server" / "The update server answered NNN" | Network problem, or the repository has no published release yet |
@@ -107,7 +107,7 @@ Manual rollback: after a successful update, Settings → Firmware shows **"Previ
 ## Failure behaviour
 
 | Failure | Result |
-| --- | --- |
+| -- | -- |
 | Upload or download interrupted, wrong checksum or bad signature | Nothing installed, no reboot; the current firmware keeps running |
 | New firmware crashes or resets before confirming | The previous version boots |
 | New firmware never becomes healthy | Rolled back at the 3-minute deadline |

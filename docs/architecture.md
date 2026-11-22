@@ -7,7 +7,7 @@ How the firmware is put together: an Arduino sketch in `esp32/` that keeps its s
 The sketch root holds only what forks and tools touch; the code lives in `esp32/src/`, one folder per module (the Arduino tools compile everything under `src/`).
 
 | Path | Role |
-| --- | --- |
+| -- | -- |
 | `esp32.ino` | Creates the modules, hands each the others it needs, and runs `setup()`/`loop()` |
 | `ProjectConfig.h` | Everything a fork changes ([make-it-yours.md](make-it-yours.md)) |
 | `build_opt.h`, `partitions.csv`, `sketch.yaml`, `targets/` | The build target ([below](#build-targets)) |
@@ -53,7 +53,7 @@ flowchart LR
 `esp32-4mb` uses `esp32/targets/esp32-4mb.partitions.csv`:
 
 | Partition | Offset | Size | Holds |
-| --- | --- | --- | --- |
+| -- | -- | -- | -- |
 | `nvs` | 0x9000 | 20 KB | Settings and system records |
 | `otadata` | 0xE000 | 8 KB | Which app slot boots, and whether it is confirmed |
 | `app0` | 0x10000 | 0x1F0000 (~1.9 MB) | Firmware slot A |
@@ -63,7 +63,7 @@ flowchart LR
 `esp32-8mb` uses `esp32/targets/esp32-8mb.partitions.csv`: the same partitions at the same offsets up to `app0`, with each app slot doubled. `esp32-8mb-psram` uses an identical copy; it differs from `esp32-8mb` only in turning PSRAM on (`PSRAM=enabled` in its `sketch.yaml` profile).
 
 | Partition | Offset | Size | Holds |
-| --- | --- | --- | --- |
+| -- | -- | -- | -- |
 | `nvs` | 0x9000 | 20 KB | Settings and system records |
 | `otadata` | 0xE000 | 8 KB | Which app slot boots, and whether it is confirmed |
 | `app0` | 0x10000 | 0x3F0000 (~3.9 MB) | Firmware slot A |
@@ -79,7 +79,7 @@ The partition table and bootloader are **frozen from v0.1.0 on**: updates never 
 Settings live in NVS through `Preferences`, in two namespaces:
 
 | Namespace | Holds | Factory reset |
-| --- | --- | --- |
+| -- | -- | -- |
 | `cfg` | `wifi_ssid`, `wifi_password`, `ap_ssid`, `ap_password`, `ap_channel`, `ap_hidden`, `ap_status`, `hostname` | Cleared |
 | `sys` | `home_target`, `last_switch`, the pending install (`pend_slot`, `pend_reason`), and a record per slot (`s0_`/`s1_` + `valid`, `version`, `target`, `sha`) | Kept |
 
@@ -102,7 +102,7 @@ A build target is a configuration the firmware is built for, named `<chip>-<flas
 Each target is made of:
 
 | Piece | File |
-| --- | --- |
+| -- | -- |
 | Build profile (board, partition scheme, pinned core and libraries) | A profile named after the target in `esp32/sketch.yaml` |
 | Partition table | `esp32/targets/<target>.partitions.csv` |
 | Feature switches, and the browser installer's `TARGET_TITLE` and `TARGET_DESCRIPTION` | `esp32/targets/<target>.h` |
@@ -140,7 +140,7 @@ flowchart TD
 The update check runs 30 s after boot, every 24 h and on request (see [ota-updates.md](ota-updates.md#update-checks)). The states in lowercase are the `state` values of `GET /api/update/status`:
 
 | State | Meaning |
-| --- | --- |
+| -- | -- |
 | `idle` | Nothing running |
 | `receiving` / `downloading` | Writing an uploaded or downloaded file into the inactive slot |
 | `installing` | Checking the info block, then the signature (`Update.end()`) |
@@ -174,7 +174,7 @@ The core enables the bootloader's one-shot rollback. New firmware boots as **pen
 Committed, never edited by hand; CI fails when they are out of date.
 
 | File | Made by | From | Contains |
-| --- | --- | --- | --- |
+| -- | -- | -- | -- |
 | `esp32/WebAssets.h` | `utils/build_assets.py` | `web-interface/` | Every page, script and style, minified and gzipped, with its URL, MIME type and content hash (the ETag). Pages link their CSS/JS with `?v=<content hash>` |
 | `esp32/Version.h` | `utils/build_assets.py` | `VERSION` | `FIRMWARE_VERSION` and its parts |
 | `esp32/OtaPublicKey.h` | `utils/keygen.py` | Public keys | The trusted release keys |

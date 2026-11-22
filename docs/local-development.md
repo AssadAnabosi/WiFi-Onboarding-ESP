@@ -13,7 +13,7 @@ You need:
 The exact ESP32 core and library versions are pinned in `esp32/sketch.yaml`:
 
 | Component | Version |
-| --- | --- |
+| -- | -- |
 | ESP32 Arduino core (`esp32:esp32`) | 3.3.12 (3.3.8 is the minimum: signed updates need it) |
 | ArduinoJson | 7.4.3 |
 | Async TCP (ESP32Async) | 3.5.0 |
@@ -33,6 +33,7 @@ The commands above build `esp32-4mb`, the default target. For `esp32-8mb`, run `
 ## Edit loop
 
 1. Firmware: edit the files in `esp32/src/` (one folder per module, see [architecture.md](architecture.md#code-layout)) and `esp32/esp32.ino`. Format C++ with the sketch's `.clang-format`: Arduino IDE's **Tools → Auto Format** uses it, as do most editors. Leave the generated headers (`WebAssets.h`, `Version.h`, `OtaPublicKey*.h`) alone.
+
 2. Web interface: edit `web-interface/`, then regenerate the embedded copy:
 
    ```sh
@@ -40,7 +41,9 @@ The commands above build `esp32-4mb`, the default target. For `esp32-8mb`, run `
    ```
 
    This minifies and gzips the pages into `esp32/WebAssets.h` and writes `esp32/Version.h` from the `VERSION` file. Commit the source change and the regenerated files together; CI fails if they drift. To see a change before flashing, use the [preview](#preview-the-web-interface).
+
 3. Compile and upload over USB (above). Uploading over USB keeps the settings stored on the device.
+
 4. Watch the serial monitor at 115200 baud. Each line starts with its module's tag: `[cfg]`, `[wifi]`, `[web]`, `[ota]` or `[sys]`.
 
 For a completely clean start, erase the flash: Arduino IDE's **Tools → Erase All Flash Before Sketch Upload**, or `esptool.py erase_flash`. This wipes the settings.
@@ -51,7 +54,7 @@ Run the Python tests before pushing:
 python -m unittest discover -s utils/tests
 ```
 
-CI runs the same tests, the generated-files check, `python utils/targets.py check` and a build of every target.
+CI runs the same tests, the generated-files check, `python utils/targets.py check` and a build of every target; [ci.md](ci.md) lists every workflow and what triggers it.
 
 ## Preview the web interface
 
@@ -70,7 +73,7 @@ Open http://localhost:8766 (`--port` to change it; run both side by side on diff
 `--mock` swaps `js/api.js` and the page scripts for `utils/ui_mock.js`, which answers with fake data and plays every flow out with short delays (connect, disconnect, save, reboot, install, upload of any file ending in `.ota.bin`, rollback). The **Demo states** button (bottom left) switches the fake device's state; flip the switches, then **Apply**. The choice is kept in the browser until you change it.
 
 | Switch | What changes |
-| --- | --- |
+| -- | -- |
 | Access point on | Home: access point card active or off |
 | Wi-Fi connected | Home: Wi-Fi card; Networks: the connected network highlighted |
 | Update available | Home: "Update vX.Y.Z available" note; Firmware: badge, release notes and Install. Off shows "Up to date" |
@@ -88,7 +91,7 @@ Open http://localhost:8766 (`--port` to change it; run both side by side on diff
 Without `--mock` the real scripts run and `/api/*` is forwarded to the device. The device only accepts POSTs whose Host and Origin are its own name and sends no CORS headers, so the preview sets both to the device; the pages use the same relative `/api/...` URLs as on the device. Everything acts on the device (connect, save, reboot, reset, updates), and the device must run firmware with the API the pages expect. To see each state on real hardware:
 
 | State | How to get it |
-| --- | --- |
+| -- | -- |
 | Dev build | Flash a dev build ([Dev keys](#dev-keys)) |
 | Update available | A newer GitHub release, or a local manifest ([Testing pulls locally](#testing-pulls-locally)), then **Check for updates** |
 | Dev update available | A dev build pointed at a local manifest that offers a newer version |
@@ -142,6 +145,7 @@ A dev build can check a manifest on your own machine instead of GitHub, over pla
    ```
 
 2. Build a newer version (bump `VERSION`, run `build_assets.py`, compile) and sign it with the dev key.
+
 3. In a folder with that `.ota.bin`, write a `manifest.json`:
 
    ```json
@@ -161,7 +165,9 @@ A dev build can check a manifest on your own machine instead of GitHub, over pla
    ```
 
    `size` is the file size in bytes; get the SHA-256 with `sha256sum` (or `certutil -hashfile <file> SHA256` on Windows).
+
 4. Serve the folder: `python -m http.server 8000`, and allow it through your firewall.
+
 5. Click **Check for updates** in Settings → Firmware.
 
 Plain HTTP works in dev builds only; release builds fetch over HTTPS. `python utils/keygen.py --dev-manifest-url ""` goes back to the GitHub release manifest.
@@ -169,7 +175,7 @@ Plain HTTP works in dev builds only; release builds fetch over HTTPS. `python ut
 ## Troubleshooting
 
 | Problem | What to check |
-| --- | --- |
+| -- | -- |
 | No output on the serial monitor | Baud rate 115200; the right port; some boards need the BOOT button held while uploading |
 | Upload over USB fails | Close any serial monitor holding the port; try a lower upload speed or another cable |
 | "This file isn't signed for this project." | The file is unsigned or signed by a key the running firmware doesn't trust. A release build trusts only release keys: flash a dev build over USB first |
