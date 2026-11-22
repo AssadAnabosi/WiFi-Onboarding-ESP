@@ -1,11 +1,19 @@
 name: Checks
 
+# Pushes to other branches are covered by their pull request, and tags by release.yml, so only main
+# and pull requests run here. Docs-only changes are checked by docs.yml: the jobs here still run
+# (the main ruleset requires them) but skip their steps, see "Scope".
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PYTHON_VERSION: "3.13"
@@ -17,8 +25,34 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       targets: ${{ steps.targets.outputs.targets }}
+      code: ${{ steps.scope.outputs.code }}
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      # Scope: "code" is false when the change touches only docs and Markdown (or the docs formatter's
+      # files), true otherwise, and whenever the changed files can't be listed.
+      - name: Scope
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            range="origin/$BASE_REF...HEAD"
+          else
+            range="$BEFORE...HEAD"
+          fi
+          code=true
+          if files=$(git diff --name-only "$range" 2>/dev/null) && [ -n "$files" ]; then
+            if ! grep -qvE '^docs/|\.md$|^\.mdformat\.toml$|^utils/requirements-docs\.txt$' <<< "$files"; then
+              code=false
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Changed files need the full checks: $code"
 
       - uses: actions/setup-python@v7.1.0
         with:
@@ -30,9 +64,11 @@ jobs:
         run: pip install -r utils/requirements.txt
 
       - name: Python tests
+        if: steps.scope.outputs.code == 'true'
         run: python -m unittest discover -s utils/tests -v
 
       - name: Generated files are up to date
+        if: steps.scope.outputs.code == 'true'
         run: |
           python utils/build_assets.py
           if ! git diff --exit-code -- esp32/WebAssets.h esp32/Version.h; then
@@ -41,6 +77,7 @@ jobs:
           fi
 
       - name: Target names
+        if: steps.scope.outputs.code == 'true'
         run: python utils/targets.py check
 
       - name: List targets
@@ -59,29 +96,36 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - uses: actions/setup-python@v7.1.0
+        if: needs.tools.outputs.code == 'true'
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: utils/requirements.txt
 
       - name: Install Python tools
+        if: needs.tools.outputs.code == 'true'
         run: pip install -r utils/requirements.txt
 
       - uses: arduino/setup-arduino-cli@v2.1.0
+        if: needs.tools.outputs.code == 'true'
         with:
           version: ${{ env.ARDUINO_CLI_VERSION }}
 
       - name: Cache ESP32 core and libraries
+        if: needs.tools.outputs.code == 'true'
         uses: actions/cache@v6.1.0
         with:
           path: ~/.arduino15
           key: arduino-${{ env.ARDUINO_CLI_VERSION }}-${{ hashFiles('esp32/sketch.yaml') }}
 
       - name: Prepare target
+        if: needs.tools.outputs.code == 'true'
         run: python utils/targets.py prepare ${{ matrix.target }}
 
       - name: Compile
+        if: needs.tools.outputs.code == 'true'
         run: arduino-cli compile --profile ${{ matrix.target }} --warnings default --build-path build esp32
 
       - name: Firmware size
+        if: needs.tools.outputs.code == 'true'
         run: python utils/targets.py size ${{ matrix.target }} build/esp32.ino.bin

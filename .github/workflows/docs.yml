@@ -1,0 +1,51 @@
+name: Docs
+
+# Checks the Markdown formatting of docs/ and the root *.md files. Checks.yml skips docs-only changes,
+# so this runs for them. Fix locally with the same command without --check (see CONTRIBUTING.md).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "**/*.md"
+      - ".mdformat.toml"
+      - "utils/requirements-docs.txt"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "**/*.md"
+      - ".mdformat.toml"
+      - "utils/requirements-docs.txt"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  format:
+    name: Markdown formatting
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: utils/requirements-docs.txt
+
+      - name: Install formatter
+        run: pip install -r utils/requirements-docs.txt
+
+      # THIRD_PARTY_LICENSES.md is generated, so it is left out
+      - name: Check formatting
+        run: mdformat --check --compact-tables CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs

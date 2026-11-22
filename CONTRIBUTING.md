@@ -84,7 +84,7 @@ Never add an AI co-author or AI attribution. No `Co-Authored-By:` trailer naming
 A change isn't complete until the docs match it, and they land in the same commit/PR as the code. Before opening a PR, check every row that applies:
 
 | If you change… | Update |
-| --- | --- |
+| -- | -- |
 | An HTTP route, request or response field (`esp32/src/web/`, `/api/status`) | [docs/api.md](docs/api.md) and the fake device `utils/ui_mock.js` |
 | A setting (`ConfigStorage`, `/api/settings`, `settings.html`) | [docs/api.md](docs/api.md), `SETTING_KEYS` in `web-interface/js/settings.js`, `SETTINGS` in `utils/ui_mock.js` |
 | Modules, folders or how they depend on each other | [docs/architecture.md](docs/architecture.md#code-layout) and `CLAUDE.md` |
@@ -95,6 +95,15 @@ A change isn't complete until the docs match it, and they land in the same commi
 | Supported hardware, install options or first-run steps | [docs/getting-started.md](docs/getting-started.md) and `README.md` |
 | Anything a user of the firmware or installer would notice | `CHANGELOG.md`, under `## [Unreleased]` |
 | These contribution rules | `CLAUDE.md` working conventions |
+
+Markdown is formatted with [mdformat](https://mdformat.readthedocs.io/) (pinned in `utils/requirements-docs.txt`, settings in `.mdformat.toml`); CI fails on unformatted files. Fix them with:
+
+```sh
+pip install -r utils/requirements-docs.txt
+mdformat --compact-tables CHANGELOG.md CLAUDE.md CONTRIBUTING.md README.md SECURITY.md docs
+```
+
+`THIRD_PARTY_LICENSES.md` is generated and not formatted.
 
 ## Versioning
 
