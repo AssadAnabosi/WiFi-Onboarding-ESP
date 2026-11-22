@@ -45,7 +45,7 @@ Liveness check, used by the UI to wait for a reboot. Returns board information:
 Network and firmware state:
 
 | Field | Meaning |
-| --- | --- |
+| -- | -- |
 | `softAP.enabled`, `softAP.ssid`, `softAP.ip` | The device's own access point |
 | `station.connected`, `station.ssid`, `station.ip` | The connection to a Wi-Fi network |
 | `station.attempt.state`, `station.attempt.ssid` | Last `POST /api/connect`: `none`, `connecting`, `succeeded` or `failed` |
@@ -117,7 +117,7 @@ See [ota-updates.md](ota-updates.md) for the behaviour behind these routes.
 ```
 
 | Field | Meaning |
-| --- | --- |
+| -- | -- |
 | `state` | `idle`, `receiving`, `downloading`, `installing`, `rebooting` or `failed` |
 | `source` | `upload` or `pull` |
 | `progress` | Percent written |
@@ -159,7 +159,7 @@ Boots the previous version, only when `rollback_available` in `/api/status` is t
 ## Errors
 
 | Status | When |
-| --- | --- |
+| -- | -- |
 | `400` | Missing fields, or an update file that failed its checks |
 | `403` | Cross-site protection: wrong content type, host or origin |
 | `404` | Unknown route |
@@ -171,7 +171,7 @@ Boots the previous version, only when `rollback_available` in `/api/status` is t
 Update error reasons (`error`, `check.error`):
 
 | Reason | Meaning |
-| --- | --- |
+| -- | -- |
 | `invalid_signature` | Unsigned, or signed by an untrusted key |
 | `invalid_file` | Not an update file, or a damaged one |
 | `factory_image` | A `.factory.bin` was sent |

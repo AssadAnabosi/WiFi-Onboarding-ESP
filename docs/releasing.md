@@ -11,11 +11,15 @@ A release is a pushed `vX.Y.Z` tag. CI builds and signs it and publishes a pre-r
 ## Cutting a release
 
 1. Open a pull request that:
+
    - sets `VERSION` to the new version,
    - moves the `[Unreleased]` entries into a new `## [X.Y.Z] - YYYY-MM-DD` section of `CHANGELOG.md`,
    - includes the regenerated files from `python utils/build_assets.py` (the version is written into `Version.h` and the pages).
+
 2. Merge it once CI passes.
+
 3. Run the [scratch-repo pull test](#scratch-repo-pull-test) and the [manual hardware checklist](#manual-hardware-checklist).
+
 4. Tag the merge commit and push the tag:
 
    ```sh
@@ -54,7 +58,7 @@ Two GitHub Actions workflows in `.github/workflows/`:
 Release assets:
 
 | File | Purpose |
-| --- | --- |
+| -- | -- |
 | `wifi-onboarding-<version>-<target>.ota.bin` | Signed update, for manual upload and update checks |
 | `wifi-onboarding-<version>-<target>.factory.bin` | Full 4 MB image for a first USB flash (wipes everything) |
 | `manifest.json` | Read by devices when they check for updates |
@@ -68,6 +72,7 @@ The `<project>` prefix of the file names is `PROJECT_SLUG` from `ProjectConfig.h
 Before each release, test the real GitHub path (HTTPS, the download redirect, "latest") on a scratch repository rather than the real one. The real repository never gets test releases.
 
 1. Create a scratch repository (e.g. `ota-test`) with an Environment `release` holding a **dev** key as `OTA_SIGNING_KEY`.
+
 2. On a local branch, set `OTA_GITHUB_REPO` to the scratch repository and make the dev key the only trusted key:
 
    ```sh
@@ -76,6 +81,7 @@ Before each release, test the real GitHub path (HTTPS, the download redirect, "l
    ```
 
 3. Push that branch to the scratch repository and tag two versions, e.g. `v0.1.0`, then a higher one with a visible change. Make each release public after its run.
+
 4. USB-flash the first version's `.factory.bin`, connect the device to Wi-Fi, click **Check for updates**, then **Install**. Check that the release notes show as text, the update installs, and the footer shows the new version.
 
 ## Publishing
@@ -117,16 +123,21 @@ Devices that already installed the broken version stay on it until the fixed ver
 Done once per repository (forks too; see [make-it-yours.md](make-it-yours.md)):
 
 - **Environment `release`** (Settings → Environments):
+
   - secret `OTA_SIGNING_KEY` = the full contents of the private release key `.pem`;
   - you as **required reviewer**;
   - deployments restricted to tags matching `v[0-9]*.[0-9]*.[0-9]*`.
 
   Keep no repository-level copy of the key, and keep an offline backup.
+
 - **GitHub Pages** (Settings → Pages): source **GitHub Actions**. Then in Settings → Environments → `github-pages`, add the deployment tag rule `v[0-9]*.[0-9]*.[0-9]*`: a run started by a release runs on its tag, which that environment refuses by default.
+
 - **Tag ruleset** (Settings → Rules → Rulesets): target tags matching `v[0-9]*.[0-9]*.[0-9]*`; restrict creation, update and deletion, with only you able to bypass. Only you can start a release.
+
 - **`main` ruleset** (Settings → Rules → Rulesets): target the default branch; block deletion and force pushes; require a pull request; require these status checks from GitHub Actions: `Tools and generated files` and one `Build <target>` per target in `esp32/sketch.yaml` (today `Build esp32-4mb`, `Build esp32-8mb` and `Build esp32-8mb-psram`); only you can bypass. This makes the generated-file check (which guards the unreadable `esp32/WebAssets.h`) and every build pass before anything is merged.
 
   Required checks are listed by name. **When you add, rename or remove a target, update this list too**, or the new target's build isn't required (and a removed one blocks every merge, since it never reports).
+
 - **Private vulnerability reporting** (Settings → Security): enabled, as `SECURITY.md` asks reporters to use it.
 
 ## Manual hardware checklist
