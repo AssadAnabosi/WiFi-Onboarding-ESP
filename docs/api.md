@@ -124,7 +124,7 @@ See [ota-updates.md](ota-updates.md) for the behaviour behind these routes.
 | `error`, `message` | Why the last update failed (only when `state` is `failed`) |
 | `confirming`, `confirm_in_s` | New firmware still unconfirmed, and seconds left |
 | `check.state` | `never`, `checking`, `up_to_date`, `available`, `no_update`, `needs_manual` or `failed` |
-| `check.version`, `check.notes` | The available update and its release notes (plain text, up to 4 KB) |
+| `check.version`, `check.notes` | The available update and its release notes (Markdown, up to 4 KB; the web interface renders it without ever parsing HTML) |
 | `check.dev` | With `available`: `true` when the update came from the local dev manifest (dev builds with `keygen.py --dev-manifest-url`), `false` for a GitHub release |
 | `check.error`, `check.message` | Why the last check didn't find an update |
 

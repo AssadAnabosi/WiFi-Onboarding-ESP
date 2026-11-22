@@ -61,7 +61,7 @@ Without protection, any web page open in a browser on the same network could sen
 - **Host** must be one of the device's own names: its access point IP, its network IP, `config.local`, its hostname or `<hostname>.local`. This blocks DNS-rebinding tricks.
 - **Origin**, when the browser sends one, must be the device's own pages (`http://` plus one of those names).
 
-A failed check answers `403` with the reason. Tools such as `curl` send no `Origin` and pass, which is expected: see the risks below. Release notes from the manifest are shown as plain text (never HTML), capped at 4 KB.
+A failed check answers `403` with the reason. Tools such as `curl` send no `Origin` and pass, which is expected: see the risks below. Release notes from the manifest are capped at 4 KB and shown formatted (headings, lists, `code`, bold, italic and links), built from text nodes and never parsed as HTML.
 
 ## Response headers
 

@@ -24,7 +24,7 @@ The device looks for a new release on GitHub on its own:
 A check reads the release manifest (`manifest.json`) of the latest release of the GitHub repository set in `ProjectConfig.h`. When the latest release has a newer version for this device's build target:
 
 - the Home page shows an **"Update vX.Y.Z available"** badge, linking to Settings → Firmware;
-- the Firmware card shows the version and its release notes (as plain text);
+- the Firmware card shows the version and its release notes, formatted (headings, lists, `code`, bold, italic and links; never parsed as HTML);
 - nothing installs until you click **Install**. The device then downloads the file in the background, checks its size and SHA-256 against the manifest, and runs the same checks as a manual upload.
 
 A dev build can check a local manifest instead ([local-development.md](local-development.md#testing-pulls-locally)); an update found there is reported with `check.dev: true` in `GET /api/update/status`, so a UI can tell a dev update from a release.
