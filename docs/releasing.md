@@ -82,7 +82,7 @@ Before each release, test the real GitHub path (HTTPS, the download redirect, "l
 
 3. Push that branch to the scratch repository and tag two versions, e.g. `v0.1.0`, then a higher one with a visible change. Make each release public after its run.
 
-4. USB-flash the first version's `.factory.bin`, connect the device to Wi-Fi, click **Check for updates**, then **Install**. Check that the release notes show as text, the update installs, and the footer shows the new version.
+4. USB-flash the first version's `.factory.bin`, connect the device to Wi-Fi, click **Check for updates**, then **Install**. Check that the release notes show formatted, the update installs, and the footer shows the new version.
 
 ## Publishing
 
@@ -160,7 +160,7 @@ CI covers the tools and builds. Device behaviour is checked by hand on a real ES
 - [ ] Firmware that never becomes healthy: rolls back at the deadline, rollback button hidden
 - [ ] Firmware that crashes on boot: rolls back on the first reset
 - [ ] Manual rollback: returns to the previous version, button hidden afterwards
-- [ ] Pull from the scratch repo: update found, release notes shown as text, install works
+- [ ] Pull from the scratch repo: update found, release notes shown formatted, install works
 - [ ] Pull in AP-only mode: clear "no internet" error
 - [ ] Network dropped mid-download: old firmware keeps running
 - [ ] Dev build: shows "(dev)", accepts dev-signed and release-signed files
