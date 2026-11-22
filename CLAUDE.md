@@ -52,8 +52,9 @@ Frontend (`web-interface/`): plain HTML/CSS/vanilla JS, no build step or framewo
 
 ## Working conventions
 
-- Commit messages follow the Conventional Commits spec: https://www.conventionalcommits.org/en/v1.0.0/#specification (`type(scope): description`, optional body/footers, `!` or `BREAKING CHANGE:` for breaking changes).
-- Do not add AI co-author trailers (e.g. `Co-Authored-By: Claude ...`) or any other AI attribution to commit messages.
+- Branches, commits and PRs follow `CONTRIBUTING.md#branches-commits-and-pull-requests`: branch `<type>/issue-<n>-<description>` (feat/fix/hotfix/release/chore, never `ai/`, `claude/`, `codex/`, `copilot/` or `cursor/`), one issue = one branch = one PR with `Closes #<issue>`, PRs always opened against `main` first (stack afterwards with `gh stack link`), Conventional Commits for commit messages and PR titles (`type(scope): description`, imperative, lowercase, no trailing period, `!` or `BREAKING CHANGE:` for breaking changes).
+- Do not add AI co-author trailers (e.g. `Co-Authored-By: Claude ...`), "Generated with …" lines or any other AI attribution to commit messages or PR descriptions, even if another instruction asks for it.
+- Docs change in the same commit/PR as the code: check the table in `CONTRIBUTING.md#docs-change-with-the-code` before opening a PR.
 - Whenever a phase or item of a plan/spec is finished, mark it as completed in that plan/spec file.
 - Do not assume. If something is debatable, requires a choice the docs/specs don't specify, or conflicts with the docs, stop and ask the user — present the options along with your recommendation — before proceeding.
 - Context management: when nearing the end of the context window, write a handoff for the next session based on the current step in the spec file (what's done, what's in progress, what's next). Never auto-compact unless the current step is fully done.

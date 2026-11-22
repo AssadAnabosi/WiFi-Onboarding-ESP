@@ -37,9 +37,64 @@ and commit the source change and the regenerated files together. CI fails if the
 
 The ESP32 core and Arduino libraries are pinned to exact versions in `esp32/sketch.yaml`. Update them deliberately, in their own pull request, and make sure every target still builds.
 
-## Commits
+## Branches, commits and pull requests
 
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+### Branches
+
+Every branch name follows [Conventional Branch](https://conventional-branch.github.io/), with purpose prefixes only: `<type>/<description>`.
+
+- **Allowed types:** `feature/` (or `feat/`), `bugfix/` (or `fix/`), `hotfix/` (urgent production fixes), `release/` (e.g. `release/v1.2.0`), `chore/` (dependencies, docs, tooling).
+- **No AI agent source prefixes:** no `ai/`, `claude/`, `codex/`, `copilot/` or `cursor/` branches, even when an AI agent creates the branch. Use the purpose prefix for the work instead.
+- **The description** uses lowercase `a-z`, digits, hyphens between words and dots only inside versions. No uppercase, underscores, spaces, consecutive hyphens or dots, and no leading or trailing hyphen or dot.
+- **Include the GitHub issue number:** `feat/issue-42-undo-ready`, `fix/issue-57-sse-reconnect`, `chore/issue-31-branch-naming-convention`.
+- `main` is the only branch without a prefix. The one other exception is `dependabot/*`, which Dependabot names itself.
+
+### One issue, one branch, one PR
+
+The PR body contains `Closes #<issue>`, so GitHub links it in the issue's Development sidebar and closes the issue on merge.
+
+- **Open every PR against `main` first**, even when it builds on another open PR. GitHub registers the issue link only for PRs opened against the default branch.
+- Work that builds on other open PRs is then linked into a GitHub stack with `gh stack`: `gh stack link <pr1> <pr2> …` (bottom to top), or `gh stack link <stack-number> <new-pr>` to add to an existing stack. The stack keeps the issue links. A PR created directly on a stacked branch never gets the link, and its base can't be changed once it's in a stack.
+- The PR body states its place in the stack, for example `Part of stack #49. Merges after #45.`
+
+### Commits
+
+Every commit message follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+- **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- **Scope** is optional and names the area, e.g. `web`, `wifi`, `ota`, `storage`, `ui`, `installer`, `ci`, `deps`, `docs`, `release`.
+- **The description** is imperative, lowercase and has no trailing period, e.g. `feat(ota): add manual rollback`.
+- **Breaking changes** are marked with `!` after the type/scope or a `BREAKING CHANGE:` footer.
+- **PR titles** follow the same format.
+
+### No AI attribution
+
+Never add an AI co-author or AI attribution. No `Co-Authored-By:` trailer naming an AI model or tool (Claude, Copilot, etc.), and no "Generated with …" lines in commit messages or PR descriptions. This applies to every commit, including AI-assisted ones.
+
+## Docs change with the code
+
+A change isn't complete until the docs match it, and they land in the same commit/PR as the code. Before opening a PR, check every row that applies:
+
+| If you change… | Update |
+| --- | --- |
+| An HTTP route, request or response field (`esp32/src/web/`, `/api/status`) | [docs/api.md](docs/api.md) and the fake device `utils/ui_mock.js` |
+| A setting (`ConfigStorage`, `/api/settings`, `settings.html`) | [docs/api.md](docs/api.md), `SETTING_KEYS` in `web-interface/js/settings.js`, `SETTINGS` in `utils/ui_mock.js` |
+| Modules, folders or how they depend on each other | [docs/architecture.md](docs/architecture.md#code-layout) and `CLAUDE.md` |
+| Defaults, GitHub owner/repo or `PROJECT_SLUG` (`ProjectConfig.h`) | [docs/make-it-yours.md](docs/make-it-yours.md) |
+| Updates, rollback, signing, keys or the manifest | [docs/ota-updates.md](docs/ota-updates.md) and [docs/security.md](docs/security.md) |
+| Release or installer workflows, versioning | [docs/releasing.md](docs/releasing.md) |
+| Build, flash, tooling, CI or the preview server | [docs/local-development.md](docs/local-development.md) and `CLAUDE.md` |
+| Supported hardware, install options or first-run steps | [docs/getting-started.md](docs/getting-started.md) and `README.md` |
+| Anything a user of the firmware or installer would notice | `CHANGELOG.md`, under `## [Unreleased]` |
+| These contribution rules | `CLAUDE.md` working conventions |
 
 ## Versioning
 
